@@ -1,4 +1,4 @@
-# Contributor Onboarding Guide — HEPRS on fhEVM
+# bioETH PRS — Contributor Onboarding Guide
 
 > Welcome to the project.  This document is written for a new collaborator who may be strong in one area (software engineering, cryptography, or bioinformatics) but unfamiliar with the others.  Every technical term is introduced in plain English before being used formally.  By the end you should understand what the system does, why each design choice was made, and where to touch the code.
 
@@ -249,7 +249,7 @@ Layer        Contract              Responsibility
 Data         GenomicRegistry       Stores IPFS URIs + access control per sample
 Research     ModelMarketplace      Lists GWAS weight vectors (public or private)
 Logic        PRSComputeEngine      Chunked FHE dot product over N SNPs
-Logic        HEPRS                 Standalone variant (embeds models, no Marketplace)
+Logic        BioETHPRS (in `contracts/HEPRS.sol`)    Standalone variant (embeds models, no Marketplace)
 Output       ResultOracle          DP noise injection + Low/Med/High classification
 Library      TFHE.sol              Thin wrapper around Zama FHE library
 Mock         contracts/fhevm/      Plaintext stub for local Hardhat tests
@@ -380,9 +380,9 @@ If a researcher is fine with their weights being public (open science model), th
 
 ---
 
-### 6.3 PRSComputeEngine (and HEPRS standalone)
+### 6.3 PRSComputeEngine (and BioETHPRS standalone)
 
-**File:** `contracts/PRSComputeEngine.sol` / `contracts/HEPRS.sol`
+**File:** `contracts/PRSComputeEngine.sol` / `contracts/HEPRS.sol` (contains the `BioETHPRS` contract)
 
 **Job:** The core compute layer.  Executes the chunked dot product.
 
@@ -409,9 +409,9 @@ computeChunk()  → loop from nextIndex to min(nextIndex+chunkSize, N)
 finalize()      → allows requester to read partialSum, returns handle
 ```
 
-**HEPRS vs. PRSComputeEngine:**
+**BioETHPRS vs. PRSComputeEngine:**
 
-`HEPRS.sol` is a self-contained version that stores the model weights internally (via `uploadModel`).  It was written first (prototype) and is tested in `heprs_test.ts`.
+`HEPRS.sol` contains the `BioETHPRS` contract, a self-contained version that stores the model weights internally (via `uploadModel`). It was written first (prototype) and is tested in `bioeth_prs_test.ts`.
 
 `PRSComputeEngine.sol` is the production version that reads models from `ModelMarketplace`, so models are decoupled from the compute engine.  This is what `registry_marketplace_oracle_test.ts` uses.
 
@@ -624,7 +624,7 @@ You should see `Compiled N Solidity files successfully` with no errors.
 The tests are gated by `FHEVM=1`.  To see what they do without a node, read the test files directly — they are clear TypeScript.
 
 ```
-test/heprs_test.ts                          — unit test for HEPRS standalone
+   test/bioeth_prs_test.ts                     — unit test for BioETHPRS standalone
 test/registry_marketplace_oracle_test.ts    — integration test
 test/utils/fhevm.ts                         — fhevmjs helpers
 ```
@@ -652,7 +652,7 @@ This is expected.  The guard is intentional — the mock FHE does not simulate r
 
 ### What the tests actually assert
 
-`heprs_test.ts`:
+`bioeth_prs_test.ts`:
 - Uploads weights `[2, 3, 4]` and SNPs `[5, 6, 7]`.
 - Expected PRS = `2×5 + 3×6 + 4×7 = 10 + 18 + 28 = 56`.
 - After two `computeChunk` calls (chunk size 2), asserts `finalScore !== ZeroHash` — meaning the contract returned a non-zero encrypted handle.

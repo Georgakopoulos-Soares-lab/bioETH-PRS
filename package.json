@@ -1,8 +1,8 @@
 {
-  "name": "fhevm-gwas-prs",
+  "name": "bioeth-prs",
   "version": "0.1.0",
   "private": true,
-  "description": "High-performance confidential GWAS PRS prototype on fhEVM using Zama FHEVM bindings.",
+  "description": "bioETH PRS — High-performance confidential GWAS PRS prototype on Ethereum/fhEVM.",
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",

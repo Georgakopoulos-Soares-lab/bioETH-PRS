@@ -4,9 +4,9 @@ pragma solidity ^0.8.24;
 import "encrypted-types/EncryptedTypes.sol";
 import "./TFHE.sol";
 
-/// @title HEPRS - Homomorphic Encryption Polygenic Risk Scoring (Zama FHEVM)
-/// @notice Prototype contract mirroring the HEPRS paper adaptation with chunked PRS computation.
-contract HEPRS {
+/// @title BioETHPRS - bioETH PRS Homomorphic Encryption Polygenic Risk Scoring (Zama FHEVM)
+/// @notice Prototype contract (our bioETH PRS implementation) with chunked PRS computation.
+contract BioETHPRS {
     using TFHE for euint64;
 
     struct Model {

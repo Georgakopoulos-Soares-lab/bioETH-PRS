@@ -1,4 +1,4 @@
-# HEPRS — Confidential Polygenic Risk Scoring on fhEVM
+# bioETH PRS — Confidential Polygenic Risk Scoring on Ethereum
 
 > **High-Performance Confidential GWAS: Optimizing Polygenic Risk Scoring via fhEVM**
 
@@ -70,14 +70,14 @@ contracts/
   GenomicRegistry.sol        Data layer — sample URIs + ACL
   ModelMarketplace.sol       Public & private GWAS model listing
   PRSComputeEngine.sol       Marketplace-aware chunked PRS engine
-  HEPRS.sol                  Standalone chunked PRS engine
+  HEPRS.sol (contains `BioETHPRS`)   Standalone chunked PRS engine
   ResultOracle.sol           DP noise + categorical classification
   TFHE.sol                   Thin wrapper forwarding to Zama FHE
   fhevm/
     FHE.sol                  Local plaintext mock of FHE for Hardhat
     EncryptedTypes.sol       UDVTs (ebool, euint8, euint64)
 test/
-  heprs_test.ts              Chunked PRS unit test
+  bioeth_prs_test.ts         Chunked PRS unit test
   registry_marketplace_oracle_test.ts   End-to-end integration test
   utils/fhevm.ts             fhevmjs helpers (encrypt64Array, getInstance)
 scripts/
@@ -210,7 +210,7 @@ npx hardhat test
 
 | File | What it covers |
 |------|---------------|
-| `test/heprs_test.ts` | Uploads a 3-weight model, starts a job with chunk size 2, computes two chunks, finalises, and reads the encrypted result. |
+| `test/bioeth_prs_test.ts` | Uploads a 3-weight model, starts a job with chunk size 2, computes two chunks, finalises, and reads the encrypted result. |
 | `test/registry_marketplace_oracle_test.ts` | Registers a sample, grants access, lists a public model, runs PRS via the compute engine, and classifies the result through the oracle. |
 
 ---

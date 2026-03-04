@@ -1,4 +1,4 @@
-# Project Context: High-Performance Confidential GWAS via fhEVM
+# bioETH PRS — High-Performance Confidential GWAS via fhEVM
 
 ## 1. Project Overview & Research Gap
 
@@ -52,7 +52,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
     *   An on-chain state machine accumulates the encrypted `partialSum` across blocks.
 *   Reads weights dynamically from `ModelMarketplace` and automatically uses either `mul` (private) or `mulPlain` (public) per model type.
 *   **Functions:** `startPRS(modelId, encryptedSnps, chunkSize)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
-*   A standalone variant `HEPRS.sol` also exists; it embeds models directly instead of referencing the marketplace.
+*   A standalone variant `HEPRS.sol` (contains the `BioETHPRS` contract) also exists; it embeds models directly instead of referencing the marketplace.
 
 ### D. Contract 4: Result Oracle — `ResultOracle.sol` (Output Layer)
 
@@ -91,7 +91,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 
 | File | Purpose |
 |------|---------|
-| `contracts/HEPRS.sol` | Standalone chunked dot-product contract (`uploadModel`, `startPRS`, `computeChunk`, `finalize`). |
+| `contracts/HEPRS.sol` (contains `BioETHPRS`) | Standalone chunked dot-product contract (`uploadModel`, `startPRS`, `computeChunk`, `finalize`). |
 | `contracts/GenomicRegistry.sol` | URI-based SNP sample registry with per-address ACL. |
 | `contracts/ModelMarketplace.sol` | Public and private GWAS model listing. |
 | `contracts/PRSComputeEngine.sol` | Marketplace-aware chunked PRS engine. |
@@ -99,7 +99,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 | `contracts/TFHE.sol` | Wrapper library forwarding to Zama `FHE`. |
 | `contracts/fhevm/FHE.sol` | Local plaintext mock of FHE for Hardhat simulations. |
 | `contracts/fhevm/EncryptedTypes.sol` | UDVTs (`ebool`, `euint8`, `euint64`). |
-| `test/heprs_test.ts` | Chunked PRS test (requires `FHEVM=1`). |
+| `test/bioeth_prs_test.ts` | Chunked PRS test (requires `FHEVM=1`). |
 | `test/registry_marketplace_oracle_test.ts` | End-to-end integration test across all four contracts. |
 | `test/utils/fhevm.ts` | `fhevmjs` helper: `getFhevmInstance()`, `encrypt64Array()`. |
 | `scripts/gas_profile.ts` | Deploys marketplace + engine, runs multi-SNP gas profiling. |
