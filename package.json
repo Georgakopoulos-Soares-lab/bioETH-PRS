@@ -1,0 +1,21 @@
+{
+  "name": "fhevm-gwas-prs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "High-performance confidential GWAS PRS prototype on fhEVM using Zama FHEVM bindings.",
+  "scripts": {
+    "build": "hardhat compile",
+    "test": "hardhat test",
+    "profile:gas": "hardhat run scripts/gas_profile.ts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "hardhat": "^2.22.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "encrypted-types": "^0.0.4",
+    "fhevmjs": "^0.6.2"
+  }
+}
