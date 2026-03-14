@@ -1,0 +1,52 @@
+# bioETH PRS — Project Guidelines
+
+## Identity
+
+Confidential on-chain Polygenic Risk Scoring (PRS) via fhEVM. Computes encrypted dot-products of genotype vectors × GWAS weights without exposing raw DNA.
+
+**Reference paper:** Knight et al., 2026, "Homomorphic encryption enables privacy preserving polygenic risk scores" (HEPRS). PDF at `docs/PIIS2667237525003078.pdf`. Original protocol uses CKKS; this project adapts it to TFHE + smart contracts.
+
+## Stack
+
+- **Solidity 0.8.24** (optimizer 200 runs) — Hardhat toolbox
+- **TFHE integers** via Zama fhEVM — types: `ebool`, `euint8`, `euint64`
+- **TypeScript** tests + scripts (ts-node, ethers v6)
+- **fhevmjs** client library for encryption/decryption
+
+## Build & Test
+
+```sh
+npm run build          # hardhat compile
+npm run test           # hardhat test (mock FHE, no FHEVM node needed for basic tests)
+FHEVM=1 npm run test   # full fhEVM node required
+npm run profile:gas    # gas profiling script
+```
+
+## Architecture (4 contracts + 1 standalone)
+
+| Contract | Role |
+|---|---|
+| `GenomicRegistry` | URI-based encrypted SNP sample registry + per-address ACL |
+| `ModelMarketplace` | Public (`uint64[]`) and private (`euint64[]`) GWAS model listing |
+| `PRSComputeEngine` | Marketplace-aware chunked dot-product (MapReduce pattern) |
+| `ResultOracle` | DP noise injection + encrypted categorical classification (Low/Med/High) |
+| `BioETHPRS` (HEPRS.sol) | Standalone variant — embeds model directly, no marketplace |
+
+## Key Conventions
+
+- **Mock vs Real FHE**: `contracts/fhevm/FHE.sol` is a plaintext mock for Hardhat. Real FHE resolves via `remappings.txt` to `vendor/fhevm/library-solidity/lib/FHE.sol`. Never modify the vendor directory.
+- **TFHE.sol wrapper**: Contracts import `./TFHE.sol` which forwards to `FHE.sol`. Use `TFHE.asEuint64()`, `.add()`, `.mul()`, `.mulPlain()`, `.allow()`, `.makePubliclyDecryptable()`.
+- **Chunked computation**: FHE dot-products exceed block gas limits. All PRS jobs use `startPRS → computeChunk (×N) → finalize` pattern with on-chain state machine accumulating `partialSum`.
+- **Quantization**: Float weights are scaled to `uint64` integers (e.g., `0.0045 × 10^8 = 450000`). Accumulation of N terms must stay within `2^64`.
+- **ACL**: `FHE.allow(handle, address)` grants decrypt rights. `FHE.makePubliclyDecryptable(handle)` for public outputs like risk category.
+
+## Documentation
+
+| Doc | Purpose |
+|---|---|
+| `docs/INSTRUCTIONS.md` | Architecture, roadmap, known edge cases, threat model |
+| `ONBOARDING.md` | Full educational guide — bio, crypto, systems background |
+| `docs/cheatsheet.md` | Quick concept reference |
+| `docs/e2e-example-short.md` | End-to-end scenario walkthrough |
+| `docs/e2e-example-long.md` | Detailed component-by-component flow |
+| `docs/PIIS2667237525003078.pdf` | HEPRS reference paper |

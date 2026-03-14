@@ -59,7 +59,7 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 | **HEPRS** | Standalone variant that embeds models directly (useful for quick experiments). |
 | **ResultOracle** | Adds encrypted DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
 
-For the full theory, edge cases, and roadmap, see [INSTRUCTIONS.md](INSTRUCTIONS.md).
+For the full theory, edge cases, and roadmap, see [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md).
 
 ---
 
@@ -185,7 +185,7 @@ cd vendor/fhevm
 docker compose up -d
 ```
 
-2. **Export the required environment variables:**
+1. **Export the required environment variables:**
 
 ```bash
 export FHEVM=1
@@ -198,7 +198,7 @@ export FHEVM_CHAIN_ID=9000           # default for local fhEVM
 
 > **Tip:** Create a `.env` file (git-ignored) and source it: `source .env`
 
-3. **Run the test suite:**
+1. **Run the test suite:**
 
 ```bash
 npm test

@@ -84,6 +84,7 @@ The formula is simply a **dot product** (weighted sum):
 $$\text{PRS} = \sum_{i=1}^{N} w_i \cdot g_i$$
 
 where:
+
 - $w_i$ is the GWAS weight for SNP $i$ (from the researcher's model)
 - $g_i$ is the person's dosage (0, 1, or 2) at SNP $i$
 - $N$ is the number of SNPs in the model
@@ -95,6 +96,7 @@ That is it.  **PRS = dot product of weight vector and genotype vector.**  This i
 ### 2.4 Why Privacy Matters for Genomic Data
 
 Genomic data is uniquely sensitive:
+
 - It **never changes** — you cannot revoke your genome like a password.
 - It **identifies you** even in "anonymised" datasets (studies have re-identified individuals from 30–100 SNPs).
 - It reveals information about **relatives** who never consented.
@@ -256,6 +258,7 @@ Mock         contracts/fhevm/      Plaintext stub for local Hardhat tests
 ```
 
 The layer separation matters because:
+
 - **Separation of concerns:** Researchers can update models without touching the compute engine.
 - **Gas isolation:** The Registry and Marketplace are cheap (simple storage).  The Compute Engine is expensive (FHE ops); users only trigger it when needed.
 - **Composability:** A different application could use the Marketplace without the Compute Engine.
@@ -346,7 +349,8 @@ mapping(uint256 => mapping(address => bool)) private access;
 - `getSample(sampleId)` — Returns the URI and owner.  Reverts if the caller neither owns the sample nor has been granted access.
 
 **What it does NOT do (yet):**
-- The `PRSComputeEngine` does **not** call `GenomicRegistry.getSample()` to verify the client has a registered sample before accepting encrypted SNPs.  This is a known gap — see INSTRUCTIONS.md §7-A.
+
+- The `PRSComputeEngine` does **not** call `GenomicRegistry.getSample()` to verify the client has a registered sample before accepting encrypted SNPs.  This is a known gap — see `docs/INSTRUCTIONS.md` §7-A.
 
 **Mental model:** Think of it as a decentralised file-sharing service where access control is enforced by the blockchain.  The actual file is off-chain (encrypted on IPFS); only the metadata is on-chain.
 
@@ -368,12 +372,14 @@ Two listing modes:
 **Key insight — mulPlain vs. mul:**
 
 In TFHE, there are two multiplication operations:
+
 - **Ciphertext × Ciphertext (`mul`):** Both operands are encrypted.  Requires a full key-switching operation.  Expensive.
 - **Ciphertext × Plaintext (`mulPlain`):** One operand is a known plaintext number.  Much cheaper because key-switching is not needed.
 
 If a researcher is fine with their weights being public (open science model), they list them as `uint64[]`.  The `PRSComputeEngine` then uses `mulPlain(snp, weight)` for each term — roughly 60% cheaper per operation.
 
 **What it does NOT do (yet):**
+
 - No fee / payment mechanism.
 - No model versioning or deprecation.
 - No statistical quality attestation.
@@ -653,12 +659,14 @@ This is expected.  The guard is intentional — the mock FHE does not simulate r
 ### What the tests actually assert
 
 `bioeth_prs_test.ts`:
+
 - Uploads weights `[2, 3, 4]` and SNPs `[5, 6, 7]`.
 - Expected PRS = `2×5 + 3×6 + 4×7 = 10 + 18 + 28 = 56`.
 - After two `computeChunk` calls (chunk size 2), asserts `finalScore !== ZeroHash` — meaning the contract returned a non-zero encrypted handle.
 - Does not assert the numeric value (to do so requires gateway decryption).
 
 `registry_marketplace_oracle_test.ts`:
+
 - End-to-end: registers a sample, grants access to a researcher address, lists a public 3-weight model, runs PRS on SNPs `[4, 5, 6]` with chunk size 2.
 - Expected PRS = `1×4 + 2×5 + 3×6 = 4 + 10 + 18 = 32`.
 - Classifies with zero noise, `lowThreshold=10`, `highThreshold=20` → should be High (category 2).
