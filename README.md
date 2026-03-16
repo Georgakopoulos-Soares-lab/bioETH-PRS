@@ -94,10 +94,9 @@ vendor/
 |------|---------|-------|
 | **Node.js** | ≥ 20 LTS | `node -v` |
 | **npm** (or **yarn / pnpm**) | ≥ 9 | Ships with Node.js |
-| **Docker** | ≥ 24 | Only needed for a local fhEVM node |
-| **Git** | any | For cloning `vendor/fhevm` |
+| **Git** | any | For cloning the repo |
 
-> **Apple Silicon note:** Make sure Docker is running with Rosetta or native ARM images. Zama's fhEVM Docker images may require `--platform linux/amd64`.
+> **No Docker needed** for mock-mode development. All 13 tests run entirely in Hardhat's in-process EVM with a plaintext FHE mock — no external node required.
 
 ---
 
@@ -118,28 +117,15 @@ npm install
 
 This pulls in `hardhat`, `@nomicfoundation/hardhat-toolbox`, `encrypted-types`, `fhevmjs`, and TypeScript tooling.
 
-### 3. Clone the Zama fhEVM vendor library (if not already present)
+### 3. Verify remappings
 
-```bash
-git clone https://github.com/zama-ai/fhevm vendor/fhevm
-```
-
-Make sure the following path exists after cloning:
+`remappings.txt` maps `fhevm/` to the local mock for Hardhat builds:
 
 ```
-vendor/fhevm/library-solidity/lib/FHE.sol
+fhevm/=contracts/fhevm/
 ```
 
-### 4. Verify remappings
-
-`remappings.txt` should contain:
-
-```
-encrypted-types/=node_modules/encrypted-types/
-fhevm/=vendor/fhevm/library-solidity/lib/
-```
-
-Hardhat does not natively consume `remappings.txt`, but IDE tooling (e.g., Solidity extension in VS Code) uses it for resolution. Actual path resolution is handled by the `encrypted-types` npm package and the `contracts/fhevm/` local mock during Hardhat compilation.
+Hardhat does not natively consume `remappings.txt`, but IDE tooling (e.g., the Solidity extension in VS Code) uses it for import resolution. For real fhEVM node deployment, change this mapping to point at the Zama `library-solidity` path.
 
 ---
 
@@ -160,51 +146,24 @@ Expected output: ABI + bytecode in `artifacts/contracts/`.
 | Error | Fix |
 |-------|-----|
 | `Source not found: encrypted-types/…` | Run `npm install` — the `encrypted-types` package must be in `node_modules`. |
-| `Source not found: vendor/fhevm/…` | Clone the Zama repo into `vendor/fhevm` (see step 3 above). |
+| `Source not found: contracts/fhevm/…` | The local mock is missing — ensure `contracts/fhevm/FHE.sol` and `contracts/fhevm/EncryptedTypes.sol` exist. |
 | Solidity version mismatch | Ensure `0.8.24` in `hardhat.config.ts` and all `.sol` files. |
 
 ---
 
 ## Running Tests
 
-### Local Hardhat simulation (mock FHE — no Docker needed)
+### Mock FHE — Hardhat in-process (no Docker, no external node)
 
-The tests guard behind `FHEVM=1`. To run them against the **local plaintext mock** you need to either:
-
-1. **Remove or skip the guard** in the test files, or
-2. Set the env var — but note that `fhevmjs` calls will fail without a real node.
-
-For quick Hardhat-only simulation you can create a wrapper that bypasses the `fhevmjs` path. This is documented in the test files as a TODO.
-
-### Full fhEVM tests (Docker node required)
-
-1. **Start the local fhEVM node** (see Zama's docs for the Docker Compose setup):
-
-```bash
-cd vendor/fhevm
-docker compose up -d
-```
-
-1. **Export the required environment variables:**
-
-```bash
-export FHEVM=1
-export FHEVM_NETWORK_URL=http://localhost:8545
-export FHEVM_GATEWAY_URL=http://localhost:7077
-export FHEVM_ACL_ADDRESS=0x...       # from the fhEVM deployment output
-export FHEVM_KMS_ADDRESS=0x...       # from the fhEVM deployment output
-export FHEVM_CHAIN_ID=9000           # default for local fhEVM
-```
-
-> **Tip:** Create a `.env` file (git-ignored) and source it: `source .env`
-
-1. **Run the test suite:**
+All tests use a **plaintext FHE mock** (`contracts/fhevm/FHE.sol`) where `euint64` is just `uint64`. There is no `FHEVM=1` guard; tests run directly:
 
 ```bash
 npm test
 # or:
 npx hardhat test
 ```
+
+Expected output: **13 passing**.
 
 ### Test files
 
@@ -213,6 +172,16 @@ npx hardhat test
 | `test/bioeth_prs_test.ts` | Uploads a 3-weight model, starts a job with chunk size 2, computes two chunks, finalises, and reads the encrypted result. |
 | `test/registry_marketplace_oracle_test.ts` | Registers a sample, grants access, lists a public model, runs PRS via the compute engine, and classifies the result through the oracle. |
 
+### Real FHE — Sepolia testnet
+
+Zama's local Docker node approach has been discontinued. Real FHE encryption is only available on the **Sepolia testnet** via Zama's `@fhevm/hardhat-plugin` and relayer infrastructure. Migrating to Sepolia requires:
+
+1. Refactoring contracts to use `@fhevm/solidity` instead of the local mock.
+2. Sepolia ETH (free from a faucet) and an Infura/Alchemy RPC key.
+3. Deploying through `@fhevm/hardhat-plugin`.
+
+The mock mode covers 100% of contract logic. Real-FHE migration is a separate milestone.
+
 ---
 
 ## Gas Profiling
@@ -220,7 +189,6 @@ npx hardhat test
 The profiling script deploys `ModelMarketplace` + `PRSComputeEngine` and iterates over several SNP counts measuring gas per phase (model listing, job start, chunk computation).
 
 ```bash
-# Requires FHEVM=1 + a running fhEVM node
 npm run profile:gas
 # or:
 npx hardhat run scripts/gas_profile.ts
@@ -281,12 +249,11 @@ npx hardhat test --network fhevm
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
-| `Set FHEVM=1 …` error in tests | The env guard in `before()` fired | Export `FHEVM=1` or remove the guard for mock-only runs. |
-| `Missing required env var: FHEVM_NETWORK_URL` | `fhevmjs` helper needs connection info | Set all `FHEVM_*` env vars (see above). |
-| Docker container crashes on Apple Silicon | Image is x86-only | Run with `--platform linux/amd64` or use Rosetta. |
-| `out of gas` during `computeChunk` | Chunk size too large for the chain's gas limit | Lower `chunkSize` in `startPRS()` or increase `blockGasLimit` for Hardhat. |
-| Compilation OK but test reverts with unexpected value | Mock FHE (plaintext math) behaves differently from real TFHE | Run against a real fhEVM Docker node to validate. |
+| `Error: Debug Failure. Output generation failed` | ts-node incompatible with TypeScript ≥ 5.8 | Ensure `tsconfig.json` has `"ts-node": { "swc": true }` and `@swc/core` is installed (`npm install --save-dev @swc/core`). |
+| `Module '"hardhat"' has no exported member 'ethers'` | Wrong `module`/`moduleResolution` in tsconfig | Set `"module": "CommonJS"` and `"moduleResolution": "node"` in `tsconfig.json`. |
+| `out of gas` during `computeChunk` | Chunk size too large for the chain's gas limit | Lower `chunkSize` in `startPRS()` or increase `blockGasLimit` in `hardhat.config.ts`. |
 | `typechain-types` out of date | Generated types stale after contract edits | Run `npx hardhat compile` to regenerate. |
+| `Source not found: contracts/fhevm/…` | Local mock missing | Ensure `contracts/fhevm/FHE.sol` and `contracts/fhevm/EncryptedTypes.sol` exist. |
 
 ---
 

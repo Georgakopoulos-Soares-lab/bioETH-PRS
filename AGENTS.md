@@ -34,7 +34,7 @@ npm run profile:gas    # gas profiling script
 
 ## Key Conventions
 
-- **Mock vs Real FHE**: `contracts/fhevm/FHE.sol` is a plaintext mock for Hardhat. Real FHE resolves via `remappings.txt` to `vendor/fhevm/library-solidity/lib/FHE.sol`. Never modify the vendor directory.
+- **Mock vs Real FHE**: `contracts/fhevm/FHE.sol` is a plaintext mock for Hardhat — no vendor clone needed for local builds. Real fhEVM node deployment requires pointing `remappings.txt` at `vendor/fhevm/library-solidity/lib/FHE.sol` (a separate Zama sub-repo). Never modify the vendor directory.
 - **TFHE.sol wrapper**: Contracts import `./TFHE.sol` which forwards to `FHE.sol`. Use `TFHE.asEuint64()`, `.add()`, `.mul()`, `.mulPlain()`, `.allow()`, `.makePubliclyDecryptable()`.
 - **Chunked computation**: FHE dot-products exceed block gas limits. All PRS jobs use `startPRS → computeChunk (×N) → finalize` pattern with on-chain state machine accumulating `partialSum`.
 - **Quantization**: Float weights are scaled to `uint64` integers (e.g., `0.0045 × 10^8 = 450000`). Accumulation of N terms must stay within `2^64`.

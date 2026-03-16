@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "encrypted-types/EncryptedTypes.sol";
-import "../vendor/fhevm/library-solidity/lib/FHE.sol";
+import "./fhevm/FHE.sol";
 
 /// @title ResultOracle - Applies DP noise and returns categorical PRS risk.
 contract ResultOracle {
@@ -16,7 +15,11 @@ contract ResultOracle {
         High
     }
 
-    event ResultClassified(address indexed requester, euint64 noisyScore, euint8 category);
+    event ResultClassified(
+        address indexed requester,
+        euint64 noisyScore,
+        euint8 category
+    );
 
     function classify(
         euint64 encryptedScore,
@@ -36,7 +39,11 @@ contract ResultOracle {
         euint8 mediumCat = FHE.asEuint8(uint8(RiskCategory.Medium));
         euint8 highCat = FHE.asEuint8(uint8(RiskCategory.High));
 
-        euint8 category = FHE.select(isLow, lowCat, FHE.select(isMedium, mediumCat, highCat));
+        euint8 category = FHE.select(
+            isLow,
+            lowCat,
+            FHE.select(isMedium, mediumCat, highCat)
+        );
         category = FHE.makePubliclyDecryptable(category);
 
         emit ResultClassified(msg.sender, noisy, category);

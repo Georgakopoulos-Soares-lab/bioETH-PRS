@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "encrypted-types/EncryptedTypes.sol";
 import "./TFHE.sol";
 
 /// @title BioETHPRS - bioETH PRS Homomorphic Encryption Polygenic Risk Scoring (Zama FHEVM)
@@ -28,12 +27,33 @@ contract BioETHPRS {
     Model[] private models;
     Job[] private jobs;
 
-    event ModelUploaded(uint256 indexed modelId, address indexed owner, bool isPrivate);
-    event JobCreated(uint256 indexed jobId, uint256 indexed modelId, address indexed requester);
-    event ChunkComputed(uint256 indexed jobId, uint256 newNextIndex, bool complete);
+    event ModelUploaded(
+        uint256 indexed modelId,
+        address indexed owner,
+        bool isPrivate
+    );
+    event JobCreated(
+        uint256 indexed jobId,
+        uint256 indexed modelId,
+        address indexed requester
+    );
+    event ChunkComputed(
+        uint256 indexed jobId,
+        uint256 newNextIndex,
+        bool complete
+    );
 
-    function uploadModel(euint64[] calldata encryptedWeights, bool isPrivate) external returns (uint256) {
-        models.push(Model({ weights: encryptedWeights, owner: msg.sender, isPrivate: isPrivate }));
+    function uploadModel(
+        euint64[] calldata encryptedWeights,
+        bool isPrivate
+    ) external returns (uint256) {
+        models.push(
+            Model({
+                weights: encryptedWeights,
+                owner: msg.sender,
+                isPrivate: isPrivate
+            })
+        );
         uint256 modelId = models.length - 1;
         emit ModelUploaded(modelId, msg.sender, isPrivate);
         return modelId;

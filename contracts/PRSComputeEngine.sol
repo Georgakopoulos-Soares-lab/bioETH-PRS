@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "encrypted-types/EncryptedTypes.sol";
 import "./TFHE.sol";
 import "./ModelMarketplace.sol";
 
@@ -22,14 +21,26 @@ contract PRSComputeEngine {
     ModelMarketplace public marketplace;
     Job[] private jobs;
 
-    event JobCreated(uint256 indexed jobId, uint256 indexed modelId, address indexed requester);
-    event ChunkComputed(uint256 indexed jobId, uint256 newNextIndex, bool complete);
+    event JobCreated(
+        uint256 indexed jobId,
+        uint256 indexed modelId,
+        address indexed requester
+    );
+    event ChunkComputed(
+        uint256 indexed jobId,
+        uint256 newNextIndex,
+        bool complete
+    );
 
     constructor(address marketplaceAddress) {
         marketplace = ModelMarketplace(marketplaceAddress);
     }
 
-    function startPRS(uint256 modelId, euint64[] calldata encryptedSnps, uint256 chunkSize) external returns (uint256) {
+    function startPRS(
+        uint256 modelId,
+        euint64[] calldata encryptedSnps,
+        uint256 chunkSize
+    ) external returns (uint256) {
         require(chunkSize > 0, "Chunk size must be > 0");
         require(modelId < marketplace.modelCount(), "Invalid model");
 
@@ -54,9 +65,17 @@ contract PRSComputeEngine {
         Job storage job = jobs[jobId];
         require(!job.complete, "Job already complete");
 
-        (uint64[] memory publicWeights, euint64[] memory encryptedWeights, bool isPrivate,) = marketplace.getModel(job.modelId);
+        (
+            uint64[] memory publicWeights,
+            euint64[] memory encryptedWeights,
+            bool isPrivate,
+
+        ) = marketplace.getModel(job.modelId);
         if (isPrivate) {
-            require(encryptedWeights.length == job.snps.length, "Length mismatch");
+            require(
+                encryptedWeights.length == job.snps.length,
+                "Length mismatch"
+            );
         } else {
             require(publicWeights.length == job.snps.length, "Length mismatch");
         }
