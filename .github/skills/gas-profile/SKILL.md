@@ -14,8 +14,10 @@ description: "Run gas profiling for PRS computation, analyze gas costs per SNP c
 
 ## Prerequisites
 
-- A running fhEVM node (Docker) with `FHEVM=1` environment variable set
-- fhevmjs env vars configured: `FHEVM_NETWORK_URL`, `FHEVM_GATEWAY_URL`, `FHEVM_ACL_ADDRESS`, `FHEVM_KMS_ADDRESS`, `FHEVM_CHAIN_ID`
+- Node.js 20+ and `npm install` done
+- Contracts compiled (`npm run build`)
+- The script runs against the Hardhat mock by default — no external node needed for mock-mode profiling
+- For real-FHE gas figures: Sepolia testnet access (see README)
 
 ## Procedure
 
@@ -23,10 +25,10 @@ description: "Run gas profiling for PRS computation, analyze gas costs per SNP c
 
 ```sh
 # Default: SNP counts [100, 300, 600], chunk size 100, gas price 30 gwei
-FHEVM=1 npx hardhat run scripts/gas_profile.ts
+npx hardhat run scripts/gas_profile.ts
 
 # Custom parameters via environment variables
-FHEVM=1 SNP_COUNTS="100,300,600,1000" CHUNK_SIZE=50 GAS_PRICE_GWEI=30 npx hardhat run scripts/gas_profile.ts
+SNP_COUNTS="100,300,600,1000" CHUNK_SIZE=50 GAS_PRICE_GWEI=30 npx hardhat run scripts/gas_profile.ts
 ```
 
 Environment variables accepted by [gas_profile.ts](../../scripts/gas_profile.ts):

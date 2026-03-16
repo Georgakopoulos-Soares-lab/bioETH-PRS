@@ -10,19 +10,13 @@ applyTo: "test/**"
 - TypeScript with ts-node
 - fhevmjs for encrypted input creation
 
-## FHEVM Guard
+## Mock vs Real FHE
 
-Tests requiring a live fhEVM node must include this guard in `before()`:
+All current tests run against the **plaintext mock** (`contracts/fhevm/FHE.sol`). In mock mode `euint64` is just `uint64`, so pass plain `bigint` values and assert exact numeric results.
 
-```typescript
-before(function () {
-  if (process.env.FHEVM !== "1") {
-    throw new Error("Set FHEVM=1 and configure fhevmjs env vars to run this test against a local fhEVM node.");
-  }
-});
-```
+Tests for real FHE (Sepolia) would require `encrypt64Array` from `test/utils/fhevm.ts` + env vars. There is no local Docker node — Zama deprecated it.
 
-## Encrypting Values
+## Encrypting Values (Sepolia / real FHE only)
 
 Use the helper at `test/utils/fhevm.ts`:
 
@@ -62,4 +56,5 @@ const address = await instance.getAddress();
 4. Encrypt SNP values with `encrypt64Array`
 5. `startPRS` → multiple `computeChunk` → `finalize`
 6. Pass encrypted score + noise to `ResultOracle.classify`
-7. Assert handles are non-zero (`expect(handle).to.not.equal(ethers.ZeroHash)`)
+7. In mock mode, assert **exact bigint values**: `expect(score).to.equal(56n)`, `expect(category).to.equal(2n)`
+8. In real-FHE mode, assert handles are non-zero (`expect(handle).to.not.equal(ethers.ZeroHash)`)

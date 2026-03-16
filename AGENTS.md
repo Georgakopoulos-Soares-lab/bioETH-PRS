@@ -17,10 +17,11 @@ Confidential on-chain Polygenic Risk Scoring (PRS) via fhEVM. Computes encrypted
 
 ```sh
 npm run build          # hardhat compile
-npm run test           # hardhat test (mock FHE, no FHEVM node needed for basic tests)
-FHEVM=1 npm run test   # full fhEVM node required
-npm run profile:gas    # gas profiling script
+npm run test           # hardhat test (mock FHE) — 13 tests, no external node needed
+npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 ```
+
+> Real FHE (actual ciphertext encryption) requires Sepolia testnet via `@fhevm/hardhat-plugin`. There is no local Docker node — Zama deprecated that approach.
 
 ## Architecture (4 contracts + 1 standalone)
 

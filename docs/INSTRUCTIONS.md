@@ -16,12 +16,12 @@
 
 **Reference Paper:** *Knight et al., 2026, "Homomorphic encryption enables privacy preserving polygenic risk scores" (HEPRS).*
 
-*   **Original Protocol:** A centralized 3-party system (Client, Modeler, Evaluator) using CKKS (Floating-Point FHE).
-*   **Our Blockchain Adaptation:**
-    *   **Evaluator:** Replaced by a **Smart Contract** (Trustless Evaluator).
-    *   **Encryption:** Replaced CKKS with **TFHE** (Integer-based FHE) to function with EVM precompiles.
-    *   **Math:** Converted floating-point weights to **Fixed-Point Integers** (Quantization).
-    *   **Trust Model:** Solved the "Modeler-Evaluator trust" vulnerability in the paper by using immutable smart contract code.
+* **Original Protocol:** A centralized 3-party system (Client, Modeler, Evaluator) using CKKS (Floating-Point FHE).
+* **Our Blockchain Adaptation:**
+  * **Evaluator:** Replaced by a **Smart Contract** (Trustless Evaluator).
+  * **Encryption:** Replaced CKKS with **TFHE** (Integer-based FHE) to function with EVM precompiles.
+  * **Math:** Converted floating-point weights to **Fixed-Point Integers** (Quantization).
+  * **Trust Model:** Solved the "Modeler-Evaluator trust" vulnerability in the paper by using immutable smart contract code.
 
 ---
 
@@ -31,61 +31,63 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 
 ### A. Contract 1: Genomic Registry — `GenomicRegistry.sol` (Data Layer)
 
-*   Stores URI pointers to encrypted user SNP vectors (expected on IPFS / Arweave).
-*   Manages per-sample access via an on-chain `mapping(sampleId => mapping(address => bool))` ACL.
-*   **Functions:** `registerSample(uri)`, `grantAccess(sampleId, grantee)`, `revokeAccess(sampleId, grantee)`, `getSample(sampleId)`.
-*   **Current limitation:** Access checks are purely at the metadata layer. The `PRSComputeEngine` does **not** yet enforce registry ACL before accepting encrypted SNPs (see Edge Cases § 7-A).
+* Stores URI pointers to encrypted user SNP vectors (expected on IPFS / Arweave).
+* Manages per-sample access via an on-chain `mapping(sampleId => mapping(address => bool))` ACL.
+* **Functions:** `registerSample(uri)`, `grantAccess(sampleId, grantee)`, `revokeAccess(sampleId, grantee)`, `getSample(sampleId)`.
+* **Current limitation:** Access checks are purely at the metadata layer. The `PRSComputeEngine` does **not** yet enforce registry ACL before accepting encrypted SNPs (see Edge Cases § 7-A).
 
 ### B. Contract 2: Model Marketplace — `ModelMarketplace.sol` (Research Layer)
 
-*   Stores Researcher GWAS weights (either plaintext or encrypted).
-*   **Mode A (Private Weights):** Weights stored as `euint64[]` ($C \times C$ multiplication). Maximum IP protection; higher gas.
-*   **Mode B (Public Weights):** Weights stored as `uint64[]` ($C \times P$ via `mulPlain`). ~60% gas savings, "Open Science" model.
-*   **Functions:** `listPublicModel(weights)`, `listEncryptedModel(encryptedWeights)`, `getModel(modelId)`.
-*   **Current limitation:** No payment / fee mechanism, no model update / deletion, and no model versioning (see Edge Cases § 7-B).
+* Stores Researcher GWAS weights (either plaintext or encrypted).
+* **Mode A (Private Weights):** Weights stored as `euint64[]` ($C \times C$ multiplication). Maximum IP protection; higher gas.
+* **Mode B (Public Weights):** Weights stored as `uint64[]` ($C \times P$ via `mulPlain`). ~60% gas savings, "Open Science" model.
+* **Functions:** `listPublicModel(weights)`, `listEncryptedModel(encryptedWeights)`, `getModel(modelId)`.
+* **Current limitation:** No payment / fee mechanism, no model update / deletion, and no model versioning (see Edge Cases § 7-B).
 
 ### C. Contract 3: PRS Compute Engine — `PRSComputeEngine.sol` (Logic Layer)
 
-*   **Constraint:** A 1,000+ SNP calculation exceeds Block Gas Limits (~30 M gas on Hardhat, variable on live fhEVM).
-*   **Solution:** Asynchronous **Chunking / MapReduce** pattern.
-    *   The calculation is broken into transactions of ~100 SNPs.
-    *   An on-chain state machine accumulates the encrypted `partialSum` across blocks.
-*   Reads weights dynamically from `ModelMarketplace` and automatically uses either `mul` (private) or `mulPlain` (public) per model type.
-*   **Functions:** `startPRS(modelId, encryptedSnps, chunkSize)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
-*   A standalone variant `HEPRS.sol` (contains the `BioETHPRS` contract) also exists; it embeds models directly instead of referencing the marketplace.
+* **Constraint:** A 1,000+ SNP calculation exceeds Block Gas Limits (~30 M gas on Hardhat, variable on live fhEVM).
+* **Solution:** Asynchronous **Chunking / MapReduce** pattern.
+  * The calculation is broken into transactions of ~100 SNPs.
+  * An on-chain state machine accumulates the encrypted `partialSum` across blocks.
+* Reads weights dynamically from `ModelMarketplace` and automatically uses either `mul` (private) or `mulPlain` (public) per model type.
+* **Functions:** `startPRS(modelId, encryptedSnps, chunkSize)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
+* A standalone variant `HEPRS.sol` (contains the `BioETHPRS` contract) also exists; it embeds models directly instead of referencing the marketplace.
 
 ### D. Contract 4: Result Oracle — `ResultOracle.sol` (Output Layer)
 
-*   **Differential Privacy (DP):** Adds homomorphic noise to the final encrypted result to prevent "Model Extraction Attacks" (where users reverse-engineer weights by probing the model).
-*   **Classification:** Uses `FHE.lt`, `FHE.select`, and boolean ops to compare the noisy score against two thresholds, emitting a categorical result (Low / Medium / High) as `euint8`.
-*   Calls `FHE.makePubliclyDecryptable(category)` so the category can be read off-chain after gateway decryption.
-*   **Current limitation:** The noise ciphertext is supplied by the caller; the contract does **not** generate cryptographically calibrated Gaussian noise on-chain (see Edge Cases § 7-D).
+* **Differential Privacy (DP):** Adds homomorphic noise to the final encrypted result to prevent "Model Extraction Attacks" (where users reverse-engineer weights by probing the model).
+* **Classification:** Uses `FHE.lt`, `FHE.select`, and boolean ops to compare the noisy score against two thresholds, emitting a categorical result (Low / Medium / High) as `euint8`.
+* Calls `FHE.makePubliclyDecryptable(category)` so the category can be read off-chain after gateway decryption.
+* **Current limitation:** The noise ciphertext is supplied by the caller; the contract does **not** generate cryptographically calibrated Gaussian noise on-chain (see Edge Cases § 7-D).
 
 ### E. Supporting Libraries
 
-*   **`TFHE.sol`** (library) — thin Solidity wrappers around the Zama `FHE` library (`asEuint64`, `add`, `mul`, `mulPlain`, `allow`, `makePubliclyDecryptable`).
-*   **`contracts/fhevm/FHE.sol`** — a **mock** FHE library for local Hardhat testing. It unwraps user-defined types and performs plaintext arithmetic so tests run without a live fhEVM node.
-*   **`contracts/fhevm/EncryptedTypes.sol`** — defines `ebool`, `euint8`, `euint64` as Solidity user-defined value types.
-*   **`vendor/fhevm/`** — full Zama FHEVM repo checkout. The real `FHE.sol` is at `vendor/fhevm/library-solidity/lib/FHE.sol`.
+* **`TFHE.sol`** (library) — thin Solidity wrappers around the Zama `FHE` library (`asEuint64`, `add`, `mul`, `mulPlain`, `allow`, `makePubliclyDecryptable`).
+* **`contracts/fhevm/FHE.sol`** — a **mock** FHE library for local Hardhat testing. It unwraps user-defined types and performs plaintext arithmetic so tests run without a live fhEVM node.
+* **`contracts/fhevm/EncryptedTypes.sol`** — defines `ebool`, `euint8`, `euint64` as Solidity user-defined value types.
+* **`vendor/fhevm/`** — full Zama FHEVM repo checkout. The real `FHE.sol` is at `vendor/fhevm/library-solidity/lib/FHE.sol`.
 
 ---
 
 ## 4. Engineering Specifications & Optimizations
 
-*   **Quantization Strategy:** GWAS weights (floats, e.g., 0.0045) are scaled by a factor (e.g., $10^8$) to fit into **`euint64`** integers.
-*   **Bit-Depth Optimization (planned, not yet implemented):** Intermediate chunk calculations should use **`euint16`** (cheaper gas) where possible, aggregating into larger types only for the final sum. The current contracts use `euint64` exclusively.
-*   **SIMD / Slot Packing (planned, not yet implemented):** Pack multiple SNPs into a single ciphertext vector to reduce the number of `fheMul` operations.
-*   **`mulPlain` Optimization (implemented):** `PRSComputeEngine` uses cheaper plaintext-times-ciphertext multiplication when model weights are public.
-*   **Target Metrics:** Reduce cost from ~$150 (Naive FHE) to ~$45 (Optimized) per run.
+* **Quantization Strategy:** GWAS weights (floats, e.g., 0.0045) are scaled by a factor (e.g., $10^8$) to fit into **`euint64`** integers.
+* **Bit-Depth Optimization (planned, not yet implemented):** Intermediate chunk calculations should use **`euint16`** (cheaper gas) where possible, aggregating into larger types only for the final sum. The current contracts use `euint64` exclusively.
+* **SIMD / Slot Packing (planned, not yet implemented):** Pack multiple SNPs into a single ciphertext vector to reduce the number of `fheMul` operations.
+* **`mulPlain` Optimization (implemented):** `PRSComputeEngine` uses cheaper plaintext-times-ciphertext multiplication when model weights are public.
+* **Target Metrics:** Reduce cost from ~$150 (Naive FHE) to ~$45 (Optimized) per run.
 
 ---
 
 ## 5. Current Implementation Status
 
 **Environment:**
-*   **OS:** macOS (Apple Silicon).
-*   **Stack:** Docker (Zama fhEVM Node) + Hardhat + Node.js (v20+).
-*   **Solidity:** `0.8.24`, optimizer at 200 runs.
+
+* **OS:** macOS (Apple Silicon).
+* **Stack:** Hardhat + Node.js (v20+) with plaintext FHE mock — no Docker or external node needed.
+* **Solidity:** `0.8.24`, optimizer at 200 runs.
+* **Real FHE:** Sepolia testnet only (Zama deprecated the local Docker node approach).
 
 **Codebase:**
 
@@ -99,7 +101,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 | `contracts/TFHE.sol` | Wrapper library forwarding to Zama `FHE`. |
 | `contracts/fhevm/FHE.sol` | Local plaintext mock of FHE for Hardhat simulations. |
 | `contracts/fhevm/EncryptedTypes.sol` | UDVTs (`ebool`, `euint8`, `euint64`). |
-| `test/bioeth_prs_test.ts` | Chunked PRS test (requires `FHEVM=1`). |
+| `test/bioeth_prs_test.ts` | Chunked PRS unit tests — 5 passing, runs with `npm test` (no env var needed). |
 | `test/registry_marketplace_oracle_test.ts` | End-to-end integration test across all four contracts. |
 | `test/utils/fhevm.ts` | `fhevmjs` helper: `getFhevmInstance()`, `encrypt64Array()`. |
 | `scripts/gas_profile.ts` | Deploys marketplace + engine, runs multi-SNP gas profiling. |
@@ -110,27 +112,27 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 
 ### 6-A. Short-term
 
-1.  **Refine Quantization:** Determine the exact Scaling Factor ($10^6$ vs $10^8$) to minimize Mean Squared Error (MSE) vs. Gas Cost. Produce a table of scaling factor × SNP count → MSE.
-2.  **Differential Privacy Tuning:** Benchmark the exact amount of noise required to secure weights without destroying clinical accuracy.  Generate ROC / AUC curves at several noise levels.
-3.  **Gas Profiling:** Generate data points for the "Gas vs. SNP Count" curve from `scripts/gas_profile.ts` on a live fhEVM node.  Target SNP counts: 100, 300, 600, 1 000, 5 000.
-4.  **Registry ↔ Engine ACL Wiring:** Make `PRSComputeEngine.startPRS` verify that the caller has access to the sample in `GenomicRegistry` before accepting SNP data.
-5.  **Access-control on `computeChunk`:** Currently any address may call `computeChunk(jobId)`. Decide if this is acceptable (permissionless relay) or restrict to `job.requester` or an allow-list.
-6.  **End-to-end Client Flow:** Integrate `fhevmjs` re-encryption, gateway-assisted decryption, and public decryption of the `ResultOracle` category.
+1. **Refine Quantization:** Determine the exact Scaling Factor ($10^6$ vs $10^8$) to minimize Mean Squared Error (MSE) vs. Gas Cost. Produce a table of scaling factor × SNP count → MSE.
+2. **Differential Privacy Tuning:** Benchmark the exact amount of noise required to secure weights without destroying clinical accuracy.  Generate ROC / AUC curves at several noise levels.
+3. **Gas Profiling:** Generate data points for the "Gas vs. SNP Count" curve from `scripts/gas_profile.ts` on a live fhEVM node.  Target SNP counts: 100, 300, 600, 1 000, 5 000.
+4. **Registry ↔ Engine ACL Wiring:** Make `PRSComputeEngine.startPRS` verify that the caller has access to the sample in `GenomicRegistry` before accepting SNP data.
+5. **Access-control on `computeChunk`:** Currently any address may call `computeChunk(jobId)`. Decide if this is acceptable (permissionless relay) or restrict to `job.requester` or an allow-list.
+6. **End-to-end Client Flow:** Integrate `fhevmjs` re-encryption, gateway-assisted decryption, and public decryption of the `ResultOracle` category.
 
 ### 6-B. Medium-term
 
-7.  **On-chain Noise Generation:** Explore using fhEVM's `FHE.randEuint64()` (or a VRF-seeded encrypted random) to generate DP noise trustlessly, rather than accepting it from the caller.
-8.  **Bit-Depth Optimization:** Implement `euint16` intermediate accumulators with widening adds to reduce per-`fheMul` gas.
-9.  **SIMD / Slot Packing:** Batch multiple SNPs per ciphertext to amortize FHE overhead.
-10. **Marketplace Enhancements:** Add model pricing/fees (ERC-20 or native), model update/deprecation, and versioning.
-11. **Job Cancellation & Cleanup:** Allow the requester to cancel an in-progress job and reclaim unused state.
-12. **Finalize Event:** Emit a `JobFinalized` event from `finalize()` so off-chain indexers can track completed jobs.
+1. **On-chain Noise Generation:** Explore using fhEVM's `FHE.randEuint64()` (or a VRF-seeded encrypted random) to generate DP noise trustlessly, rather than accepting it from the caller.
+2. **Bit-Depth Optimization:** Implement `euint16` intermediate accumulators with widening adds to reduce per-`fheMul` gas.
+3. **SIMD / Slot Packing:** Batch multiple SNPs per ciphertext to amortize FHE overhead.
+4. **Marketplace Enhancements:** Add model pricing/fees (ERC-20 or native), model update/deprecation, and versioning.
+5. **Job Cancellation & Cleanup:** Allow the requester to cancel an in-progress job and reclaim unused state.
+6. **Finalize Event:** Emit a `JobFinalized` event from `finalize()` so off-chain indexers can track completed jobs.
 
 ### 6-C. Long-term / Research
 
-13. **Formal Security Analysis:** Prove that the DP noise calibration + categorical bucketing is sufficient to prevent weight extraction under an adaptive adversary.
-14. **Cross-chain Portability:** Evaluate deployment on Fhenix L2, Inco Network, and future fhEVM-compatible chains.
-15. **Clinical Validation:** Compare on-chain PRS results (after de-quantization) against reference PLINK/PRSice scores to quantify MSE/AUC degradation.
+1. **Formal Security Analysis:** Prove that the DP noise calibration + categorical bucketing is sufficient to prevent weight extraction under an adaptive adversary.
+2. **Cross-chain Portability:** Evaluate deployment on Fhenix L2, Inco Network, and future fhEVM-compatible chains.
+3. **Clinical Validation:** Compare on-chain PRS results (after de-quantization) against reference PLINK/PRSice scores to quantify MSE/AUC degradation.
 
 ---
 
@@ -142,9 +144,9 @@ The `PRSComputeEngine` accepts any `euint64[]` from any caller. There is no on-c
 
 ### 7-B. Marketplace Trust & Model Integrity
 
-*   No mechanism prevents listing garbage weights. On-chain validation of statistical quality is infeasible; consider off-chain attestation or DAO-curated whitelists.
-*   Models cannot be updated or deleted once listed; stale models persist forever.
-*   No payment / fee layer exists yet. Without incentives, researchers have no reason to list models.
+* No mechanism prevents listing garbage weights. On-chain validation of statistical quality is infeasible; consider off-chain attestation or DAO-curated whitelists.
+* Models cannot be updated or deleted once listed; stale models persist forever.
+* No payment / fee layer exists yet. Without incentives, researchers have no reason to list models.
 
 ### 7-C. Integer Overflow in euint64 Multiplication
 
@@ -160,8 +162,8 @@ Anyone can call `computeChunk(jobId)`, not just the requester. This is a design 
 
 ### 7-F. Empty / Mismatched Arrays
 
-*   `startPRS` with an empty `encryptedSnps` array creates a job that is immediately completable with a zero partial sum.
-*   The length-mismatch check inside `computeChunk` (not `startPRS`) means a misconfigured job will only revert on the first chunk call, wasting the `startPRS` gas.  **Mitigation:** Validate lengths at job creation time.
+* `startPRS` with an empty `encryptedSnps` array creates a job that is immediately completable with a zero partial sum.
+* The length-mismatch check inside `computeChunk` (not `startPRS`) means a misconfigured job will only revert on the first chunk call, wasting the `startPRS` gas.  **Mitigation:** Validate lengths at job creation time.
 
 ### 7-G. Gas Limit vs. Chunk Size
 
@@ -173,4 +175,4 @@ The `computeChunk` function mutates storage (`nextIndex`, `partialSum`, `complet
 
 ### 7-I. Mock vs. Real FHE Divergence
 
-The local `contracts/fhevm/FHE.sol` mock performs plaintext arithmetic. Tests that pass on the mock may still fail on a real fhEVM node due to: differing gas costs, ciphertext expansion, ACL requirements, or gateway decryption flow.  **Mitigation:** Always confirm results on a Docker fhEVM node before drawing conclusions.
+The local `contracts/fhevm/FHE.sol` mock performs plaintext arithmetic. Tests that pass on the mock may still fail on a real fhEVM deployment due to: differing gas costs, ciphertext expansion, ACL requirements, or gateway decryption flow.  **Mitigation:** Confirm results on the Sepolia testnet (real FHE) before claiming a feature is production-ready. There is no local Docker node option — Zama deprecated it.

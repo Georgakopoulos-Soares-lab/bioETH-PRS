@@ -482,9 +482,9 @@ function add(euint64 a, euint64 b) internal pure returns (euint64) {
 }
 ```
 
-When `FHEVM=1` is not set, Hardhat compiles using the mock, and tests execute in plaintext.  This is essential for rapid iteration without spinning up Docker.
+Hardhat always compiles using the mock in this project. Tests run in plaintext directly with `npm test` — no environment variable or Docker node required. This enables rapid iteration.
 
-> **Danger:** A test passing on the mock is **not** sufficient evidence of correctness on a real fhEVM node.  The mock ignores access control, ciphertext bounds, and gas costs.  Always validate on the Docker node before claiming a feature is complete.
+> **Caution:** A test passing on the mock is **not** sufficient evidence of correctness on a real fhEVM deployment. The mock ignores ciphertext bounds, ACL enforcement, and real gas costs. Validate on Sepolia testnet before claiming a feature is production-ready. (Zama deprecated the local Docker node — real FHE is now Sepolia-only.)
 
 ---
 
@@ -611,13 +611,7 @@ cd blockchain_prs
 npm install
 ```
 
-### Step 3: Clone vendor library
-
-```bash
-git clone https://github.com/zama-ai/fhevm vendor/fhevm
-```
-
-### Step 4: Compile with the mock (no Docker needed)
+### Step 3: Compile with the mock (no Docker needed)
 
 ```bash
 npx hardhat compile
@@ -625,17 +619,23 @@ npx hardhat compile
 
 You should see `Compiled N Solidity files successfully` with no errors.
 
-### Step 5: Explore the mock tests
+### Step 5: Run the mock tests
 
-The tests are gated by `FHEVM=1`.  To see what they do without a node, read the test files directly — they are clear TypeScript.
+Tests run directly — no environment variable or external node required:
 
-```
-   test/bioeth_prs_test.ts                     — unit test for BioETHPRS standalone
-test/registry_marketplace_oracle_test.ts    — integration test
-test/utils/fhevm.ts                         — fhevmjs helpers
+```bash
+npm test
 ```
 
-To run against a real fhEVM node, see [README.md](README.md) for full Docker + env var instructions.
+Expected output: **13 passing**.
+
+```
+test/bioeth_prs_test.ts                     — 5 unit tests for BioETHPRS standalone
+test/registry_marketplace_oracle_test.ts    — 8 integration tests
+test/utils/fhevm.ts                         — fhevmjs helpers (used only for real fhEVM/Sepolia)
+```
+
+For real FHE (Sepolia testnet), see [README.md](README.md).
 
 ### Step 6: Set up your editor
 
@@ -647,30 +647,27 @@ Install the **Hardhat Solidity** VS Code extension or **Nomic Foundation Solidit
 
 ### Test output on the mock
 
-Because the tests guard with `if (process.env.FHEVM !== "1") { throw ... }`, running `npx hardhat test` **without** `FHEVM=1` will report:
+Run `npm test` — no flags or env vars needed. Expected output:
 
 ```
-0 passing
-2 pending (or skipped)
+13 passing
 ```
-
-This is expected.  The guard is intentional — the mock FHE does not simulate real TFHE ciphertext handles (`ethers.ZeroHash` comparisons in tests would all be vacuously true).
 
 ### What the tests actually assert
 
-`bioeth_prs_test.ts`:
+`bioeth_prs_test.ts` (5 tests):
 
 - Uploads weights `[2, 3, 4]` and SNPs `[5, 6, 7]`.
 - Expected PRS = `2×5 + 3×6 + 4×7 = 10 + 18 + 28 = 56`.
-- After two `computeChunk` calls (chunk size 2), asserts `finalScore !== ZeroHash` — meaning the contract returned a non-zero encrypted handle.
-- Does not assert the numeric value (to do so requires gateway decryption).
+- After two `computeChunk` calls (chunk size 2), asserts `finalScore === 56n` **as a bigint** (because in mock mode `euint64` is just `uint64`).
+- Also asserts partial sum after chunk 1 = `28n`.
 
-`registry_marketplace_oracle_test.ts`:
+`registry_marketplace_oracle_test.ts` (8 tests):
 
-- End-to-end: registers a sample, grants access to a researcher address, lists a public 3-weight model, runs PRS on SNPs `[4, 5, 6]` with chunk size 2.
-- Expected PRS = `1×4 + 2×5 + 3×6 = 4 + 10 + 18 = 32`.
-- Classifies with zero noise, `lowThreshold=10`, `highThreshold=20` → should be High (category 2).
-- Asserts returned category handle is non-zero.
+- GenomicRegistry ACL: owner can read, stranger is denied, grant/revoke cycle works.
+- End-to-end compute: lists a public 3-weight model `[1, 2, 3]`, runs PRS on SNPs `[4, 5, 6]` with chunk size 2.
+- Expected PRS = `4×1 + 5×2 + 6×3 = 4 + 10 + 18 = 32`. Asserts `score === 32n`.
+- Oracle classification: asserts exact category (`0n`=Low, `1n`=Medium, `2n`=High) for four cases including one with noise.
 
 ### Adding a gateway-decryption assertion
 
