@@ -31,7 +31,7 @@ npx hardhat run scripts/gas_profile.ts
 SNP_COUNTS="100,300,600,1000" CHUNK_SIZE=50 GAS_PRICE_GWEI=30 npx hardhat run scripts/gas_profile.ts
 ```
 
-Environment variables accepted by [gas_profile.ts](../../scripts/gas_profile.ts):
+Environment variables accepted by [gas_profile.ts](../../../scripts/gas_profile.ts):
 - `SNP_COUNTS` — comma-separated list of SNP vector sizes to profile
 - `CHUNK_SIZE` — number of SNPs per `computeChunk` transaction (default: 100)
 - `GAS_PRICE_GWEI` — gas price for ETH cost estimation (default: 30)
