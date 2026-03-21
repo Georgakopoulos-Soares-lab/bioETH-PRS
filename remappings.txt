@@ -1,4 +1,0 @@
-encrypted-types/=node_modules/encrypted-types/
-fhevm/=contracts/fhevm/
-# For real fhEVM node deployment, override the line above with:
-# fhevm/=vendor/fhevm/library-solidity/lib/

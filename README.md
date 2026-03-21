@@ -59,7 +59,7 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 | **HEPRS** | Standalone variant that embeds models directly (useful for quick experiments). |
 | **ResultOracle** | Adds encrypted DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
 
-For the full theory, edge cases, and roadmap, see [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md).
+For the full theory, edge cases, and roadmap, see [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md). For the dedicated signed-weight and quantization design, see [docs/quantization-design.md](docs/quantization-design.md). For the standalone advisor workflow, see [docs/quantization-advisor.md](docs/quantization-advisor.md). For the quick scale-vs-SNP overflow screen, see [docs/scaling-ceilings.md](docs/scaling-ceilings.md). For the latest HEPRS fixture advisor runs across 100/500/1000/5000 SNP datasets, see [docs/heprs-advisor-findings.md](docs/heprs-advisor-findings.md).
 
 ---
 
@@ -82,8 +82,6 @@ test/
   utils/fhevm.ts             fhevmjs helpers (encrypt64Array, getInstance)
 scripts/
   gas_profile.ts             Gas vs. SNP-count profiling script
-vendor/
-  fhevm/                     Zama fhEVM repo checkout (git-cloned)
 ```
 
 ---
@@ -96,7 +94,7 @@ vendor/
 | **npm** (or **yarn / pnpm**) | ≥ 9 | Ships with Node.js |
 | **Git** | any | For cloning the repo |
 
-> **No Docker needed** for mock-mode development. All 13 tests run entirely in Hardhat's in-process EVM with a plaintext FHE mock — no external node required.
+> **No Docker needed** for mock-mode development. All 23 tests run entirely in Hardhat's in-process EVM with a plaintext FHE mock — no external node required.
 
 ---
 
@@ -115,17 +113,7 @@ cd blockchain_prs
 npm install
 ```
 
-This pulls in `hardhat`, `@nomicfoundation/hardhat-toolbox`, `encrypted-types`, `fhevmjs`, and TypeScript tooling.
-
-### 3. Verify remappings
-
-`remappings.txt` maps `fhevm/` to the local mock for Hardhat builds:
-
-```
-fhevm/=contracts/fhevm/
-```
-
-Hardhat does not natively consume `remappings.txt`, but IDE tooling (e.g., the Solidity extension in VS Code) uses it for import resolution. For real fhEVM node deployment, change this mapping to point at the Zama `library-solidity` path.
+This pulls in `hardhat`, `@nomicfoundation/hardhat-toolbox`, `fhevmjs`, TypeScript tooling, and the official fhEVM packages `@fhevm/solidity` plus `@fhevm/hardhat-plugin`.
 
 ---
 
@@ -145,7 +133,6 @@ Expected output: ABI + bytecode in `artifacts/contracts/`.
 
 | Error | Fix |
 |-------|-----|
-| `Source not found: encrypted-types/…` | Run `npm install` — the `encrypted-types` package must be in `node_modules`. |
 | `Source not found: contracts/fhevm/…` | The local mock is missing — ensure `contracts/fhevm/FHE.sol` and `contracts/fhevm/EncryptedTypes.sol` exist. |
 | Solidity version mismatch | Ensure `0.8.24` in `hardhat.config.ts` and all `.sol` files. |
 
@@ -163,7 +150,7 @@ npm test
 npx hardhat test
 ```
 
-Expected output: **13 passing**.
+Expected output: **23 passing**.
 
 ### Test files
 
@@ -177,8 +164,9 @@ Expected output: **13 passing**.
 Zama's local Docker node approach has been discontinued. Real FHE encryption is only available on the **Sepolia testnet** via Zama's `@fhevm/hardhat-plugin` and relayer infrastructure. Migrating to Sepolia requires:
 
 1. Refactoring contracts to use `@fhevm/solidity` instead of the local mock.
-2. Sepolia ETH (free from a faucet) and an Infura/Alchemy RPC key.
-3. Deploying through `@fhevm/hardhat-plugin`.
+2. Updating contract imports and config to the current package-based Zama workflow.
+3. Sepolia ETH (free from a faucet) and an Infura/Alchemy RPC key.
+4. Deploying through `@fhevm/hardhat-plugin`.
 
 The mock mode covers 100% of contract logic. Real-FHE migration is a separate milestone.
 
@@ -268,5 +256,4 @@ npx hardhat test --network fhevm
 
 ## License
 
-MIT — see individual file headers for details.  
-Zama fhEVM vendor code is under its own license (BSD-3-Clause-Clear); see `vendor/fhevm/LICENSE`.
+MIT — see individual file headers for details.

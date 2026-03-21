@@ -13,7 +13,10 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      blockGasLimit: 30_000_000
+      // The local mock-FHE tests now exercise HEPRS fixtures up to 5000 SNPs.
+      // Give Hardhat enough headroom to validate math/flow at that size without
+      // implying that the same transaction shape is acceptable on a real chain.
+      blockGasLimit: 120_000_000
     }
   },
   paths: {

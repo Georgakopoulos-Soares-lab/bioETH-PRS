@@ -56,8 +56,9 @@ cryptographically expensive on a real fhEVM node is just normal arithmetic here:
 - `FHE.allow(handle, addr)` → no-op (on real fhEVM this grants decrypt rights)
 - `FHE.makePubliclyDecryptable(x)` → no-op (on real fhEVM this marks the handle)
 
-**Key insight:** On a real fhEVM node, swapping `remappings.txt` to
-point at Zama's library is the only change needed — contracts stay identical.
+**Key insight:** This mock keeps local Hardhat development fast, but moving to a
+real fhEVM network is a broader migration to Zama's package-based workflow, not
+just a config-file swap.
 
 ### 6. `contracts/TFHE.sol` (~41 lines)
 

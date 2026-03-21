@@ -4,6 +4,8 @@
   "private": true,
   "description": "bioETH PRS — High-performance confidential GWAS PRS prototype on Ethereum/fhEVM.",
   "scripts": {
+    "advisor:quantization": "ts-node scripts/quantization_advisor.ts",
+    "advisor:scale-ceilings": "ts-node scripts/scale_ceiling_reference.ts",
     "build": "hardhat compile",
     "test": "hardhat test",
     "profile:gas": "hardhat run scripts/gas_profile.ts"
@@ -16,7 +18,8 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "encrypted-types": "^0.0.4",
+    "@fhevm/hardhat-plugin": "^0.4.2",
+    "@fhevm/solidity": "^0.11.1",
     "fhevmjs": "^0.6.2"
   }
 }

@@ -66,11 +66,16 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 * **`TFHE.sol`** (library) — thin Solidity wrappers around the Zama `FHE` library (`asEuint64`, `add`, `mul`, `mulPlain`, `allow`, `makePubliclyDecryptable`).
 * **`contracts/fhevm/FHE.sol`** — a **mock** FHE library for local Hardhat testing. It unwraps user-defined types and performs plaintext arithmetic so tests run without a live fhEVM node.
 * **`contracts/fhevm/EncryptedTypes.sol`** — defines `ebool`, `euint8`, `euint64` as Solidity user-defined value types.
-* **`vendor/fhevm/`** — full Zama FHEVM repo checkout. The real `FHE.sol` is at `vendor/fhevm/library-solidity/lib/FHE.sol`.
+* **`@fhevm/solidity`** (npm package) — official Zama Solidity package for real fhEVM deployments. The real `FHE.sol` lives at `node_modules/@fhevm/solidity/lib/FHE.sol`.
 
 ---
 
 ## 4. Engineering Specifications & Optimizations
+
+See also `docs/quantization-design.md` for the dedicated production-oriented design of quantization, signed-weight handling, offsets, and overflow-safe score encoding.
+See also `docs/quantization-advisor.md` for the standalone advisor capability that helps model publishers choose candidate scales before upload.
+See also `docs/scaling-ceilings.md` for the simple scale-vs-SNP quick-screen reference under `uint64`.
+See also `docs/heprs-advisor-findings.md` for the current 100/500/1000/5000 SNP advisor results and what they imply for the present contract shape.
 
 * **Quantization Strategy:** GWAS weights (floats, e.g., 0.0045) are scaled by a factor (e.g., $10^8$) to fit into **`euint64`** integers.
 * **Bit-Depth Optimization (planned, not yet implemented):** Intermediate chunk calculations should use **`euint16`** (cheaper gas) where possible, aggregating into larger types only for the final sum. The current contracts use `euint64` exclusively.
@@ -150,7 +155,7 @@ The `PRSComputeEngine` accepts any `euint64[]` from any caller. There is no on-c
 
 ### 7-C. Integer Overflow in euint64 Multiplication
 
-Multiplying two `euint64` values can produce a result exceeding 64 bits (max $\approx 1.8 \times 10^{19}$). With a scaling factor of $10^8$ and SNP value of 2, a single term can reach $2 \times 10^8 = 2 \times 10^8$, well within range. However, **accumulating** $N$ such terms (e.g., 5 000 SNPs × max term $\approx 4 \times 10^{16}$) risks silent wraparound.  **Mitigation:** Choose the scaling factor so that $N \times \text{max\_term} < 2^{64}$. Document the safe SNP-count ceiling for each scaling factor.
+Multiplying two `euint64` values can produce a result exceeding 64 bits (max $\approx 1.8 \times 10^{19}$). As a quick-screen under the simplified assumption `max_quantized_weight ~= scale` and hardcall dosage `<= 2`, require `scale × 2 × N < 2^64`. For example, at scale $10^8$ and `N=5000`, max accumulation is `5000 × 2 × 10^8 = 10^12`, which is safe. See `docs/scaling-ceilings.md` for the generated ceiling table. For real models, use the advisor and exact per-model bounds rather than this simplified screen.
 
 ### 7-D. Differential Privacy Noise Supplied by Caller
 

@@ -9,7 +9,8 @@ applyTo: "**/*.sol"
 - `euint64` — primary type for SNP values and weights (user-defined value type wrapping `uint64`)
 - `euint8` — used for categorical outputs (risk category)
 - `ebool` — encrypted boolean for comparisons
-- All defined in `encrypted-types/EncryptedTypes.sol` (from npm package)
+- In this repo's local mock workflow they come from `./fhevm/EncryptedTypes.sol`
+- Real fhEVM migration should use the npm-managed `@fhevm/solidity` package path instead of any vendored copy
 
 ## Import Patterns
 
@@ -17,11 +18,11 @@ applyTo: "**/*.sol"
 // For contracts using the TFHE wrapper (GenomicRegistry, PRSComputeEngine, BioETHPRS):
 import "./TFHE.sol";
 
-// For contracts using FHE directly (ResultOracle):
-import "../vendor/fhevm/library-solidity/lib/FHE.sol";
+// For contracts using the local mock directly (ResultOracle in this repo):
+import "./fhevm/FHE.sol";
 
 // For encrypted types:
-import "encrypted-types/EncryptedTypes.sol";
+import "./fhevm/EncryptedTypes.sol";
 ```
 
 ## TFHE Library Operations
@@ -60,4 +61,4 @@ Scaling factor × max SNP dosage (2) × N SNPs must fit in `uint64` (max ~1.8×1
 
 ## Mock vs Production
 
-The local `contracts/fhevm/FHE.sol` performs plaintext arithmetic for Hardhat testing. Tests passing on mock may fail on real fhEVM due to: different gas costs, ciphertext expansion, ACL enforcement, gateway decryption flow. Always confirm on a Docker fhEVM node.
+The local `contracts/fhevm/FHE.sol` performs plaintext arithmetic for Hardhat testing. Tests passing on mock may fail on real fhEVM due to: different gas costs, ciphertext expansion, ACL enforcement, gateway decryption flow. Always confirm on Sepolia with the real fhEVM packages and relayer flow; there is no supported local Docker node path anymore.

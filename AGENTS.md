@@ -17,7 +17,7 @@ Confidential on-chain Polygenic Risk Scoring (PRS) via fhEVM. Computes encrypted
 
 ```sh
 npm run build          # hardhat compile
-npm run test           # hardhat test (mock FHE) — 13 tests, no external node needed
+npm run test           # hardhat test (mock FHE) — 23 tests, no external node needed
 npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 ```
 
@@ -35,7 +35,7 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 
 ## Key Conventions
 
-- **Mock vs Real FHE**: `contracts/fhevm/FHE.sol` is a plaintext mock for Hardhat — no vendor clone needed for local builds. Real fhEVM node deployment requires pointing `remappings.txt` at `vendor/fhevm/library-solidity/lib/FHE.sol` (a separate Zama sub-repo). Never modify the vendor directory.
+- **Mock vs Real FHE**: `contracts/fhevm/FHE.sol` is a plaintext mock for Hardhat. The current repo builds and tests against that mock locally. Real fhEVM deployment is a separate package-based migration using `@fhevm/solidity` plus `@fhevm/hardhat-plugin`.
 - **TFHE.sol wrapper**: Contracts import `./TFHE.sol` which forwards to `FHE.sol`. Use `TFHE.asEuint64()`, `.add()`, `.mul()`, `.mulPlain()`, `.allow()`, `.makePubliclyDecryptable()`.
 - **Chunked computation**: FHE dot-products exceed block gas limits. All PRS jobs use `startPRS → computeChunk (×N) → finalize` pattern with on-chain state machine accumulating `partialSum`.
 - **Quantization**: Float weights are scaled to `uint64` integers (e.g., `0.0045 × 10^8 = 450000`). Accumulation of N terms must stay within `2^64`.
@@ -50,4 +50,5 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 | `docs/cheatsheet.md` | Quick concept reference |
 | `docs/e2e-example-short.md` | End-to-end scenario walkthrough |
 | `docs/e2e-example-long.md` | Detailed component-by-component flow |
+| `docs/heprs-advisor-findings.md` | Advisor results for copied HEPRS fixtures (100/500/1000/5000 SNPs) |
 | `docs/PIIS2667237525003078.pdf` | HEPRS reference paper |

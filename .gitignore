@@ -39,9 +39,6 @@ yarn-error.log*
 # === Docker (local fhEVM node) ===
 docker-compose.override.yml
 
-# === Vendor library (large, cloned separately) ===
-vendor/fhevm/
-
 # === Gas profiling output ===
 gas-report.txt
 gas-report.json

@@ -466,7 +466,7 @@ Note: `noisyScore` in the event is an encrypted handle, not the plaintext value.
 
 **File:** `contracts/TFHE.sol`
 
-A pure Solidity **library** that re-exports functions from Zama's `FHE.sol`.  Its role is to give contracts a stable internal import path (`./TFHE.sol`) so that swapping between the local mock and the real Zama library requires only a remapping change, not a contract source edit.
+A pure Solidity **library** that re-exports functions from Zama's `FHE.sol`.  Its role is to give contracts a stable internal import path (`./TFHE.sol`) while the repo stays on its local mock-based Hardhat setup.
 
 **File:** `contracts/fhevm/FHE.sol` (the **mock**)
 
@@ -534,7 +534,7 @@ With $N = 1000$ SNPs, $g_i \le 2$, $w_i^{\text{int}} \le 10^6$, the maximum poss
 
 $$1000 \times 2 \times 10^6 = 2 \times 10^9$$
 
-`euint64` max is $\approx 1.8 \times 10^{19}$.  At $S = 10^6$ we have headroom.  At $S = 10^{12}$ with $N=5000$ the accumulator saturates.  **Always compute the ceiling before choosing $S$:**
+`euint64` max is $\approx 1.8 \times 10^{19}$.  Under the simplified quick-screen assumption `w_i^{int} <= S` and `g_i <= 2`, the bound is `N × 2 × S`.  That means `S = 10^8` with `N=5000` gives `10^12`, which is safe, and even `S = 10^{12}` with `N=5000` gives `10^16`, which still fits under `uint64`.  See `docs/scaling-ceilings.md` for the generated ceiling table. **Always compute the ceiling before choosing $S$:**
 
 $$S \le \frac{2^{64} - 1}{N \times g_{\max} \times w_{\max}^{\text{raw}}}$$
 
@@ -627,11 +627,14 @@ Tests run directly — no environment variable or external node required:
 npm test
 ```
 
-Expected output: **13 passing**.
+Expected output: **23 passing**.
 
 ```
 test/bioeth_prs_test.ts                     — 5 unit tests for BioETHPRS standalone
+test/heprs_fixture_test.ts                  — 4 HEPRS-backed fixture tests (100/500/1000 on-chain mock flow, 5000 local boundary case)
+test/quantization_advisor_test.ts           — 5 advisor tests across HEPRS fixtures + CLI summary
 test/registry_marketplace_oracle_test.ts    — 8 integration tests
+test/scale_ceiling_reference_test.ts        — 1 scale-ceiling reference test
 test/utils/fhevm.ts                         — fhevmjs helpers (used only for real fhEVM/Sepolia)
 ```
 
@@ -639,7 +642,7 @@ For real FHE (Sepolia testnet), see [README.md](README.md).
 
 ### Step 6: Set up your editor
 
-Install the **Hardhat Solidity** VS Code extension or **Nomic Foundation Solidity** for syntax highlighting and type checking.  The `remappings.txt` file in the root handles import resolution for linters.
+Install the **Hardhat Solidity** VS Code extension or **Nomic Foundation Solidity** for syntax highlighting and type checking.
 
 ---
 
@@ -650,7 +653,7 @@ Install the **Hardhat Solidity** VS Code extension or **Nomic Foundation Solidit
 Run `npm test` — no flags or env vars needed. Expected output:
 
 ```
-13 passing
+23 passing
 ```
 
 ### What the tests actually assert
