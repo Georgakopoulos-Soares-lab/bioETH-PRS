@@ -59,7 +59,7 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 | **HEPRS** | Standalone variant that embeds models directly (useful for quick experiments). |
 | **ResultOracle** | Adds encrypted DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
 
-For the full theory, edge cases, and roadmap, see [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md). For the dedicated signed-weight and quantization design, see [docs/quantization-design.md](docs/quantization-design.md). For the standalone advisor workflow, see [docs/quantization-advisor.md](docs/quantization-advisor.md). For the quick scale-vs-SNP overflow screen, see [docs/scaling-ceilings.md](docs/scaling-ceilings.md). For the latest HEPRS fixture advisor runs across 100/500/1000/5000 SNP datasets, see [docs/heprs-advisor-findings.md](docs/heprs-advisor-findings.md).
+For the full theory, edge cases, and roadmap, see [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md). For the dedicated signed-weight and quantization design, see [docs/quantization-design.md](docs/quantization-design.md). For the standalone advisor workflow, see [docs/quantization-advisor.md](docs/quantization-advisor.md). For the quick scale-vs-SNP overflow screen, see [docs/scaling-ceilings.md](docs/scaling-ceilings.md). For collaborator-facing result reports, see [reports/scaling-ceiling-findings.md](reports/scaling-ceiling-findings.md), [reports/advisor-findings.md](reports/advisor-findings.md), and [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md).
 
 ---
 

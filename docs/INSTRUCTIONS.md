@@ -75,7 +75,9 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 See also `docs/quantization-design.md` for the dedicated production-oriented design of quantization, signed-weight handling, offsets, and overflow-safe score encoding.
 See also `docs/quantization-advisor.md` for the standalone advisor capability that helps model publishers choose candidate scales before upload.
 See also `docs/scaling-ceilings.md` for the simple scale-vs-SNP quick-screen reference under `uint64`.
-See also `docs/heprs-advisor-findings.md` for the current 100/500/1000/5000 SNP advisor results and what they imply for the present contract shape.
+See also `reports/scaling-ceiling-findings.md` for the collaborator-facing explanation of the generated ceiling results.
+See also `reports/advisor-findings.md` for the current 100/500/1000/5000 SNP advisor results and what they imply for the present contract shape.
+See also `reports/heprs-fixture-findings.md` for the HEPRS-backed mock-test results and the current `5000`-SNP gas boundary.
 
 * **Quantization Strategy:** GWAS weights (floats, e.g., 0.0045) are scaled by a factor (e.g., $10^8$) to fit into **`euint64`** integers.
 * **Bit-Depth Optimization (planned, not yet implemented):** Intermediate chunk calculations should use **`euint16`** (cheaper gas) where possible, aggregating into larger types only for the final sum. The current contracts use `euint64` exclusively.

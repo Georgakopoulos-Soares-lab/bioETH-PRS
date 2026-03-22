@@ -50,5 +50,7 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 | `docs/cheatsheet.md` | Quick concept reference |
 | `docs/e2e-example-short.md` | End-to-end scenario walkthrough |
 | `docs/e2e-example-long.md` | Detailed component-by-component flow |
-| `docs/heprs-advisor-findings.md` | Advisor results for copied HEPRS fixtures (100/500/1000/5000 SNPs) |
+| `reports/scaling-ceiling-findings.md` | Collaborator-facing explanation of the generated scale ceiling results |
+| `reports/advisor-findings.md` | Collaborator-facing advisor findings across copied HEPRS fixtures |
+| `reports/heprs-fixture-findings.md` | Collaborator-facing HEPRS mock-test findings and current gas boundary |
 | `docs/PIIS2667237525003078.pdf` | HEPRS reference paper |
