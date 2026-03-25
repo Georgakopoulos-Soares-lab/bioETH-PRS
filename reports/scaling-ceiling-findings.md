@@ -40,6 +40,14 @@ This is intentionally a rough screen. It does not include model-specific details
 
 Those belong to the advisor report, not this one.
 
+### Timing snapshot
+
+Measured local wall-clock runtime for the report-generation command:
+
+* `npm run advisor:scale-ceilings` → about `0.39s` real time
+
+This timing is useful only as a local tooling reference. It is not an on-chain cost signal.
+
 ## Results
 
 | Scaling factor | Max accumulation at 5,000 SNPs | Safe SNP ceiling under uint64 |
@@ -93,6 +101,12 @@ A real model also depends on:
 * the chosen accumulator width
 
 So this report is best used to rule out obviously bad ideas quickly, not to certify a model for upload.
+
+### 4. The script is effectively instantaneous at our current scale
+
+At under half a second locally, the ceiling script is cheap enough to use as a routine sanity check during discussion, planning, or model review.
+
+Interpretation: there is no operational reason to avoid running this screen often. The reason not to stop here is not speed, but lack of model specificity.
 
 ## What It Means For The Project
 

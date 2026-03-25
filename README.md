@@ -17,10 +17,11 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 5. [Building](#building)
 6. [Running Tests](#running-tests)
 7. [Gas Profiling](#gas-profiling)
-8. [Configuration Reference](#configuration-reference)
-9. [Troubleshooting](#troubleshooting)
-10. [Contributing](#contributing)
-11. [License](#license)
+8. [HEPRS Profiling](#heprs-profiling)
+9. [Configuration Reference](#configuration-reference)
+10. [Troubleshooting](#troubleshooting)
+11. [Contributing](#contributing)
+12. [License](#license)
 
 ---
 
@@ -196,6 +197,43 @@ Example:
 ```bash
 SNP_COUNTS=100,500,1000,5000 CHUNK_SIZE=50 npx hardhat run scripts/gas_profile.ts
 ```
+
+---
+
+## HEPRS Profiling
+
+For the copied HEPRS fixtures, use the dedicated profiling harness:
+
+```bash
+npm run profile:heprs
+```
+
+This script runs the current mock contract flow with the HEPRS fixture data and reports:
+
+* total runtime per fixture
+* load / quantization / upload / start / finalize timings
+* per-chunk timing summary
+* the current `5000`-SNP upload boundary
+
+Default behavior:
+
+* fixtures: `100`, `500`, `1000`, `5000`
+* chunk size: `128`
+
+Common examples:
+
+```bash
+npm run profile:heprs -- --fixture 1000
+npm run profile:heprs -- --fixture 5000 --chunk-size 128 --verbose
+npm run profile:heprs -- --json-out /tmp/heprs-profile.json
+```
+
+These timings are local Hardhat mock timings. They are useful for collaborator discussion and regression tracking, but they are not real fhEVM/Sepolia timings and not gas costs.
+
+See also:
+
+* [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md)
+* [reports/advisor-findings.md](reports/advisor-findings.md)
 
 ---
 

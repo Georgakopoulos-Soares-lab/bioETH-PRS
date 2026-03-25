@@ -112,6 +112,7 @@ See also `reports/heprs-fixture-findings.md` for the HEPRS-backed mock-test resu
 | `test/registry_marketplace_oracle_test.ts` | End-to-end integration test across all four contracts. |
 | `test/utils/fhevm.ts` | `fhevmjs` helper: `getFhevmInstance()`, `encrypt64Array()`. |
 | `scripts/gas_profile.ts` | Deploys marketplace + engine, runs multi-SNP gas profiling. |
+| `scripts/heprs_fixture_profile.ts` | Profiles HEPRS-backed mock runs with phase timing and per-chunk timing. |
 
 ---
 
@@ -122,6 +123,7 @@ See also `reports/heprs-fixture-findings.md` for the HEPRS-backed mock-test resu
 1. **Refine Quantization:** Determine the exact Scaling Factor ($10^6$ vs $10^8$) to minimize Mean Squared Error (MSE) vs. Gas Cost. Produce a table of scaling factor × SNP count → MSE.
 2. **Differential Privacy Tuning:** Benchmark the exact amount of noise required to secure weights without destroying clinical accuracy.  Generate ROC / AUC curves at several noise levels.
 3. **Gas Profiling:** Generate data points for the "Gas vs. SNP Count" curve from `scripts/gas_profile.ts` on a live fhEVM node.  Target SNP counts: 100, 300, 600, 1 000, 5 000.
+   * For local mock timing on real HEPRS fixtures, use `npm run profile:heprs` with the default `chunkSize=128`.
 4. **Registry ↔ Engine ACL Wiring:** Make `PRSComputeEngine.startPRS` verify that the caller has access to the sample in `GenomicRegistry` before accepting SNP data.
 5. **Access-control on `computeChunk`:** Currently any address may call `computeChunk(jobId)`. Decide if this is acceptable (permissionless relay) or restrict to `job.requester` or an allow-list.
 6. **End-to-end Client Flow:** Integrate `fhevmjs` re-encryption, gateway-assisted decryption, and public decryption of the `ResultOracle` category.

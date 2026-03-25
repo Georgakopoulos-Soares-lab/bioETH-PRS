@@ -33,6 +33,20 @@ The advisor uses:
 
 The genotype rows were used here only to compare float PRS outputs against quantized PRS outputs on reference-like data.
 
+### Timing snapshot
+
+Measured local wall-clock runtime per advisor command:
+
+| Fixture | Command runtime |
+|---|---:|
+| `100 SNP` | `0.90s` |
+| `500 SNP` | `0.91s` |
+| `1000 SNP` | `0.91s` |
+| `5000 SNP` | `0.96s` |
+
+These are local script runtimes, not on-chain times and not gas costs.
+For execution-path timing on the HEPRS-backed mock contract flow, see [reports/heprs-fixture-findings.md](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/reports/heprs-fixture-findings.md).
+
 ## Results
 
 | Fixture | Weights | Baseline | Balanced | Max Precision |
@@ -91,6 +105,18 @@ All four advisor runs produced:
 * `0` rejected scales
 
 Interpretation: quantization and bound-analysis are not what is stopping us from supporting larger HEPRS-like models. The current bottleneck is elsewhere in the contract flow.
+
+### 5. Advisor runtime is effectively flat across the copied HEPRS fixtures
+
+The command runtime stayed close to `~0.9s` from `100` to `5000` SNPs.
+
+Interpretation:
+
+* the current advisor is cheap to run
+* local script startup and fixed overhead dominate more than the fixture size
+* this is a good sign for making the advisor a routine pre-upload step for model labs
+
+So the advisor is not only analytically helpful; it is also operationally lightweight.
 
 ## What It Means For The Project
 
