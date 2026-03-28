@@ -11,6 +11,14 @@ const toArray = (count: number, offset: number) =>
 const toEncryptedPlaceholders = (count: number) =>
   Array.from({ length: count }, () => ethers.ZeroHash);
 
+const chunkArray = <T>(values: T[], chunkSize: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let start = 0; start < values.length; start += chunkSize) {
+    chunks.push(values.slice(start, start + chunkSize));
+  }
+  return chunks;
+};
+
 async function profile(n: number, chunkSize: number, gasPriceGwei: string, blockTimeSec: number) {
   if (process.env.FHEVM !== "1") {
     throw new Error("Gas profiling requires FHEVM=1 and a local fhEVM node.");
@@ -25,23 +33,56 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string, block
   const weights = toArray(n, 0);
   const snps = toEncryptedPlaceholders(n);
 
-  const modelId = await marketplace.modelCount();
-  const listTx = await marketplace.listPublicModel(weights, { gasLimit: 16_000_000 });
-  const listReceipt = await listTx.wait();
+  const modelId = await marketplace.createModelShell.staticCall(
+    false,
+    BigInt(weights.length),
+    BigInt(chunkSize),
+    `ipfs://profile/${n}`,
+    ethers.ZeroHash,
+    ethers.ZeroHash,
+    { gasLimit: 16_000_000 }
+  );
+  const shellTx = await marketplace.createModelShell(
+    false,
+    BigInt(weights.length),
+    BigInt(chunkSize),
+    `ipfs://profile/${n}`,
+    ethers.ZeroHash,
+    ethers.ZeroHash,
+    { gasLimit: 16_000_000 }
+  );
+  const shellReceipt = await shellTx.wait();
+
+  let publishGas = shellReceipt?.gasUsed ?? 0n;
+  for (const chunk of chunkArray(weights, chunkSize)) {
+    const tx = await marketplace.appendPublicModelChunk(modelId, chunk, {
+      gasLimit: 16_000_000
+    });
+    const receipt = await tx.wait();
+    publishGas += receipt?.gasUsed ?? 0n;
+  }
+
+  const finalizeTx = await marketplace.finalizeModel(modelId, {
+    gasLimit: 16_000_000
+  });
+  const finalizeReceipt = await finalizeTx.wait();
+  publishGas += finalizeReceipt?.gasUsed ?? 0n;
 
   const jobId = await engine.jobCount();
-  const startTx = await engine.startPRS(modelId, snps, chunkSize, { gasLimit: 16_000_000 });
+  const startTx = await engine.startPRS(modelId, snps, {
+    gasLimit: 16_000_000
+  });
   const startReceipt = await startTx.wait();
 
   let computeGas = 0n;
   const chunks = Math.ceil(n / chunkSize);
   for (let i = 0; i < chunks; i++) {
-  const tx = await engine.computeChunk(jobId, { gasLimit: 16_000_000 });
+    const tx = await engine.computeChunk(jobId, { gasLimit: 16_000_000 });
     const receipt = await tx.wait();
     computeGas += receipt?.gasUsed ?? 0n;
   }
 
-  const totalGas = (listReceipt?.gasUsed ?? 0n) + (startReceipt?.gasUsed ?? 0n) + computeGas;
+  const totalGas = publishGas + (startReceipt?.gasUsed ?? 0n) + computeGas;
   const gasPrice = ethers.parseUnits(gasPriceGwei, "gwei");
   const totalEth = ethers.formatEther(totalGas * gasPrice);
   const estimatedSeconds = chunks * blockTimeSec;
@@ -50,7 +91,7 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string, block
     n,
     chunkSize,
     chunks,
-    listGas: listReceipt?.gasUsed ?? 0n,
+    publishGas,
     startGas: startReceipt?.gasUsed ?? 0n,
     computeGas,
     totalGas,
@@ -79,7 +120,7 @@ async function main() {
     console.log(`SNPs: ${result.n}`);
     console.log(`Chunk size: ${result.chunkSize}`);
     console.log(`Chunks: ${result.chunks}`);
-    console.log(`Model list gas: ${result.listGas}`);
+    console.log(`Model publish gas: ${result.publishGas}`);
     console.log(`Start gas: ${result.startGas}`);
     console.log(`Compute gas: ${result.computeGas}`);
     console.log(`Total gas: ${result.totalGas}`);

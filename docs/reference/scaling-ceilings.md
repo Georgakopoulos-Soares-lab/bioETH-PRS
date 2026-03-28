@@ -130,9 +130,9 @@ The script prints the assumptions and the markdown-ready table.
 
 This reference complements:
 
-* `docs/quantization-design.md`
+* `docs/design/quantization-design.md`
   * the production-oriented encoding design
-* `docs/quantization-advisor.md`
+* `docs/reference/quantization-advisor.md`
   * the standalone capability for model publishers
 * `scripts/scale_ceiling_reference.ts`
   * reproducible simple ceiling generation

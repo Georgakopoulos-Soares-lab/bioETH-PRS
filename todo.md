@@ -1,185 +1,205 @@
 # TODO
 
-## Open Questions
+## Current Snapshot
 
-- What is the target v1 scope?
-  - public models only, or public + private together?
-  - raw score output, categorical output only, or both?
-  - what SNP count do we want to support credibly in v1: `100`, `1000`, `5000`, or higher?
-- What should the model publication path look like?
-  - one generic marketplace, or different paths for small vs large models?
-  - fully on-chain storage, chunked on-chain storage, or on-chain commitments plus off-chain chunk retrieval?
-  - should each PRS model live in marketplace storage, or in a dedicated per-model contract?
-- What should the SNP submission path look like?
-  - keep `startPRS()` as full-array input, or move to chunked SNP ingestion?
-  - if SNP input is chunked, where is the temporary encrypted state stored?
-- What should the trust and permission model be?
-  - should `computeChunk(jobId)` stay permissionless for relayers, or be restricted?
-  - how do we prove the submitted encrypted SNPs correspond to a registered sample with valid ACL access?
-  - what level of model integrity attestation do we want: open listing, curator whitelist, or signed manifests?
-- What should the quantization publication flow be?
-  - is the advisor mandatory before upload?
-  - what manifest fields must every published model include?
-  - when do we move beyond hardcoded `uint64[]` / `euint64[]` assumptions?
-- What is the v1 privacy/security target?
-  - caller-supplied DP noise with safeguards, or on-chain/generated noise only?
-  - how much noise is acceptable before clinical utility degrades?
-  - do we want only categorical outputs publicly decryptable, with raw scores always access-controlled?
-- What is the target deployment environment?
-  - Sepolia only for the next milestone, or a more chain-agnostic abstraction?
-  - what mock-vs-real parity level do we require before calling the system “production-ready”?
+The repo is no longer at the "what should v1 be?" stage.
 
-## Phases
+The current implemented state is:
 
-### Phase 1 — Define the v1 target state
+- `ModelMarketplace v1` is implemented with:
+  - model shell creation
+  - sequential public/private chunk append
+  - model finalization / freeze
+  - chunk-addressed reads instead of whole-array reads
+- `PRSComputeEngine` now:
+  - reads finalized model metadata up front
+  - validates SNP length at `startPRS`
+  - processes one published model chunk per `computeChunk`
+  - supports both public `mulPlain` and private encrypted-chunk reads
+- Dedicated marketplace unit coverage exists in `test/model_marketplace_chunked_test.ts`.
+- HEPRS-backed integration tests use fixed advisor recommendations instead of recomputing them every run.
+- Documentation has been reorganized into:
+  - `docs/onboarding/`
+  - `docs/design/`
+  - `docs/reference/`
+- Current local status:
+  - `npm test` passes
+  - 47 tests passing
+  - the old `5000`-SNP model-publication bottleneck is removed
+  - the next major scaling boundary is monolithic SNP ingestion in `startPRS(...)`
 
-- Choose the v1 scope:
-  - public-only vs public+private
-  - target SNP sizes we intend to support
-  - whether the primary output is raw PRS, risk category, or both
-- Define success criteria:
-  - end-to-end Sepolia demo requirements
-  - required security properties
-  - required test coverage and benchmark evidence
-- Decide what “publishable model” means:
-  - minimum metadata
-  - versioning expectations
-  - integrity/attestation expectations
+## Recently Completed
 
-### Phase 2 — Lock the quantization and manifest flow
+### Marketplace and compute refactor
 
-- Keep HEPRS fixtures as the main correctness reference sets.
-- Standardize the advisor output into a first manifest format:
-  - source model hash
-  - SNP count
-  - scale
-  - weight zero-point
-  - score offset
-  - encoded thresholds
-  - required weight bits
-  - required accumulator bits
-  - target mode (`public` / `private`)
-- Decide the default recommendation policy:
-  - `baseline` as comparison floor
-  - `balanced` as default unless a dataset proves otherwise
-  - `max_precision` as opt-in mode
-- Produce model-size evidence:
-  - scaling factor × SNP count → error table
-  - advisor recommendation behavior across copied HEPRS fixtures
-- Plan for future advisor improvements:
-  - split heuristic cost model into storage/mul/add/chunk components
-  - separate public `mulPlain` and private encrypted `mul` cost curves
-  - replace heuristic costs with measured gas/HCU data later
+- Replace one-shot model upload with chunked publication lifecycle:
+  - `createModelShell(...)`
+  - `appendPublicModelChunk(...)`
+  - `appendEncryptedModelChunk(...)`
+  - `finalizeModel(...)`
+- Replace whole-model compute reads with chunk-oriented retrieval.
+- Add owner-only publication controls and private-reader allowlist behavior.
+- Align compute chunking to the model's published chunk size.
 
-### Phase 3 — Make model publication scalable
+### Testing
 
-- Redesign `ModelMarketplace.listPublicModel()` so large models are not uploaded in one transaction.
-- Evaluate chunked model publication:
-  - create model shell first
-  - append weight chunks over multiple transactions
-  - finalize/freeze the model once complete
-- Decide whether private models need a different upload path from public models.
-- Revisit storage reads:
-  - avoid returning full arrays once models become large
-  - define how chunks are addressed and retrieved during compute
-- Add model lifecycle features:
-  - versioning
-  - deprecation/update path
-  - optional pricing/fee mechanism
+- Add dedicated `ModelMarketplace` unit tests covering:
+  - shell creation
+  - chunk geometry
+  - append rules
+  - finalize rules
+  - reader permissions
+  - edge cases and invalid reads
+- Update integration coverage for:
+  - marketplace + engine + oracle flow
+  - HEPRS-backed fixtures
+- Lock HEPRS test scaling to the fixed recommendation map in `test/utils/heprs.ts`.
 
-### Phase 4 — Make SNP ingestion scalable
+### Documentation cleanup
 
-- Decide whether `startPRS()` should remain full-array or become chunked.
-- If chunked SNP ingestion is adopted:
-  - define request/job creation flow
-  - define encrypted SNP chunk append flow
-  - define when a job becomes ready for computation
-- Validate lengths and job invariants as early as possible:
-  - reject empty inputs if undesired
-  - reject mismatched model/SNP lengths at job creation rather than first chunk
-- Add cleanup mechanics:
-  - job cancellation
-  - expired/incomplete job cleanup
+- Write the live design doc for the implemented marketplace flow:
+  - `docs/design/model-marketplace-v1.md`
+- Reorganize docs into onboarding / design / reference folders.
+- Add `docs/README.md` as the documentation entrypoint.
+- Convert top-level `ONBOARDING.md` into a lightweight pointer to the onboarding folder.
 
-### Phase 5 — Wire access control and execution permissions correctly
+## Active Priorities
 
-- Connect `GenomicRegistry` ACL checks into PRS job creation.
-- Define the exact authorization rule:
-  - sample owner
-  - delegated grantee
-  - researcher/model owner access if any
-- Decide the `computeChunk()` permission model:
-  - permissionless relay
-  - requester-only
-  - allow-list / operator model
-- If permissionless relay remains:
-  - document it clearly
-  - reason about griefing and wasted-gas scenarios
-- Preserve safe state-machine behavior:
-  - keep checks-effects-interactions discipline
-  - think through race/reordering assumptions around chunk execution
+### 1. Make SNP ingestion scalable
 
-### Phase 6 — Add real model-extraction defenses
+This is now the most important engineering gap.
 
-- Decide the DP strategy for v1:
-  - caller-supplied noise with constraints
-  - on-chain/generated noise
-  - commitment-based noise enforcement
-- Calibrate noise:
-  - benchmark utility loss vs protection
-  - produce ROC/AUC or equivalent utility curves at several noise levels
-- Decide output exposure policy:
-  - raw scores access-controlled
-  - categories publicly decryptable
-  - no public raw-score path by default
-- Remove the zero-noise loophole before claiming security against model extraction.
+- Design and implement a scalable replacement for monolithic `startPRS(modelId, encryptedSnps)`.
+- Evaluate two candidate directions:
+  - chunked SNP upload into the job state
+  - registry-backed SNP references so compute jobs do not need to ingest the full vector directly
+- Add tests that explicitly target the current `5000`-SNP boundary and the post-fix behavior.
+- Update profiling so publication cost, SNP-ingestion cost, and compute cost are reported separately.
 
-### Phase 7 — Validate the real fhEVM client flow
+### 2. Wire registry ACL into job creation
 
-- Integrate the end-to-end client path:
-  - `fhevmjs` encryption
-  - ciphertext submission
-  - gateway/re-encryption flow
-  - category decryption for user-visible results
-- Run real-fhEVM tests on Sepolia:
-  - verify ACL behavior
-  - verify ciphertext handling
-  - verify output decryption flow
-- Compare mock vs real behavior:
-  - gas
-  - ciphertext/storage overhead
-  - chunk-size limits
-  - API/ACL differences
+The compute engine still accepts arbitrary encrypted SNP arrays from the caller.
 
-### Phase 8 — Benchmark and tune for feasibility
+- Decide whether `startPRS(...)` should:
+  - accept raw encrypted SNP arrays
+  - accept a `sampleId`
+  - accept both paths with different trust assumptions
+- Enforce `GenomicRegistry` access checks in the compute path if sample-linked execution is the intended default.
+- Add tests for:
+  - owner access
+  - delegated access
+  - unauthorized access rejection
 
-- Profile separately:
-  - model publication cost by weight count
-  - SNP ingestion cost by SNP count
-  - `computeChunk()` cost by chunk size
-- Find the practical boundaries for:
-  - `100`
-  - `500`
-  - `1000`
-  - `5000`
-  - larger synthetic datasets if needed
-- Revisit type strategy once measured data exists:
-  - whether `euint64` everywhere is too conservative
-  - whether mixed-width paths are worth the complexity
-- Evaluate planned optimizations:
-  - `euint16` intermediates / widening accumulators
+### 3. Decide and document the `computeChunk` permission model
+
+Current behavior is permissionless relaying.
+
+- Decide whether this remains the intended design.
+- If yes:
+  - document the relay model clearly in the design docs
+  - reason about griefing / wasted-gas scenarios
+- If no:
+  - restrict execution to requester or approved operators
+  - update tests and docs accordingly
+
+### 4. Harden the output and DP story
+
+The current oracle still trusts caller-supplied noise.
+
+- Decide the near-term DP posture:
+  - caller-supplied noise with guardrails
+  - commitment-based enforcement
+  - on-chain/generated noise later
+- Decide the user-facing output policy:
+  - encrypted raw score available only to requester
+  - risk category as the main public-facing output
+- Remove or mitigate the zero-noise loophole before making strong model-extraction claims.
+
+### 5. Validate the real fhEVM / Sepolia path
+
+Local mock correctness is no longer the main unknown.
+
+- Run the end-to-end flow on Sepolia with real fhEVM packages.
+- Validate:
+  - ciphertext input flow
+  - ACL behavior
+  - gateway / re-encryption / decryption flow
+  - chunk-size limits under real fhEVM costs
+- Record the main mock-vs-real differences in the docs.
+
+## Secondary Engineering Work
+
+### Marketplace improvements
+
+- Add model versioning / deprecation semantics.
+- Decide whether pricing / fee mechanics are in scope.
+- Decide whether public-model storage should remain fully on-chain in later versions or move toward commitment-based storage.
+
+### Job lifecycle improvements
+
+- Add job cancellation / cleanup for incomplete jobs.
+- Consider a `JobFinalized` event for off-chain indexing.
+- Decide whether stale job state needs expiry semantics.
+
+### Quantization and type strategy
+
+- Keep using the advisor + HEPRS fixtures as the main correctness reference.
+- Expand measured evidence for:
+  - scale choice
+  - encoded threshold quality
+  - overflow headroom
+- Revisit whether `euint64` everywhere is too conservative once real measurements exist.
+- Evaluate later optimizations:
+  - narrower intermediates
+  - widening accumulators
   - SIMD / slot-packing
 
-### Phase 9 — Hardening and research-grade validation
+## Research / Paper Work
 
-- Perform formal security analysis of:
-  - DP noise calibration
-  - categorical bucketing
-  - adaptive model-extraction resistance
-- Validate scientific fidelity:
-  - compare de-quantized on-chain outputs against PLINK/PRSice or equivalent references
-  - quantify MSE / rank correlation / AUC degradation
-- Reassess portability:
-  - Sepolia path
-  - Fhenix / Inco / future fhEVM-compatible chains
-- Decide what evidence is required before calling the system feasible, secure, and ready to demo publicly.
+### Feasibility evidence
+
+- Produce a clean benchmark story for:
+  - model publication
+  - SNP ingestion
+  - chunked compute
+  - finalize / output path
+- Compare:
+  - small fixture behavior
+  - HEPRS-backed fixture behavior
+  - mock vs real fhEVM behavior
+
+### Scientific validation
+
+- Compare de-quantized on-chain outputs against reference PRS tooling such as PLINK / PRSice.
+- Quantify:
+  - MSE
+  - rank correlation
+  - AUC or equivalent clinical utility measures
+
+### Security analysis
+
+- Formalize the threat model for:
+  - model extraction
+  - repeated query attacks
+  - noisy categorical release
+  - sample access abuse
+- Be explicit about which protections are implemented, mocked, assumed, or future work.
+
+## Items No Longer Open In The Same Way
+
+These were previously major open design questions, but the repo now has an implemented answer for `v1`:
+
+- `v1` supports both public and private model publication paths.
+- The marketplace now uses chunked on-chain storage instead of one-shot upload.
+- Compute no longer uses whole-model reads.
+- The current collaborator-facing design doc is the implemented marketplace design, not just a brainstorm.
+- The main bottleneck is no longer model publication for the HEPRS `5000` fixture; it is SNP ingestion.
+
+## Keep This File Useful
+
+When updating this file:
+
+- move completed items into `Recently Completed`
+- remove questions that already have an implemented answer
+- keep `Active Priorities` short and execution-oriented
+- keep paper/research work separate from core engineering work

@@ -5,6 +5,42 @@ const HEPRS_FIXTURE_DIR = path.resolve(__dirname, "..", "fixtures", "heprs");
 export const HEPRS_FIXTURE_SIZES = [100, 500, 1000, 5000] as const;
 export type HeprsFixtureSize = typeof HEPRS_FIXTURE_SIZES[number];
 
+export interface HeprsAdvisorRecommendation {
+  tier: "balanced";
+  scale: number;
+  requiredWeightBits: number;
+  requiredAccumulatorBits: number;
+}
+
+// Static recommendations copied from reports/advisor-findings.md so tests do
+// not rerun the advisor. These correspond to the current "balanced" default.
+export const HEPRS_BALANCED_RECOMMENDATIONS = {
+  100: {
+    tier: "balanced",
+    scale: 3_000_000,
+    requiredWeightBits: 16,
+    requiredAccumulatorBits: 32
+  },
+  500: {
+    tier: "balanced",
+    scale: 3_000_000,
+    requiredWeightBits: 16,
+    requiredAccumulatorBits: 32
+  },
+  1000: {
+    tier: "balanced",
+    scale: 1_000_000,
+    requiredWeightBits: 16,
+    requiredAccumulatorBits: 32
+  },
+  5000: {
+    tier: "balanced",
+    scale: 1_000_000,
+    requiredWeightBits: 16,
+    requiredAccumulatorBits: 32
+  }
+} as const satisfies Record<HeprsFixtureSize, HeprsAdvisorRecommendation>;
+
 function parseNumericCsv(filePath: string): number[][] {
   const raw = fs.readFileSync(filePath, "utf8").trim();
   if (!raw) {
@@ -53,8 +89,41 @@ export function quantizeSignedWeightsToUint64(
   };
 }
 
+export function getHeprsBalancedRecommendation(
+  size: HeprsFixtureSize
+): HeprsAdvisorRecommendation {
+  return HEPRS_BALANCED_RECOMMENDATIONS[size];
+}
+
+export function quantizeHeprsWeightsWithRecommendation(
+  size: HeprsFixtureSize,
+  weights: number[]
+) {
+  const recommendation = getHeprsBalancedRecommendation(size);
+
+  return {
+    recommendation,
+    ...quantizeSignedWeightsToUint64(weights, recommendation.scale)
+  };
+}
+
 export function toBigIntVector(values: number[]): bigint[] {
   return values.map((value) => BigInt(Math.round(value)));
+}
+
+export function chunkBigIntVector(
+  values: bigint[],
+  chunkLength: number
+): bigint[][] {
+  if (!Number.isInteger(chunkLength) || chunkLength <= 0) {
+    throw new Error("Chunk length must be a positive integer");
+  }
+
+  const chunks: bigint[][] = [];
+  for (let start = 0; start < values.length; start += chunkLength) {
+    chunks.push(values.slice(start, start + chunkLength));
+  }
+  return chunks;
 }
 
 export function dotProductBigInt(

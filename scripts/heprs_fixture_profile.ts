@@ -5,10 +5,13 @@ import { ethers } from "hardhat";
 
 import {
   HEPRS_FIXTURE_SIZES,
+  HeprsAdvisorRecommendation,
   HeprsFixtureSize,
+  chunkBigIntVector,
   dotProductBigInt,
+  getHeprsBalancedRecommendation,
   loadHeprsFixture,
-  quantizeSignedWeightsToUint64,
+  quantizeHeprsWeightsWithRecommendation,
   toBigIntVector
 } from "../test/utils/heprs";
 
@@ -32,6 +35,7 @@ interface SuccessfulFixtureProfile {
   fixtureSize: HeprsFixtureSize;
   vectorLength: number;
   chunkSize: number;
+  recommendation: HeprsAdvisorRecommendation;
   chunkTiming: ChunkTimingSummary;
   status: "full_flow";
   timingsMs: {
@@ -40,7 +44,7 @@ interface SuccessfulFixtureProfile {
     quantizeWeights: number;
     localReferenceDotProduct: number;
     deployMarketplace: number;
-    listModel: number;
+    publishModel: number;
     deployEngine: number;
     startPrs: number;
     readPartial: number;
@@ -48,13 +52,14 @@ interface SuccessfulFixtureProfile {
   };
 }
 
-interface BoundaryFixtureProfile {
+interface StartPrsBoundaryFixtureProfile {
   fixtureSize: HeprsFixtureSize;
   vectorLength: number;
   chunkSize: number;
+  recommendation: HeprsAdvisorRecommendation;
   localChunkCount: number;
-  status: "upload_out_of_gas";
-  failedStep: "listPublicModel";
+  status: "start_prs_out_of_gas";
+  failedStep: "startPRS";
   failureMessage: string;
   timingsMs: {
     total: number;
@@ -63,11 +68,13 @@ interface BoundaryFixtureProfile {
     localReferenceDotProduct: number;
     localChunkedDotProduct: number;
     deployMarketplace: number;
-    listModelFailure: number;
+    publishModel: number;
+    deployEngine: number;
+    startPrsFailure: number;
   };
 }
 
-type FixtureProfile = SuccessfulFixtureProfile | BoundaryFixtureProfile;
+type FixtureProfile = SuccessfulFixtureProfile | StartPrsBoundaryFixtureProfile;
 
 function nowNs(): bigint {
   return process.hrtime.bigint();
@@ -170,7 +177,10 @@ async function profileFixture(
   const fixtureResult = await timed(() => loadHeprsFixture(fixtureSize));
   const { genotypes, betas } = fixtureResult.value;
 
-  const quantizeResult = await timed(() => quantizeSignedWeightsToUint64(betas));
+  const recommendation = getHeprsBalancedRecommendation(fixtureSize);
+  const quantizeResult = await timed(() => (
+    quantizeHeprsWeightsWithRecommendation(fixtureSize, betas)
+  ));
   const quantized = quantizeResult.value;
   const snps = toBigIntVector(genotypes[0]);
 
@@ -187,111 +197,73 @@ async function profileFixture(
   });
   const marketplace = deployMarketplaceResult.value;
 
-  const listModelStart = nowNs();
-  try {
-    const tx = await marketplace.listPublicModel(quantized.weights);
+  const publishModelResult = await timed(async () => {
+    const modelId = await marketplace.createModelShell.staticCall(
+      false,
+      BigInt(quantized.weights.length),
+      BigInt(chunkSize),
+      `ipfs://heprs/${fixtureSize}`,
+      ethers.ZeroHash,
+      ethers.ZeroHash
+    );
+    const tx = await marketplace.createModelShell(
+      false,
+      BigInt(quantized.weights.length),
+      BigInt(chunkSize),
+      `ipfs://heprs/${fixtureSize}`,
+      ethers.ZeroHash,
+      ethers.ZeroHash
+    );
     await tx.wait();
-    const listModelMs = nsToMs(nowNs() - listModelStart);
 
-    const deployEngineResult = await timed(async () => {
-      const Engine = await ethers.getContractFactory("PRSComputeEngine");
-      return Engine.deploy(await marketplace.getAddress());
-    });
-    const engine = deployEngineResult.value;
+    for (const chunk of chunkBigIntVector(quantized.weights, chunkSize)) {
+      const appendTx = await marketplace.appendPublicModelChunk(modelId, chunk);
+      await appendTx.wait();
+    }
 
-    const modelId = (await marketplace.modelCount()) - 1n;
-    const jobId = await engine.jobCount();
+    const finalizeTx = await marketplace.finalizeModel(modelId);
+    await finalizeTx.wait();
+    return modelId;
+  });
+  const modelId = publishModelResult.value;
 
-    const startPrsResult = await timed(async () => {
-      const tx = await engine.startPRS(modelId, snps, chunkSize);
+  const deployEngineResult = await timed(async () => {
+    const Engine = await ethers.getContractFactory("PRSComputeEngine");
+    return Engine.deploy(await marketplace.getAddress());
+  });
+  const engine = deployEngineResult.value;
+
+  const jobId = await engine.jobCount();
+  const startPrsStart = nowNs();
+  let startPrsResult:
+    | { value: void; ms: number }
+    | undefined;
+  try {
+    startPrsResult = await timed(async () => {
+      const tx = await engine.startPRS(modelId, snps);
       await tx.wait();
     });
-
-    const chunkTimes: number[] = [];
-    const totalChunks = Math.ceil(snps.length / chunkSize);
-    let readPartialResult:
-      | { value: bigint; ms: number }
-      | undefined;
-    const partialFirstChunk = dotProductBigInt(
-      snps.slice(0, chunkSize),
-      quantized.weights.slice(0, chunkSize)
-    );
-    for (let i = 0; i < totalChunks; i++) {
-      const chunkResult = await timed(async () => {
-        const tx = await engine.computeChunk(jobId);
-        await tx.wait();
-      });
-      chunkTimes.push(chunkResult.ms);
-      if (i === 0) {
-        readPartialResult = await timed(async () => {
-          return engine.readPartial.staticCall(jobId);
-        });
-      }
-    }
-
-    if (!readPartialResult) {
-      throw new Error(`Fixture ${fixtureSize} did not record a partial result`);
-    }
-
-    const finalizeResult = await timed(async () => {
-      return engine.finalize.staticCall(jobId);
-    });
-
-    if (readPartialResult.value !== partialFirstChunk) {
-      throw new Error(`Fixture ${fixtureSize} partial result mismatch`);
-    }
-    if (finalizeResult.value !== expected) {
-      throw new Error(`Fixture ${fixtureSize} final score mismatch`);
-    }
-
-    const chunkTotal = chunkTimes.reduce((sum, value) => sum + value, 0);
-    return {
-      fixtureSize,
-      vectorLength: snps.length,
-      chunkSize,
-      chunkTiming: {
-        chunkCount: chunkTimes.length,
-        totalMs: chunkTotal,
-        averageMs: chunkTotal / chunkTimes.length,
-        minMs: Math.min(...chunkTimes),
-        maxMs: Math.max(...chunkTimes),
-        perChunkMs: chunkTimes
-      },
-      status: "full_flow",
-      timingsMs: {
-        total: nsToMs(nowNs() - totalStart),
-        loadFixture: fixtureResult.ms,
-        quantizeWeights: quantizeResult.ms,
-        localReferenceDotProduct: expectedResult.ms,
-        deployMarketplace: deployMarketplaceResult.ms,
-        listModel: listModelMs,
-        deployEngine: deployEngineResult.ms,
-        startPrs: startPrsResult.ms,
-        readPartial: readPartialResult.ms,
-        finalize: finalizeResult.ms
-      }
-    };
   } catch (error) {
     const failureMessage = error instanceof Error ? error.message : String(error);
     if (!/out of gas/i.test(failureMessage)) {
       throw error;
     }
-    const listModelFailureMs = nsToMs(nowNs() - listModelStart);
 
     const chunkedLocalResult = await timed(() => (
       chunkedDotProductBigInt(snps, quantized.weights, chunkSize)
     ));
     if (chunkedLocalResult.value !== expected) {
-      throw new Error(`Fixture ${fixtureSize} local chunked math mismatch after upload failure`);
+      throw new Error(`Fixture ${fixtureSize} local chunked math mismatch after startPRS failure`);
     }
 
     return {
       fixtureSize,
       vectorLength: snps.length,
       chunkSize,
+      recommendation,
       localChunkCount: Math.ceil(snps.length / chunkSize),
-      status: "upload_out_of_gas",
-      failedStep: "listPublicModel",
+      status: "start_prs_out_of_gas",
+      failedStep: "startPRS",
       failureMessage,
       timingsMs: {
         total: nsToMs(nowNs() - totalStart),
@@ -300,10 +272,78 @@ async function profileFixture(
         localReferenceDotProduct: expectedResult.ms,
         localChunkedDotProduct: chunkedLocalResult.ms,
         deployMarketplace: deployMarketplaceResult.ms,
-        listModelFailure: listModelFailureMs
+        publishModel: publishModelResult.ms,
+        deployEngine: deployEngineResult.ms,
+        startPrsFailure: nsToMs(nowNs() - startPrsStart)
       }
     };
   }
+
+  const chunkTimes: number[] = [];
+  const totalChunks = Math.ceil(snps.length / chunkSize);
+  let readPartialResult:
+    | { value: bigint; ms: number }
+    | undefined;
+  const partialFirstChunk = dotProductBigInt(
+    snps.slice(0, chunkSize),
+    quantized.weights.slice(0, chunkSize)
+  );
+  for (let i = 0; i < totalChunks; i++) {
+    const chunkResult = await timed(async () => {
+      const tx = await engine.computeChunk(jobId);
+      await tx.wait();
+    });
+    chunkTimes.push(chunkResult.ms);
+    if (i === 0) {
+      readPartialResult = await timed(async () => {
+        return engine.readPartial.staticCall(jobId);
+      });
+    }
+  }
+
+  if (!readPartialResult) {
+    throw new Error(`Fixture ${fixtureSize} did not record a partial result`);
+  }
+
+  const finalizeResult = await timed(async () => {
+    return engine.finalize.staticCall(jobId);
+  });
+
+  if (readPartialResult.value !== partialFirstChunk) {
+    throw new Error(`Fixture ${fixtureSize} partial result mismatch`);
+  }
+  if (finalizeResult.value !== expected) {
+    throw new Error(`Fixture ${fixtureSize} final score mismatch`);
+  }
+
+  const chunkTotal = chunkTimes.reduce((sum, value) => sum + value, 0);
+  return {
+    fixtureSize,
+    vectorLength: snps.length,
+    chunkSize,
+    recommendation,
+    chunkTiming: {
+      chunkCount: chunkTimes.length,
+      totalMs: chunkTotal,
+      averageMs: chunkTotal / chunkTimes.length,
+      minMs: Math.min(...chunkTimes),
+      maxMs: Math.max(...chunkTimes),
+      perChunkMs: chunkTimes
+    },
+    status: "full_flow",
+    timingsMs: {
+      total: nsToMs(nowNs() - totalStart),
+      loadFixture: fixtureResult.ms,
+      quantizeWeights: quantizeResult.ms,
+      localReferenceDotProduct: expectedResult.ms,
+      deployMarketplace: deployMarketplaceResult.ms,
+      publishModel: publishModelResult.ms,
+      deployEngine: deployEngineResult.ms,
+      startPrs: startPrsResult.ms,
+      readPartial: readPartialResult.ms,
+      finalize: finalizeResult.ms
+    }
+  };
 }
 
 function formatMs(ms: number): string {
@@ -316,9 +356,13 @@ function summarizeProfile(profile: FixtureProfile, verbose: boolean): string {
     `status=${profile.status}`
   ];
 
+  lines.push(
+    `advisor: tier=${profile.recommendation.tier}, scale=${profile.recommendation.scale}, bits=${profile.recommendation.requiredWeightBits}/${profile.recommendation.requiredAccumulatorBits}`
+  );
+
   if (profile.status === "full_flow") {
     lines.push(
-      `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, listModel=${formatMs(profile.timingsMs.listModel)}, startPRS=${formatMs(profile.timingsMs.startPrs)}, chunkTotal=${formatMs(profile.chunkTiming.totalMs)}, finalize=${formatMs(profile.timingsMs.finalize)}`,
+      `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, publishModel=${formatMs(profile.timingsMs.publishModel)}, startPRS=${formatMs(profile.timingsMs.startPrs)}, chunkTotal=${formatMs(profile.chunkTiming.totalMs)}, finalize=${formatMs(profile.timingsMs.finalize)}`,
       `chunks: count=${profile.chunkTiming.chunkCount}, avg=${formatMs(profile.chunkTiming.averageMs)}, min=${formatMs(profile.chunkTiming.minMs)}, max=${formatMs(profile.chunkTiming.maxMs)}`
     );
     if (verbose) {
@@ -326,7 +370,7 @@ function summarizeProfile(profile: FixtureProfile, verbose: boolean): string {
     }
   } else {
     lines.push(
-      `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, localChunkedMath=${formatMs(profile.timingsMs.localChunkedDotProduct)}, listModelFailure=${formatMs(profile.timingsMs.listModelFailure)}`,
+      `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, publishModel=${formatMs(profile.timingsMs.publishModel)}, startPRSFailure=${formatMs(profile.timingsMs.startPrsFailure)}, localChunkedMath=${formatMs(profile.timingsMs.localChunkedDotProduct)}`,
       `boundary: failedStep=${profile.failedStep}, localChunkCount=${profile.localChunkCount}`
     );
     if (verbose) {

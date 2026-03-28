@@ -53,16 +53,33 @@ describe("Registry / Marketplace / Oracle — mock FHE (Hardhat)", function () {
 
       // weights = [1, 2, 3], snps = [4, 5, 6], chunkSize = 2
       // expected (mulPlain path): 4*1 + 5*2 + 6*3 = 4 + 10 + 18 = 32
-      const modelId = await marketplace.listPublicModel.staticCall([1n, 2n, 3n]);
-      await marketplace.listPublicModel([1n, 2n, 3n]);
+      const modelId = await marketplace.createModelShell.staticCall(
+        false,
+        3n,
+        2n,
+        "ipfs://manifest",
+        ethers.ZeroHash,
+        ethers.ZeroHash
+      );
+      await marketplace.createModelShell(
+        false,
+        3n,
+        2n,
+        "ipfs://manifest",
+        ethers.ZeroHash,
+        ethers.ZeroHash
+      );
+      await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
+      await marketplace.appendPublicModelChunk(modelId, [3n]);
+      await marketplace.finalizeModel(modelId);
       expect(await marketplace.modelCount()).to.equal(1n);
 
       const Engine = await ethers.getContractFactory("PRSComputeEngine");
       const engine = await Engine.deploy(await marketplace.getAddress());
 
       const snps = [4n, 5n, 6n];
-      const jobId = await engine.startPRS.staticCall(modelId, snps, 2n);
-      await engine.startPRS(modelId, snps, 2n);
+      const jobId = await engine.startPRS.staticCall(modelId, snps);
+      await engine.startPRS(modelId, snps);
       expect(await engine.jobCount()).to.equal(1n);
 
       // Chunk 1: indices [0, 2) → 0 + 4*1 + 5*2 = 14
@@ -74,6 +91,51 @@ describe("Registry / Marketplace / Oracle — mock FHE (Hardhat)", function () {
       await engine.computeChunk(jobId);
       const score = await engine.finalize.staticCall(jobId);
       expect(score).to.equal(32n);
+    });
+
+    it("computes correct dot product via encrypted chunks after authorizing the engine", async function () {
+      const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+      const marketplace = await Marketplace.deploy();
+
+      const modelId = await marketplace.createModelShell.staticCall(
+        true,
+        3n,
+        2n,
+        "ipfs://private-manifest",
+        ethers.ZeroHash,
+        ethers.ZeroHash
+      );
+      await marketplace.createModelShell(
+        true,
+        3n,
+        2n,
+        "ipfs://private-manifest",
+        ethers.ZeroHash,
+        ethers.ZeroHash
+      );
+      await marketplace.appendEncryptedModelChunk(modelId, [2n, 3n]);
+      await marketplace.appendEncryptedModelChunk(modelId, [4n]);
+
+      const Engine = await ethers.getContractFactory("PRSComputeEngine");
+      const engine = await Engine.deploy(await marketplace.getAddress());
+      await marketplace.setPrivateModelReader(
+        modelId,
+        await engine.getAddress(),
+        true
+      );
+      await marketplace.finalizeModel(modelId);
+
+      const snps = [5n, 6n, 7n];
+      const jobId = await engine.startPRS.staticCall(modelId, snps);
+      await engine.startPRS(modelId, snps);
+
+      await engine.computeChunk(jobId);
+      const partial = await engine.readPartial.staticCall(jobId);
+      expect(partial).to.equal(28n);
+
+      await engine.computeChunk(jobId);
+      const score = await engine.finalize.staticCall(jobId);
+      expect(score).to.equal(56n);
     });
   });
 

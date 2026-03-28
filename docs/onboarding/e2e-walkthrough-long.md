@@ -76,13 +76,15 @@ The job is created with:
 ```text
 modelId = 7
 encrypted SNP handles
-chunkSize = 2
-nextIndex = 0
+chunkSize = 2      (read from the finalized model)
+chunkCount = 2
+nextChunkIndex = 0
+processedWeights = 0
 partialSum = Enc(0)
 requester = Alice
 ```
 
-The onboarding lifecycle describes `startPRS()` initializing `nextIndex = 0` and `partialSum = Enc(0)`.
+The current lifecycle initializes `nextChunkIndex = 0`, `processedWeights = 0`, and `partialSum = Enc(0)`.
 
 What each component knows now:
 
@@ -110,7 +112,7 @@ Coprocessor knows:
 
 In the current design, any party can call `computeChunk(jobId)`.
 
-With chunk size `2`, this transaction processes indices `0` and `1`.
+With model chunk size `2`, this transaction processes the first published model chunk, which aligns to SNP indices `0` and `1`.
 
 For index `0`:
 
@@ -161,7 +163,7 @@ Why validators still cannot "look":
 
 ### Step 7: Another `computeChunk(jobId)`
 
-Now `nextIndex = 2`, so only the last SNP is processed:
+Now `nextChunkIndex = 1` and `processedWeights = 2`, so only the last SNP is processed:
 
 - SNP handle corresponds to encrypted `2`
 - Weight is plaintext `5`

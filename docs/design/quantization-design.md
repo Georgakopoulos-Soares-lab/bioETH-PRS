@@ -450,6 +450,6 @@ These references informed the design direction:
 * HEPRS reference paper in this repo:
   * `docs/PIIS2667237525003078.pdf`
 * Quantization advisor capability:
-  * `docs/quantization-advisor.md`
+  * `docs/reference/quantization-advisor.md`
 * Scaling ceilings quick reference:
-  * `docs/scaling-ceilings.md`
+  * `docs/reference/scaling-ceilings.md`

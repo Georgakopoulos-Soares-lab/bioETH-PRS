@@ -17,7 +17,7 @@ Confidential on-chain Polygenic Risk Scoring (PRS) via fhEVM. Computes encrypted
 
 ```sh
 npm run build          # hardhat compile
-npm run test           # hardhat test (mock FHE) — 23 tests, no external node needed
+npm run test           # hardhat test (mock FHE) — 47 tests, no external node needed
 npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 ```
 
@@ -45,11 +45,16 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 
 | Doc | Purpose |
 |---|---|
-| `docs/INSTRUCTIONS.md` | Architecture, roadmap, known edge cases, threat model |
-| `ONBOARDING.md` | Full educational guide — bio, crypto, systems background |
-| `docs/cheatsheet.md` | Quick concept reference |
-| `docs/e2e-example-short.md` | End-to-end scenario walkthrough |
-| `docs/e2e-example-long.md` | Detailed component-by-component flow |
+| `docs/README.md` | Documentation map and reading entrypoints |
+| `docs/architecture-roadmap.md` | Architecture, roadmap, known edge cases, and threat model |
+| `docs/design/model-marketplace-v1.md` | Detailed `ModelMarketplace v1` design, publication lifecycle, and security controls |
+| `docs/onboarding/contributor-onboarding.md` | Full educational guide — bio, crypto, systems background |
+| `docs/onboarding/concepts-cheatsheet.md` | Quick concept reference |
+| `docs/onboarding/e2e-walkthrough-short.md` | End-to-end scenario walkthrough |
+| `docs/onboarding/e2e-walkthrough-long.md` | Detailed component-by-component flow |
+| `docs/reference/development-workflows.md` | Practical command guide for tests, advisor runs, and profiling |
+| `docs/reference/quantization-advisor.md` | Quantization advisor workflow and interpretation |
+| `docs/reference/scaling-ceilings.md` | Quick overflow screening reference |
 | `reports/scaling-ceiling-findings.md` | Collaborator-facing explanation of the generated scale ceiling results |
 | `reports/advisor-findings.md` | Collaborator-facing advisor findings across copied HEPRS fixtures |
 | `reports/heprs-fixture-findings.md` | Collaborator-facing HEPRS mock-test findings and current gas boundary |

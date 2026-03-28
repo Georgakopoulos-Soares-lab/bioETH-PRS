@@ -7,19 +7,19 @@ By the end you will have a complete mental model of every line of code in the pr
 
 ## Phase 1 — Conceptual grounding (docs)
 
-### 1. `docs/cheatsheet.md`
+### 1. `docs/onboarding/concepts-cheatsheet.md`
 
 A 1-page reference for the core concepts: what a SNP is, what GWAS weights are,
 why you need FHE, and what a PRS dot-product looks like. Read this first so the
 math in the code makes sense.
 
-### 2. `docs/e2e-example-short.md`
+### 2. `docs/onboarding/e2e-walkthrough-short.md`
 
 A single narrated walkthrough of one user registering a sample, a researcher
 listing a model, computing a PRS, and reading the result category. This is the
 story the contracts tell together — read it before touching any `.sol` file.
 
-### 3. `docs/INSTRUCTIONS.md`
+### 3. `docs/architecture-roadmap.md`
 
 The full architecture doc. Covers: how the HEPRS paper maps to this codebase,
 per-contract responsibilities, known edge cases (ACL gap, overflow risk, etc.),
@@ -96,16 +96,20 @@ Two flavours of model:
 
 **What to trace while reading:**
 
-- `Model` struct: `publicWeights`, `encryptedWeights`, `isPrivate`, `owner`
-- `listPublicModel` vs `listEncryptedModel` — note they store in different fields
-- `getModel` returns all four fields; the caller decides which array to use based on `isPrivate`
+- `ModelHeader` struct: ownership, privacy mode, chunk geometry, finalized state, manifest metadata
+- `createModelShell` — creates a draft model before any weights are uploaded
+- `appendPublicModelChunk` / `appendEncryptedModelChunk` — sequential chunk publication
+- `finalizeModel` — freezes the model before compute
+- `getPublicWeightChunk` / `getEncryptedWeightChunk` — chunk-specific retrieval instead of whole-array reads
 
-**Connects to:** `PRSComputeEngine` calls `getModel` to fetch weights before computing.
+**Connects to:** `PRSComputeEngine` reads one model chunk at a time instead of fetching the full model.
 
 ### 9. `contracts/HEPRS.sol` — `BioETHPRS` contract (~143 lines)
 
 **Read this before PRSComputeEngine.** It's the self-contained version of the
 system: model storage + job management + computation in one file.
+
+This section intentionally describes the standalone prototype contract, not the newer marketplace-backed `PRSComputeEngine`. The standalone contract still uses the older caller-supplied `chunkSize` and `nextIndex` flow.
 
 **What to trace while reading:**
 
@@ -140,12 +144,12 @@ finalize(jobId) → euint64
 
 1. Weights come from `ModelMarketplace` (injected via constructor) instead of
    being stored internally.
-2. `computeChunk` has a branch:
+2. The job follows the model's published chunk geometry rather than accepting a caller-chosen compute chunk size.
+3. `computeChunk` has a branch:
    - Public model → `job.snps[i].mulPlain(publicWeights[i])` (cheaper)
    - Private model → `encryptedWeights[i].mul(job.snps[i])` (full FHE mul)
 
-**What to trace:** The `computeChunk` function's `if (isPrivate)` branch shows
-exactly where the gas cost difference between public and private models comes from.
+**What to trace:** The `computeChunk` function now fetches only one model chunk, uses the aligned SNP slice, and then advances `nextChunkIndex`. The `if (isPrivate)` branch still shows exactly where the gas cost difference between public and private models comes from.
 
 ### 11. `contracts/ResultOracle.sol` (~53 lines)
 
@@ -258,9 +262,9 @@ to understand the contracts.
 
 ## Optional deeper reading (docs)
 
-- `docs/e2e-example-long.md` — component-by-component walkthrough with data
+- `docs/onboarding/e2e-walkthrough-long.md` — component-by-component walkthrough with data
   values flowing through each contract
-- `docs/INSTRUCTIONS.md §7` — known edge cases (ACL enforcement gap,
+- `docs/architecture-roadmap.md §7` — known edge cases (ACL enforcement gap,
   uint64 overflow risk, DP noise not truly random in mock)
-- `ONBOARDING.md` — biological and cryptographic background if you want to go
+- `docs/onboarding/contributor-onboarding.md` — biological and cryptographic background if you want to go
   deeper on PRS biology or TFHE theory

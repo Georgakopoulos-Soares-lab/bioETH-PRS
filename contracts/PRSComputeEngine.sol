@@ -4,17 +4,21 @@ pragma solidity ^0.8.24;
 import "./TFHE.sol";
 import "./ModelMarketplace.sol";
 
-/// @title PRSComputeEngine - Chunked PRS dot-product against a model marketplace.
+/// @title PRSComputeEngine - Chunked PRS dot-product against chunk-published models.
 contract PRSComputeEngine {
     using TFHE for euint64;
 
     struct Job {
         uint256 modelId;
         euint64[] snps;
-        uint256 nextIndex;
+        uint256 weightCount;
         uint256 chunkSize;
+        uint256 chunkCount;
+        uint256 nextChunkIndex;
+        uint256 processedWeights;
         euint64 partialSum;
         address requester;
+        bool isPrivate;
         bool complete;
     }
 
@@ -28,7 +32,8 @@ contract PRSComputeEngine {
     );
     event ChunkComputed(
         uint256 indexed jobId,
-        uint256 newNextIndex,
+        uint256 indexed chunkIndex,
+        uint256 processedWeights,
         bool complete
     );
 
@@ -38,19 +43,36 @@ contract PRSComputeEngine {
 
     function startPRS(
         uint256 modelId,
-        euint64[] calldata encryptedSnps,
-        uint256 chunkSize
+        euint64[] calldata encryptedSnps
     ) external returns (uint256) {
-        require(chunkSize > 0, "Chunk size must be > 0");
-        require(modelId < marketplace.modelCount(), "Invalid model");
+        (
+            bool isPrivate,
+            bool finalized,
+            uint256 weightCount,
+            uint256 chunkSize,
+            uint256 chunkCount
+        ) = marketplace.getModelConfig(modelId);
+
+        require(finalized, "Model not finalized");
+        require(weightCount == encryptedSnps.length, "Length mismatch");
+        if (isPrivate) {
+            require(
+                marketplace.canReadPrivateModel(modelId, address(this)),
+                "Engine not authorized"
+            );
+        }
 
         Job memory job = Job({
             modelId: modelId,
             snps: encryptedSnps,
-            nextIndex: 0,
+            weightCount: weightCount,
             chunkSize: chunkSize,
+            chunkCount: chunkCount,
+            nextChunkIndex: 0,
+            processedWeights: 0,
             partialSum: TFHE.asEuint64(0),
             requester: msg.sender,
+            isPrivate: isPrivate,
             complete: false
         });
 
@@ -65,50 +87,63 @@ contract PRSComputeEngine {
         Job storage job = jobs[jobId];
         require(!job.complete, "Job already complete");
 
-        (
-            uint64[] memory publicWeights,
-            euint64[] memory encryptedWeights,
-            bool isPrivate,
+        uint256 chunkIndex = job.nextChunkIndex;
+        require(chunkIndex < job.chunkCount, "Invalid chunk");
 
-        ) = marketplace.getModel(job.modelId);
-        if (isPrivate) {
-            require(
-                encryptedWeights.length == job.snps.length,
-                "Length mismatch"
-            );
-        } else {
-            require(publicWeights.length == job.snps.length, "Length mismatch");
-        }
-
-        uint256 start = job.nextIndex;
-        uint256 end = start + job.chunkSize;
-        if (end > job.snps.length) {
-            end = job.snps.length;
-        }
+        uint256 expectedLength = _expectedChunkLength(
+            job.weightCount,
+            job.chunkSize,
+            chunkIndex
+        );
+        uint256 start = job.processedWeights;
 
         euint64 acc = job.partialSum;
-        for (uint256 i = start; i < end; i++) {
-            if (isPrivate) {
-                euint64 term = encryptedWeights[i].mul(job.snps[i]);
+        if (job.isPrivate) {
+            euint64[] memory encryptedWeights = marketplace
+                .getEncryptedWeightChunk(job.modelId, chunkIndex);
+            require(
+                encryptedWeights.length == expectedLength,
+                "Invalid model chunk"
+            );
+            for (uint256 i = 0; i < encryptedWeights.length; i++) {
+                euint64 term = encryptedWeights[i].mul(job.snps[start + i]);
                 acc = acc.add(term);
-            } else {
-                euint64 term = job.snps[i].mulPlain(publicWeights[i]);
+            }
+        } else {
+            uint64[] memory publicWeights = marketplace.getPublicWeightChunk(
+                job.modelId,
+                chunkIndex
+            );
+            require(
+                publicWeights.length == expectedLength,
+                "Invalid model chunk"
+            );
+            for (uint256 i = 0; i < publicWeights.length; i++) {
+                euint64 term = job.snps[start + i].mulPlain(publicWeights[i]);
                 acc = acc.add(term);
             }
         }
 
+        uint256 processedWeights = start + expectedLength;
         job.partialSum = acc;
-        job.nextIndex = end;
-        if (end == job.snps.length) {
+        job.processedWeights = processedWeights;
+        job.nextChunkIndex = chunkIndex + 1;
+        if (job.nextChunkIndex == job.chunkCount) {
             job.complete = true;
         }
 
-        emit ChunkComputed(jobId, end, job.complete);
+        emit ChunkComputed(
+            jobId,
+            chunkIndex,
+            processedWeights,
+            job.complete
+        );
     }
 
     function readPartial(uint256 jobId) external returns (euint64) {
         require(jobId < jobs.length, "Invalid job");
         Job storage job = jobs[jobId];
+        require(job.requester == msg.sender, "Not requester");
         job.partialSum = TFHE.allow(job.partialSum, msg.sender);
         return job.partialSum;
     }
@@ -124,5 +159,15 @@ contract PRSComputeEngine {
 
     function jobCount() external view returns (uint256) {
         return jobs.length;
+    }
+
+    function _expectedChunkLength(
+        uint256 weightCount,
+        uint256 chunkSize,
+        uint256 chunkIndex
+    ) internal pure returns (uint256) {
+        uint256 start = chunkIndex * chunkSize;
+        uint256 remaining = weightCount - start;
+        return remaining > chunkSize ? chunkSize : remaining;
     }
 }

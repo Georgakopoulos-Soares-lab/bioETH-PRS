@@ -11,7 +11,7 @@ It focuses on:
 * observed validation error
 * what those tradeoffs imply for our model-upload path
 
-For the advisor capability itself, see [docs/quantization-advisor.md](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/docs/quantization-advisor.md).
+For the advisor capability itself, see [docs/reference/quantization-advisor.md](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/docs/reference/quantization-advisor.md).
 
 ## How These Results Were Produced
 

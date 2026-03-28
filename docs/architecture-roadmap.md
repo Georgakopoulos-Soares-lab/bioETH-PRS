@@ -38,20 +38,20 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 
 ### B. Contract 2: Model Marketplace — `ModelMarketplace.sol` (Research Layer)
 
-* Stores Researcher GWAS weights (either plaintext or encrypted).
-* **Mode A (Private Weights):** Weights stored as `euint64[]` ($C \times C$ multiplication). Maximum IP protection; higher gas.
-* **Mode B (Public Weights):** Weights stored as `uint64[]` ($C \times P$ via `mulPlain`). ~60% gas savings, "Open Science" model.
-* **Functions:** `listPublicModel(weights)`, `listEncryptedModel(encryptedWeights)`, `getModel(modelId)`.
-* **Current limitation:** No payment / fee mechanism, no model update / deletion, and no model versioning (see Edge Cases § 7-B).
+* Stores Researcher GWAS weights through a **chunked publication lifecycle** rather than one-shot full-array upload.
+* **Mode A (Private Weights):** Weights stored as chunked `euint64[]` payloads ($C \times C$ multiplication). Maximum IP protection; higher gas.
+* **Mode B (Public Weights):** Weights stored as chunked `uint64[]` payloads ($C \times P$ via `mulPlain`). ~60% gas savings, "Open Science" model.
+* **Functions:** `createModelShell(...)`, `appendPublicModelChunk(...)`, `appendEncryptedModelChunk(...)`, `finalizeModel(modelId)`, `getModelHeader(modelId)`, chunk getters.
+* **Current limitation:** No payment / fee mechanism, no model deprecation flow yet, and public weights still live in ordinary on-chain storage in `v1` (see Edge Cases § 7-B).
 
 ### C. Contract 3: PRS Compute Engine — `PRSComputeEngine.sol` (Logic Layer)
 
 * **Constraint:** A 1,000+ SNP calculation exceeds Block Gas Limits (~30 M gas on Hardhat, variable on live fhEVM).
 * **Solution:** Asynchronous **Chunking / MapReduce** pattern.
-  * The calculation is broken into transactions of ~100 SNPs.
+  * The calculation is broken into transactions aligned to the model's published chunk size.
   * An on-chain state machine accumulates the encrypted `partialSum` across blocks.
-* Reads weights dynamically from `ModelMarketplace` and automatically uses either `mul` (private) or `mulPlain` (public) per model type.
-* **Functions:** `startPRS(modelId, encryptedSnps, chunkSize)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
+* Reads only the **next required model chunk** from `ModelMarketplace` and automatically uses either `mul` (private) or `mulPlain` (public) per model type.
+* **Functions:** `startPRS(modelId, encryptedSnps)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
 * A standalone variant `HEPRS.sol` (contains the `BioETHPRS` contract) also exists; it embeds models directly instead of referencing the marketplace.
 
 ### D. Contract 4: Result Oracle — `ResultOracle.sol` (Output Layer)
@@ -72,9 +72,10 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 
 ## 4. Engineering Specifications & Optimizations
 
-See also `docs/quantization-design.md` for the dedicated production-oriented design of quantization, signed-weight handling, offsets, and overflow-safe score encoding.
-See also `docs/quantization-advisor.md` for the standalone advisor capability that helps model publishers choose candidate scales before upload.
-See also `docs/scaling-ceilings.md` for the simple scale-vs-SNP quick-screen reference under `uint64`.
+See also `docs/design/quantization-design.md` for the dedicated production-oriented design of quantization, signed-weight handling, offsets, and overflow-safe score encoding.
+See also `docs/design/model-marketplace-v1.md` for the current chunked publication, metadata, permissions, and chunk-oriented compute design of `ModelMarketplace`.
+See also `docs/reference/quantization-advisor.md` for the standalone advisor capability that helps model publishers choose candidate scales before upload.
+See also `docs/reference/scaling-ceilings.md` for the simple scale-vs-SNP quick-screen reference under `uint64`.
 See also `reports/scaling-ceiling-findings.md` for the collaborator-facing explanation of the generated ceiling results.
 See also `reports/advisor-findings.md` for the current 100/500/1000/5000 SNP advisor results and what they imply for the present contract shape.
 See also `reports/heprs-fixture-findings.md` for the HEPRS-backed mock-test results and the current `5000`-SNP gas boundary.
@@ -159,7 +160,7 @@ The `PRSComputeEngine` accepts any `euint64[]` from any caller. There is no on-c
 
 ### 7-C. Integer Overflow in euint64 Multiplication
 
-Multiplying two `euint64` values can produce a result exceeding 64 bits (max $\approx 1.8 \times 10^{19}$). As a quick-screen under the simplified assumption `max_quantized_weight ~= scale` and hardcall dosage `<= 2`, require `scale × 2 × N < 2^64`. For example, at scale $10^8$ and `N=5000`, max accumulation is `5000 × 2 × 10^8 = 10^12`, which is safe. See `docs/scaling-ceilings.md` for the generated ceiling table. For real models, use the advisor and exact per-model bounds rather than this simplified screen.
+Multiplying two `euint64` values can produce a result exceeding 64 bits (max $\approx 1.8 \times 10^{19}$). As a quick-screen under the simplified assumption `max_quantized_weight ~= scale` and hardcall dosage `<= 2`, require `scale × 2 × N < 2^64`. For example, at scale $10^8$ and `N=5000`, max accumulation is `5000 × 2 × 10^8 = 10^12`, which is safe. See `docs/reference/scaling-ceilings.md` for the generated ceiling table. For real models, use the advisor and exact per-model bounds rather than this simplified screen.
 
 ### 7-D. Differential Privacy Noise Supplied by Caller
 
@@ -169,18 +170,17 @@ Multiplying two `euint64` values can produce a result exceeding 64 bits (max $\a
 
 Anyone can call `computeChunk(jobId)`, not just the requester. This is a design choice (allows relayers / meta-transactions) but also allows griefing if the computation has side-effects or if gas is wasted.  **Mitigation:** If permissionless relay is intended, document it; otherwise add `require(job.requester == msg.sender)`.
 
-### 7-F. Empty / Mismatched Arrays
+### 7-F. SNP Ingestion Still Monolithic
 
-* `startPRS` with an empty `encryptedSnps` array creates a job that is immediately completable with a zero partial sum.
-* The length-mismatch check inside `computeChunk` (not `startPRS`) means a misconfigured job will only revert on the first chunk call, wasting the `startPRS` gas.  **Mitigation:** Validate lengths at job creation time.
+`startPRS(modelId, encryptedSnps)` now validates length up front against the finalized model header, so mismatched arrays fail immediately instead of wasting the first `computeChunk` call. The remaining issue is different: the full encrypted SNP vector is still submitted and stored in one transaction. For large fixtures, this is now the first gas ceiling after chunked model publication. **Mitigation:** Introduce chunked SNP ingestion or a registry-backed SNP reference path so `startPRS` no longer has to ingest the full vector at once.
 
 ### 7-G. Gas Limit vs. Chunk Size
 
 The optimal `chunkSize` depends on the fhEVM gas schedule, which differs significantly from vanilla EVM. A chunk that fits in 30 M gas on Hardhat may exceed the block limit on a live fhEVM chain.  **Mitigation:** Empirically profile chunk sizes on the target chain and expose a configurable default.
 
-### 7-H. Re-entrancy & State Machine Racing
+### 7-H. Cross-Contract Reads & State Machine Racing
 
-The `computeChunk` function mutates storage (`nextIndex`, `partialSum`, `complete`). While the current code has no external calls before state writes (checks-effects-interactions is followed), future extensions (callbacks, hooks) must preserve this pattern. Additionally, two concurrent `computeChunk` transactions for the same `jobId` could race. The EVM serialises them, but miners/sequencers could reorder them adversarially.
+The `computeChunk` function mutates storage (`nextChunkIndex`, `processedWeights`, `partialSum`, `complete`) after reading the next chunk from `ModelMarketplace`. In the current design the marketplace address is fixed at construction and the chunk getters are simple reads, so the practical re-entrancy surface is low, but this is no longer a pure single-contract state transition. Future extensions should preserve the trusted-read assumption or add a re-entrancy guard if callbacks or external hooks are introduced. Additionally, two concurrent `computeChunk` transactions for the same `jobId` could race. The EVM serialises them, but miners/sequencers could reorder them adversarially.
 
 ### 7-I. Mock vs. Real FHE Divergence
 

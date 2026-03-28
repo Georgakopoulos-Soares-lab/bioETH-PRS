@@ -9,7 +9,7 @@ It is not the final authority for a real model. It is a fast planning tool that 
 * is a proposed scaling factor obviously unreasonable?
 * roughly how many SNPs could fit under `uint64` if we make simple assumptions?
 
-For the exact reference logic and generated table source, see [docs/scaling-ceilings.md](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/docs/scaling-ceilings.md).
+For the exact reference logic and generated table source, see [docs/reference/scaling-ceilings.md](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/docs/reference/scaling-ceilings.md).
 
 ## How These Results Were Produced
 

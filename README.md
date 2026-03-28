@@ -60,7 +60,7 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 | **HEPRS** | Standalone variant that embeds models directly (useful for quick experiments). |
 | **ResultOracle** | Adds encrypted DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
 
-For the full theory, edge cases, and roadmap, see [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md). For the dedicated signed-weight and quantization design, see [docs/quantization-design.md](docs/quantization-design.md). For the standalone advisor workflow, see [docs/quantization-advisor.md](docs/quantization-advisor.md). For the quick scale-vs-SNP overflow screen, see [docs/scaling-ceilings.md](docs/scaling-ceilings.md). For collaborator-facing result reports, see [reports/scaling-ceiling-findings.md](reports/scaling-ceiling-findings.md), [reports/advisor-findings.md](reports/advisor-findings.md), and [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md).
+For the documentation map, see [docs/README.md](docs/README.md). For the practical command guide, see [docs/reference/development-workflows.md](docs/reference/development-workflows.md). For the full theory, edge cases, roadmap, and known risks, see [docs/architecture-roadmap.md](docs/architecture-roadmap.md). For the current chunked marketplace design, see [docs/design/model-marketplace-v1.md](docs/design/model-marketplace-v1.md). For the dedicated signed-weight and quantization design, see [docs/design/quantization-design.md](docs/design/quantization-design.md). For the standalone advisor workflow, see [docs/reference/quantization-advisor.md](docs/reference/quantization-advisor.md). For the quick scale-vs-SNP overflow screen, see [docs/reference/scaling-ceilings.md](docs/reference/scaling-ceilings.md). For collaborator-facing result reports, see [reports/scaling-ceiling-findings.md](reports/scaling-ceiling-findings.md), [reports/advisor-findings.md](reports/advisor-findings.md), and [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md).
 
 ---
 
@@ -95,7 +95,7 @@ scripts/
 | **npm** (or **yarn / pnpm**) | ≥ 9 | Ships with Node.js |
 | **Git** | any | For cloning the repo |
 
-> **No Docker needed** for mock-mode development. All 23 tests run entirely in Hardhat's in-process EVM with a plaintext FHE mock — no external node required.
+> **No Docker needed** for mock-mode development. All 47 tests run entirely in Hardhat's in-process EVM with a plaintext FHE mock — no external node required.
 
 ---
 
@@ -151,14 +151,20 @@ npm test
 npx hardhat test
 ```
 
-Expected output: **23 passing**.
+Expected output: **47 passing**.
+
+For a fuller command cookbook, including single-file test runs, `--grep` usage, advisor commands, and profiling commands, see [docs/reference/development-workflows.md](docs/reference/development-workflows.md).
 
 ### Test files
 
 | File | What it covers |
 |------|---------------|
-| `test/bioeth_prs_test.ts` | Uploads a 3-weight model, starts a job with chunk size 2, computes two chunks, finalises, and reads the encrypted result. |
-| `test/registry_marketplace_oracle_test.ts` | Registers a sample, grants access, lists a public model, runs PRS via the compute engine, and classifies the result through the oracle. |
+| `test/model_marketplace_chunked_test.ts` | Focused `ModelMarketplace v1` unit coverage for shells, chunk appends, finalization, permissions, and edge cases. |
+| `test/registry_marketplace_oracle_test.ts` | Cross-contract integration test covering registry ACL, marketplace-backed PRS, and oracle classification. |
+| `test/heprs_fixture_test.ts` | HEPRS-backed integration coverage using fixed advisor recommendations, including the current `5000`-SNP boundary. |
+| `test/bioeth_prs_test.ts` | Standalone `HEPRS.sol` prototype behavior using the older embedded-model path. |
+| `test/quantization_advisor_test.ts` | Advisor recommendation ranking and CLI-summary behavior. |
+| `test/scale_ceiling_reference_test.ts` | Quick overflow-screen reference logic. |
 
 ### Real FHE — Sepolia testnet
 
@@ -213,7 +219,7 @@ This script runs the current mock contract flow with the HEPRS fixture data and 
 * total runtime per fixture
 * load / quantization / upload / start / finalize timings
 * per-chunk timing summary
-* the current `5000`-SNP upload boundary
+* the current `5000`-SNP boundary, which now appears at `startPRS()` because SNP ingestion is still monolithic
 
 Default behavior:
 
@@ -277,7 +283,8 @@ npx hardhat test --network fhevm
 |---------|-------------|-----|
 | `Error: Debug Failure. Output generation failed` | ts-node incompatible with TypeScript ≥ 5.8 | Ensure `tsconfig.json` has `"ts-node": { "swc": true }` and `@swc/core` is installed (`npm install --save-dev @swc/core`). |
 | `Module '"hardhat"' has no exported member 'ethers'` | Wrong `module`/`moduleResolution` in tsconfig | Set `"module": "CommonJS"` and `"moduleResolution": "node"` in `tsconfig.json`. |
-| `out of gas` during `computeChunk` | Chunk size too large for the chain's gas limit | Lower `chunkSize` in `startPRS()` or increase `blockGasLimit` in `hardhat.config.ts`. |
+| `out of gas` during `computeChunk` | Model chunk size is too large for the chain's gas limit | Publish the model with a smaller `chunkSize` or increase `blockGasLimit` in `hardhat.config.ts`. |
+| `out of gas` during `startPRS` | SNP vector submission is too large for the current chain / mock limit | Treat this as the next scaling boundary after chunked model publication; future work is chunked SNP ingestion. |
 | `typechain-types` out of date | Generated types stale after contract edits | Run `npx hardhat compile` to regenerate. |
 | `Source not found: contracts/fhevm/…` | Local mock missing | Ensure `contracts/fhevm/FHE.sol` and `contracts/fhevm/EncryptedTypes.sol` exist. |
 

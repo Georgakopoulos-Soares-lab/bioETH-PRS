@@ -107,7 +107,7 @@ The model is registered and receives an identifier: `modelID = 7`
 Alice calls the compute engine:
 
 ```text
-startPRS(modelId=7, encryptedSNPHandles, chunkSize=2)
+startPRS(modelId=7, encryptedSNPHandles)
 ```
 
 The compute engine creates a job structure:
@@ -115,8 +115,9 @@ The compute engine creates a job structure:
 ```text
 modelId = 7  
 snps = encrypted handles  
-nextIndex = 0  
-chunkSize = 2  
+nextChunkIndex = 0  
+processedWeights = 0  
+chunkSize = 2  (read from the published model)  
 partialSum = Enc(0)  
 requester = Alice  
 complete = false  
@@ -141,7 +142,8 @@ partialSum = Enc(0) + Enc(3)
 State after chunk:
 
 ```text
-nextIndex = 2  
+nextChunkIndex = 1  
+processedWeights = 2  
 partialSum = Enc(3)  
 complete = false  
 ```
@@ -163,7 +165,8 @@ Added to the previous encrypted sum: `3 + 10 = 13`
 Updated state:
 
 ```text
-nextIndex = 3  
+nextChunkIndex = 2  
+processedWeights = 3  
 partialSum = Enc(13)  
 complete = true  
 ```
