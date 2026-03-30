@@ -78,8 +78,12 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
       const Engine = await ethers.getContractFactory("PRSComputeEngine");
       const engine = await Engine.deploy(await marketplace.getAddress());
 
-      const jobId = await engine.jobCount();
-      await engine.startPRS(modelId, snps);
+      const jobId = await engine.createPRSJob.staticCall(modelId);
+      await engine.createPRSJob(modelId);
+      for (const chunk of chunkBigIntVector(snps, firstChunkLength)) {
+        await engine.appendSnpChunk(jobId, chunk);
+      }
+      await engine.finalizeSnpUpload(jobId);
 
       await engine.computeChunk(jobId);
       const partial = await engine.readPartial.staticCall(jobId);
@@ -95,7 +99,7 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
     });
   }
 
-  it("publishes the HEPRS 5000-SNP fixture in chunks using the balanced advisor recommendation and documents SNP-ingestion as the next boundary", async function () {
+  it("matches a plaintext dot product on the HEPRS 5000-SNP fixture using chunked SNP ingestion and the balanced advisor recommendation", async function () {
     const { genotypes, betas } = loadHeprsFixture(5000);
     const snps = toBigIntVector(genotypes[0]);
     const recommendation = getHeprsBalancedRecommendation(5000);
@@ -109,6 +113,10 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
     const expected = dotProductBigInt(snps, quantized.weights);
     const chunked = chunkedDotProductBigInt(snps, quantized.weights, chunkLength);
     expect(chunked).to.equal(expected);
+    const expectedFirstChunk = dotProductBigInt(
+      snps.slice(0, chunkLength),
+      quantized.weights.slice(0, chunkLength)
+    );
 
     const Marketplace = await ethers.getContractFactory("ModelMarketplace");
     const marketplace = await Marketplace.deploy();
@@ -135,9 +143,23 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
 
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
     const engine = await Engine.deploy(await marketplace.getAddress());
+    const jobId = await engine.createPRSJob.staticCall(modelId);
+    await engine.createPRSJob(modelId);
+    for (const chunk of chunkBigIntVector(snps, chunkLength)) {
+      await engine.appendSnpChunk(jobId, chunk);
+    }
+    await engine.finalizeSnpUpload(jobId);
 
-    await expect(
-      engine.startPRS(modelId, snps)
-    ).to.be.rejectedWith(/out of gas/i);
+    await engine.computeChunk(jobId);
+    const partial = await engine.readPartial.staticCall(jobId);
+    expect(partial).to.equal(expectedFirstChunk);
+
+    const totalChunks = Math.ceil(snps.length / chunkLength);
+    for (let i = 1; i < totalChunks; i++) {
+      await engine.computeChunk(jobId);
+    }
+
+    const score = await engine.finalize.staticCall(jobId);
+    expect(score).to.equal(expected);
   });
 });

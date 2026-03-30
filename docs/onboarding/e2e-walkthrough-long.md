@@ -69,13 +69,14 @@ Implications:
 
 ## Phase 3: Job Creation On-Chain
 
-### Step 5: Alice calls `startPRS`
+### Step 5: Alice creates a PRS job shell
 
 The job is created with:
 
 ```text
 modelId = 7
-encrypted SNP handles
+uploadedSnpCount = 0
+snpsFinalized = false
 chunkSize = 2      (read from the finalized model)
 chunkCount = 2
 nextChunkIndex = 0
@@ -85,6 +86,16 @@ requester = Alice
 ```
 
 The current lifecycle initializes `nextChunkIndex = 0`, `processedWeights = 0`, and `partialSum = Enc(0)`.
+
+### Step 6: Alice uploads SNP chunks and finalizes upload
+
+Alice appends SNP chunks that align to the model's chunk geometry:
+
+```text
+appendSnpChunk(jobId, [Enc(0), Enc(1)])
+appendSnpChunk(jobId, [Enc(2)])
+finalizeSnpUpload(jobId)
+```
 
 What each component knows now:
 

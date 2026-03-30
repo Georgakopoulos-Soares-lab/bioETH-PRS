@@ -14,8 +14,10 @@ Use it when you want to:
 For architecture and design context, see:
 
 - [`../architecture-roadmap.md`](../architecture-roadmap.md)
-- [`../design/model-marketplace-v1.md`](../design/model-marketplace-v1.md)
-- [`../design/quantization-design.md`](../design/quantization-design.md)
+- [`../design/v1/overview.md`](../design/v1/overview.md)
+- [`../design/v1/model-marketplace.md`](../design/v1/model-marketplace.md)
+- [`../design/v1/snp-ingestion.md`](../design/v1/snp-ingestion.md)
+- [`../design/v1/quantization.md`](../design/v1/quantization.md)
 
 ## Environment
 
@@ -103,6 +105,12 @@ Quantization advisor tests:
 npx hardhat test test/quantization_advisor_test.ts
 ```
 
+PRSComputeEngine chunked-SNP unit tests:
+
+```bash
+npx hardhat test test/prs_compute_engine_chunked_snp_test.ts
+```
+
 Scale ceiling reference tests:
 
 ```bash
@@ -126,6 +134,7 @@ npx hardhat test test/heprs_fixture_test.ts --grep "1000-SNP"
 ## What each main test file covers
 
 - `test/model_marketplace_chunked_test.ts`: focused `ModelMarketplace v1` unit coverage
+- `test/prs_compute_engine_chunked_snp_test.ts`: focused `PRSComputeEngine` job shell and SNP upload coverage
 - `test/registry_marketplace_oracle_test.ts`: cross-contract integration flow
 - `test/heprs_fixture_test.ts`: copied HEPRS fixtures with fixed advisor recommendations
 - `test/bioeth_prs_test.ts`: standalone `HEPRS.sol` prototype behavior
@@ -246,10 +255,11 @@ npm run build
 npm test
 ```
 
-3. If working on the marketplace refactor, start with:
+3. If working on the marketplace or PRS job lifecycle, start with:
 
 ```bash
 npx hardhat test test/model_marketplace_chunked_test.ts
+npx hardhat test test/prs_compute_engine_chunked_snp_test.ts
 ```
 
 4. If working on end-to-end behavior, run:
@@ -276,5 +286,5 @@ npm run profile:heprs
 ## Notes
 
 - The HEPRS integration tests use a fixed recommendation map in `test/utils/heprs.ts`; they do not rerun the advisor every time.
-- The `5000` HEPRS fixture currently documents the next known boundary at monolithic SNP ingestion in `startPRS(...)`.
+- The HEPRS profiling script should be rerun after major contract changes before its timing expectations are treated as current.
 - Real fhEVM / Sepolia validation is not covered by this local runbook.

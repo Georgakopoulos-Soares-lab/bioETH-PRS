@@ -10,24 +10,37 @@ contract PRSComputeEngine {
 
     struct Job {
         uint256 modelId;
-        euint64[] snps;
         uint256 weightCount;
         uint256 chunkSize;
         uint256 chunkCount;
+        uint256 uploadedSnpCount;
         uint256 nextChunkIndex;
         uint256 processedWeights;
         euint64 partialSum;
         address requester;
         bool isPrivate;
+        bool snpsFinalized;
         bool complete;
     }
 
     ModelMarketplace public marketplace;
     Job[] private jobs;
+    mapping(uint256 => mapping(uint256 => euint64[])) private snpChunks;
 
     event JobCreated(
         uint256 indexed jobId,
         uint256 indexed modelId,
+        address indexed requester,
+        uint256 weightCount,
+        uint256 chunkSize
+    );
+    event SnpChunkAppended(
+        uint256 indexed jobId,
+        uint256 indexed chunkIndex,
+        uint256 chunkLength
+    );
+    event SnpUploadFinalized(
+        uint256 indexed jobId,
         address indexed requester
     );
     event ChunkComputed(
@@ -41,10 +54,7 @@ contract PRSComputeEngine {
         marketplace = ModelMarketplace(marketplaceAddress);
     }
 
-    function startPRS(
-        uint256 modelId,
-        euint64[] calldata encryptedSnps
-    ) external returns (uint256) {
+    function createPRSJob(uint256 modelId) external returns (uint256) {
         (
             bool isPrivate,
             bool finalized,
@@ -54,7 +64,6 @@ contract PRSComputeEngine {
         ) = marketplace.getModelConfig(modelId);
 
         require(finalized, "Model not finalized");
-        require(weightCount == encryptedSnps.length, "Length mismatch");
         if (isPrivate) {
             require(
                 marketplace.canReadPrivateModel(modelId, address(this)),
@@ -64,27 +73,61 @@ contract PRSComputeEngine {
 
         Job memory job = Job({
             modelId: modelId,
-            snps: encryptedSnps,
             weightCount: weightCount,
             chunkSize: chunkSize,
             chunkCount: chunkCount,
+            uploadedSnpCount: 0,
             nextChunkIndex: 0,
             processedWeights: 0,
             partialSum: TFHE.asEuint64(0),
             requester: msg.sender,
             isPrivate: isPrivate,
+            snpsFinalized: false,
             complete: false
         });
 
         jobs.push(job);
         uint256 jobId = jobs.length - 1;
-        emit JobCreated(jobId, modelId, msg.sender);
+        emit JobCreated(jobId, modelId, msg.sender, weightCount, chunkSize);
         return jobId;
+    }
+
+    function appendSnpChunk(
+        uint256 jobId,
+        euint64[] calldata encryptedSnps
+    ) external {
+        Job storage job = _requireOwnedPendingUploadJob(jobId);
+
+        uint256 chunkIndex = _nextSnpChunkIndex(job);
+        uint256 expectedLength = _expectedNextSnpChunkLength(job);
+        require(expectedLength > 0, "All SNP chunks uploaded");
+        require(
+            encryptedSnps.length == expectedLength,
+            "Invalid SNP chunk length"
+        );
+
+        euint64[] storage chunk = snpChunks[jobId][chunkIndex];
+        require(chunk.length == 0, "SNP chunk already uploaded");
+        for (uint256 i = 0; i < encryptedSnps.length; i++) {
+            chunk.push(encryptedSnps[i]);
+        }
+
+        job.uploadedSnpCount += encryptedSnps.length;
+        emit SnpChunkAppended(jobId, chunkIndex, encryptedSnps.length);
+    }
+
+    function finalizeSnpUpload(uint256 jobId) external {
+        Job storage job = _requireOwnedPendingUploadJob(jobId);
+        require(job.uploadedSnpCount == job.weightCount, "SNP upload incomplete");
+
+        job.snpsFinalized = true;
+        emit SnpUploadFinalized(jobId, msg.sender);
     }
 
     function computeChunk(uint256 jobId) external {
         require(jobId < jobs.length, "Invalid job");
         Job storage job = jobs[jobId];
+        require(job.snpsFinalized, "SNP upload not finalized");
         require(!job.complete, "Job already complete");
 
         uint256 chunkIndex = job.nextChunkIndex;
@@ -95,7 +138,8 @@ contract PRSComputeEngine {
             job.chunkSize,
             chunkIndex
         );
-        uint256 start = job.processedWeights;
+        euint64[] storage snps = snpChunks[jobId][chunkIndex];
+        require(snps.length == expectedLength, "Invalid SNP chunk");
 
         euint64 acc = job.partialSum;
         if (job.isPrivate) {
@@ -106,7 +150,7 @@ contract PRSComputeEngine {
                 "Invalid model chunk"
             );
             for (uint256 i = 0; i < encryptedWeights.length; i++) {
-                euint64 term = encryptedWeights[i].mul(job.snps[start + i]);
+                euint64 term = encryptedWeights[i].mul(snps[i]);
                 acc = acc.add(term);
             }
         } else {
@@ -119,12 +163,12 @@ contract PRSComputeEngine {
                 "Invalid model chunk"
             );
             for (uint256 i = 0; i < publicWeights.length; i++) {
-                euint64 term = job.snps[start + i].mulPlain(publicWeights[i]);
+                euint64 term = snps[i].mulPlain(publicWeights[i]);
                 acc = acc.add(term);
             }
         }
 
-        uint256 processedWeights = start + expectedLength;
+        uint256 processedWeights = job.processedWeights + expectedLength;
         job.partialSum = acc;
         job.processedWeights = processedWeights;
         job.nextChunkIndex = chunkIndex + 1;
@@ -159,6 +203,64 @@ contract PRSComputeEngine {
 
     function jobCount() external view returns (uint256) {
         return jobs.length;
+    }
+
+    function getJobState(
+        uint256 jobId
+    )
+        external
+        view
+        returns (
+            uint256 modelId,
+            address requester,
+            uint256 weightCount,
+            uint256 chunkSize,
+            uint256 chunkCount,
+            uint256 uploadedSnpCount,
+            bool snpsFinalized,
+            uint256 nextChunkIndex,
+            uint256 processedWeights,
+            bool isPrivate,
+            bool complete
+        )
+    {
+        require(jobId < jobs.length, "Invalid job");
+        Job storage job = jobs[jobId];
+        return (
+            job.modelId,
+            job.requester,
+            job.weightCount,
+            job.chunkSize,
+            job.chunkCount,
+            job.uploadedSnpCount,
+            job.snpsFinalized,
+            job.nextChunkIndex,
+            job.processedWeights,
+            job.isPrivate,
+            job.complete
+        );
+    }
+
+    function _requireOwnedPendingUploadJob(
+        uint256 jobId
+    ) internal view returns (Job storage job) {
+        require(jobId < jobs.length, "Invalid job");
+        job = jobs[jobId];
+        require(job.requester == msg.sender, "Not requester");
+        require(!job.snpsFinalized, "SNP upload finalized");
+    }
+
+    function _nextSnpChunkIndex(
+        Job storage job
+    ) internal view returns (uint256) {
+        return job.uploadedSnpCount / job.chunkSize;
+    }
+
+    function _expectedNextSnpChunkLength(
+        Job storage job
+    ) internal view returns (uint256) {
+        uint256 remaining = job.weightCount - job.uploadedSnpCount;
+        return remaining > job.chunkSize ? job.chunkSize : remaining;
     }
 
     function _expectedChunkLength(

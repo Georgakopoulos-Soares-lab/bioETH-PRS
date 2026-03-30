@@ -18,8 +18,10 @@ This directory is organized by purpose so collaborators can find the right level
 
 ## Design
 
-- [`design/model-marketplace-v1.md`](design/model-marketplace-v1.md): current model marketplace design
-- [`design/quantization-design.md`](design/quantization-design.md): signed-weight quantization and encoding
+- [`design/v1/overview.md`](design/v1/overview.md): current `v1` system target across publication, SNP upload, and compute
+- [`design/v1/model-marketplace.md`](design/v1/model-marketplace.md): model publication lifecycle and marketplace controls
+- [`design/v1/snp-ingestion.md`](design/v1/snp-ingestion.md): PRS job shell, SNP chunk upload, and compute lifecycle
+- [`design/v1/quantization.md`](design/v1/quantization.md): signed-weight quantization and encoding
 
 ## Reference
 
@@ -32,4 +34,4 @@ This directory is organized by purpose so collaborators can find the right level
 
 - [`../reports/scaling-ceiling-findings.md`](../reports/scaling-ceiling-findings.md): generated scale ceiling findings
 - [`../reports/advisor-findings.md`](../reports/advisor-findings.md): advisor findings across HEPRS fixtures
-- [`../reports/heprs-fixture-findings.md`](../reports/heprs-fixture-findings.md): HEPRS-backed mock execution findings
+- [`../reports/heprs-fixture-findings.md`](../reports/heprs-fixture-findings.md): historical HEPRS-backed mock execution findings from the pre-staged-SNP-upload baseline

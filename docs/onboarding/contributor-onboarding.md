@@ -25,7 +25,7 @@
 5. [System Architecture](#5-system-architecture)
    - 5.1 Layered Contract Design
    - 5.2 Data Flow End-to-End
-   - 5.3 The Chunking / MapReduce Pattern
+   - 5.3 The Chunked State-Machine Pattern
 6. [Contract-by-Contract Deep Dive](#6-contract-by-contract-deep-dive)
    - 6.1 GenomicRegistry
    - 6.2 ModelMarketplace
@@ -285,9 +285,10 @@ The layer separation matters because:
     then appends weight chunks                    appendPublicModelChunk(...)
     (or appendEncryptedModelChunk for private)    finalizeModel(modelId)
 
- 5. Client calls PRSComputeEngine                 PRSComputeEngine.startPRS(modelId,
-                                                    handles)
-    → jobId                                       → stores job state on-chain
+ 5. Client calls PRSComputeEngine                 createPRSJob(modelId)
+    → jobId                                       → creates PRS job shell
+    then appends SNP chunks                       appendSnpChunk(jobId, handlesChunk)
+    then marks upload ready                       finalizeSnpUpload(jobId)
 
  6. Any party calls computeChunk                  PRSComputeEngine.computeChunk(jobId)
     (repeat until job.complete == true)           → accumulates euint64 partialSum
@@ -304,7 +305,7 @@ The layer separation matters because:
     (via fhevmjs re-encryption)                   → returns uint8 (0=Low,1=Med,2=High)
 ```
 
-### 5.3 The Chunking / MapReduce Pattern
+### 5.3 The Chunked State-Machine Pattern
 
 A 1,000-SNP dot product in FHE requires approximately 1,000 `fheMul` and 1,000 `fheAdd` calls.  Each FHE operation consumes significantly more gas than a standard EVM arithmetic op.  A typical fhEVM block gas limit is 30 M (same as mainnet Ethereum for compatibility).
 
@@ -320,7 +321,7 @@ Transaction 10: computeChunk(jobId)   → processes SNPs [900..999], job.complet
 Transaction 11: finalize(jobId)       → returns final encrypted partialSum
 ```
 
-The state machine inside `Job` tracks `nextChunkIndex` and `processedWeights` so each `computeChunk` call knows which published model chunk to load next and which SNP slice to align with it. This is similar to a distributed MapReduce where each transaction is one "Map" step and `partialSum` is the running "Reduce".
+The state machine inside `Job` tracks `nextChunkIndex` and `processedWeights` so each `computeChunk` call knows which published model chunk to load next and which SNP slice to align with it. You can think of this as map-reduce-like in spirit, but `v1` is intentionally simpler: one sequential accumulator, one next chunk, one running `partialSum`.
 
 > **Gas scaling:** Gas scales roughly linearly with chunk count (and therefore with SNP count for a fixed chunk size).  The `scripts/gas_profile.ts` script measures this empirically.
 
@@ -412,9 +413,12 @@ struct Job {
 **Lifecycle of a job:**
 
 ```
-startPRS()      → validates finalized model + SNP length, creates Job
-                   with nextChunkIndex = 0, processedWeights = 0
+createPRSJob()  → validates finalized model, creates Job shell
+appendSnpChunk() → stores the next aligned SNP chunk
+finalizeSnpUpload()
+                 → freezes the SNP payload and marks the job ready
 computeChunk()  → loads one published model chunk
+                   loads the matching SNP chunk
                    loops over that chunk against the aligned SNP slice
                    acc += weights[i] * snps[i]   (FHE mul + add)
                    nextChunkIndex += 1
@@ -635,14 +639,16 @@ Tests run directly — no environment variable or external node required:
 npm test
 ```
 
-Expected output: **23 passing**.
+Expected output: the local mock-mode suite passes.
 
 ```
-test/bioeth_prs_test.ts                     — 5 unit tests for BioETHPRS standalone
-test/heprs_fixture_test.ts                  — 4 HEPRS-backed fixture tests (100/500/1000 on-chain mock flow, 5000 local boundary case)
-test/quantization_advisor_test.ts           — 5 advisor tests across HEPRS fixtures + CLI summary
-test/registry_marketplace_oracle_test.ts    — 8 integration tests
-test/scale_ceiling_reference_test.ts        — 1 scale-ceiling reference test
+test/bioeth_prs_test.ts                     — standalone BioETHPRS prototype tests
+test/model_marketplace_chunked_test.ts      — ModelMarketplace v1 unit tests
+test/prs_compute_engine_chunked_snp_test.ts — PRSComputeEngine job-shell and SNP-upload unit tests
+test/heprs_fixture_test.ts                  — HEPRS-backed integration tests
+test/quantization_advisor_test.ts           — advisor tests across HEPRS fixtures + CLI summary
+test/registry_marketplace_oracle_test.ts    — marketplace/engine/oracle integration tests
+test/scale_ceiling_reference_test.ts        — scale-ceiling reference test
 test/utils/fhevm.ts                         — fhevmjs helpers (used only for real fhEVM/Sepolia)
 ```
 
@@ -661,7 +667,7 @@ Install the **Hardhat Solidity** VS Code extension or **Nomic Foundation Solidit
 Run `npm test` — no flags or env vars needed. Expected output:
 
 ```
-23 passing
+all mock-mode tests passing
 ```
 
 ### What the tests actually assert
@@ -697,9 +703,9 @@ These are the areas where the prototype is incomplete.  Each is a potential cont
 
 ### 11-A. Registry ↔ Compute Engine Disconnect (high priority)
 
-`PRSComputeEngine.startPRS()` accepts any `euint64[]`.  It does not verify the encrypted SNPs correspond to a registered sample.  A malicious user could submit arbitrary ciphertexts to probe the model.
+`PRSComputeEngine` still accepts arbitrary encrypted SNP chunks from the requester. It does not verify that those chunks correspond to a registered sample. A malicious user could still submit arbitrary ciphertexts to probe the model.
 
-**To fix:** Add a `sampleId` parameter to `startPRS`, call `GenomicRegistry.getSample(sampleId)`, and revert if the caller has no access.
+**To fix:** Add a `sampleId`-linked job path, call `GenomicRegistry.getSample(sampleId)`, and revert if the caller has no access.
 
 ### 11-B. Permissionless `computeChunk`
 
@@ -715,9 +721,9 @@ Anyone can call `computeChunk(jobId)` — not just the job requester.  This enab
 
 GWAS weights are often negative.  `euint64` cannot directly represent negative numbers.  A mapping scheme (e.g., offset encoding or splitting into magnitude + sign) must be designed and documented.
 
-### 11-E. Array Length Validation at Job Creation
+### 11-E. Job Cleanup / Expiry Is Still Missing
 
-`startPRS` does not validate that `encryptedSnps.length == model.length`.  The mismatch check only fires inside `computeChunk`.
+Chunked SNP upload now scales better, but incomplete jobs can still be abandoned mid-upload.  The current engine blocks compute until `finalizeSnpUpload`, but it does not yet reclaim or expire abandoned job state.
 
 ### 11-F. No `euint16` Intermediate Accumulation
 

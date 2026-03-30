@@ -1,8 +1,10 @@
-# HEPRS Fixture Test Findings
+# HEPRS Fixture Historical Findings
+
+> Historical note: this report reflects the pre-chunked-SNP-ingestion measurement baseline. The PRS job flow has since been refactored to use staged SNP upload, so this report should be rerun before treating its boundary findings as current.
 
 ## Purpose
 
-This report focuses on what we learned from running the HEPRS-backed tests and the dedicated HEPRS profiling harness, independent of the advisor.
+This report captures what we learned from running the HEPRS-backed tests and the dedicated HEPRS profiling harness before staged SNP upload was implemented, independent of the advisor.
 
 It is about:
 

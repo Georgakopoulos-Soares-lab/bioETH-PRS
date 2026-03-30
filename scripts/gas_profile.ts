@@ -68,11 +68,28 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string, block
   const finalizeReceipt = await finalizeTx.wait();
   publishGas += finalizeReceipt?.gasUsed ?? 0n;
 
-  const jobId = await engine.jobCount();
-  const startTx = await engine.startPRS(modelId, snps, {
+  const jobId = await engine.createPRSJob.staticCall(modelId, {
     gasLimit: 16_000_000
   });
-  const startReceipt = await startTx.wait();
+  const createJobTx = await engine.createPRSJob(modelId, {
+    gasLimit: 16_000_000
+  });
+  const createJobReceipt = await createJobTx.wait();
+
+  let snpUploadGas = 0n;
+  for (const chunk of chunkArray(snps, chunkSize)) {
+    const tx = await engine.appendSnpChunk(jobId, chunk, {
+      gasLimit: 16_000_000
+    });
+    const receipt = await tx.wait();
+    snpUploadGas += receipt?.gasUsed ?? 0n;
+  }
+
+  const finalizeSnpTx = await engine.finalizeSnpUpload(jobId, {
+    gasLimit: 16_000_000
+  });
+  const finalizeSnpReceipt = await finalizeSnpTx.wait();
+  snpUploadGas += finalizeSnpReceipt?.gasUsed ?? 0n;
 
   let computeGas = 0n;
   const chunks = Math.ceil(n / chunkSize);
@@ -82,7 +99,11 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string, block
     computeGas += receipt?.gasUsed ?? 0n;
   }
 
-  const totalGas = publishGas + (startReceipt?.gasUsed ?? 0n) + computeGas;
+  const totalGas =
+    publishGas +
+    (createJobReceipt?.gasUsed ?? 0n) +
+    snpUploadGas +
+    computeGas;
   const gasPrice = ethers.parseUnits(gasPriceGwei, "gwei");
   const totalEth = ethers.formatEther(totalGas * gasPrice);
   const estimatedSeconds = chunks * blockTimeSec;
@@ -92,7 +113,8 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string, block
     chunkSize,
     chunks,
     publishGas,
-    startGas: startReceipt?.gasUsed ?? 0n,
+    createJobGas: createJobReceipt?.gasUsed ?? 0n,
+    snpUploadGas,
     computeGas,
     totalGas,
     totalEth,
@@ -121,7 +143,8 @@ async function main() {
     console.log(`Chunk size: ${result.chunkSize}`);
     console.log(`Chunks: ${result.chunks}`);
     console.log(`Model publish gas: ${result.publishGas}`);
-    console.log(`Start gas: ${result.startGas}`);
+    console.log(`Job create gas: ${result.createJobGas}`);
+    console.log(`SNP upload gas: ${result.snpUploadGas}`);
     console.log(`Compute gas: ${result.computeGas}`);
     console.log(`Total gas: ${result.totalGas}`);
     console.log(`Gas price: ${result.gasPriceGwei} gwei`);

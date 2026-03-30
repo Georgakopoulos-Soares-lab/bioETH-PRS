@@ -4,6 +4,14 @@ import { ethers } from "hardhat";
 // Mock-mode integration test: no fhEVM node, Docker, or fhevmjs needed.
 // In the mock, euint64 is type-aliased to uint64 — pass plain bigint values.
 
+function chunkArray<T>(values: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+  for (let start = 0; start < values.length; start += chunkSize) {
+    chunks.push(values.slice(start, start + chunkSize));
+  }
+  return chunks;
+}
+
 describe("Registry / Marketplace / Oracle — mock FHE (Hardhat)", function () {
   describe("GenomicRegistry ACL", function () {
     it("owner can read their own sample", async function () {
@@ -78,8 +86,12 @@ describe("Registry / Marketplace / Oracle — mock FHE (Hardhat)", function () {
       const engine = await Engine.deploy(await marketplace.getAddress());
 
       const snps = [4n, 5n, 6n];
-      const jobId = await engine.startPRS.staticCall(modelId, snps);
-      await engine.startPRS(modelId, snps);
+      const jobId = await engine.createPRSJob.staticCall(modelId);
+      await engine.createPRSJob(modelId);
+      for (const chunk of chunkArray(snps, 2)) {
+        await engine.appendSnpChunk(jobId, chunk);
+      }
+      await engine.finalizeSnpUpload(jobId);
       expect(await engine.jobCount()).to.equal(1n);
 
       // Chunk 1: indices [0, 2) → 0 + 4*1 + 5*2 = 14
@@ -126,8 +138,12 @@ describe("Registry / Marketplace / Oracle — mock FHE (Hardhat)", function () {
       await marketplace.finalizeModel(modelId);
 
       const snps = [5n, 6n, 7n];
-      const jobId = await engine.startPRS.staticCall(modelId, snps);
-      await engine.startPRS(modelId, snps);
+      const jobId = await engine.createPRSJob.staticCall(modelId);
+      await engine.createPRSJob(modelId);
+      for (const chunk of chunkArray(snps, 2)) {
+        await engine.appendSnpChunk(jobId, chunk);
+      }
+      await engine.finalizeSnpUpload(jobId);
 
       await engine.computeChunk(jobId);
       const partial = await engine.readPartial.staticCall(jobId);

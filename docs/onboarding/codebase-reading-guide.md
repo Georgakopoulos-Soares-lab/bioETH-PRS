@@ -138,18 +138,37 @@ finalize(jobId) → euint64
 **Key insight:** `partialSum` is `job storage` — it survives between transactions.
 `chunkSize` controls how many multiply-adds happen per block (gas budget).
 
-### 10. `contracts/PRSComputeEngine.sol` (~120 lines)
+### 10. `contracts/PRSComputeEngine.sol` (~170 lines)
 
-**Same job state machine as HEPRS.sol** but with two differences:
+**This is the current marketplace-backed PRS engine.**
 
-1. Weights come from `ModelMarketplace` (injected via constructor) instead of
-   being stored internally.
-2. The job follows the model's published chunk geometry rather than accepting a caller-chosen compute chunk size.
-3. `computeChunk` has a branch:
-   - Public model → `job.snps[i].mulPlain(publicWeights[i])` (cheaper)
-   - Private model → `encryptedWeights[i].mul(job.snps[i])` (full FHE mul)
+It no longer stores the whole SNP vector in the job header. Instead it uses:
 
-**What to trace:** The `computeChunk` function now fetches only one model chunk, uses the aligned SNP slice, and then advances `nextChunkIndex`. The `if (isPrivate)` branch still shows exactly where the gas cost difference between public and private models comes from.
+1. a job shell created by `createPRSJob`
+2. chunked SNP upload through `appendSnpChunk`
+3. an explicit ready transition through `finalizeSnpUpload`
+4. chunked compute through `computeChunk`
+
+**What to trace:**
+
+- `Job` struct: model geometry, upload progress, compute progress, requester
+- `snpChunks[jobId][chunkIndex]`: private job payload storage
+- `createPRSJob`: copies the finalized model geometry into the job shell
+- `appendSnpChunk`: enforces sequential aligned SNP upload
+- `finalizeSnpUpload`: freezes the SNP payload before compute
+- `computeChunk`: loads one model chunk and one SNP chunk, then multiplies them
+
+**Public vs private branch in `computeChunk`:**
+
+- Public model → `snps[i].mulPlain(publicWeights[i])`
+- Private model → `encryptedWeights[i].mul(snps[i])`
+
+**Key insight:** The engine is now symmetric with the marketplace lifecycle:
+
+- shell first
+- append chunks
+- finalize
+- compute chunk by chunk
 
 ### 11. `contracts/ResultOracle.sol` (~53 lines)
 

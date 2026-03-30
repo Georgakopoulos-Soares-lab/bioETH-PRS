@@ -1,4 +1,4 @@
-# Model Marketplace V1
+# V1 Model Marketplace Design
 
 ## Purpose
 
@@ -387,7 +387,7 @@ That means:
 
 If chunk `7` corresponds to weights `[1792..2047]`, then the compute engine multiplies those weights against SNPs `[1792..2047]`.
 
-This is why `startPRS()` in `v1` no longer takes an independent `chunkSize`.
+This is why the PRS job lifecycle in `v1` no longer takes an independent compute `chunkSize`.
 
 That keeps the system internally consistent and makes correctness easier to reason about.
 
@@ -395,18 +395,15 @@ That keeps the system internally consistent and makes correctness easier to reas
 
 ## Relationship to SNP ingestion
 
-`v1` chunks model publication, but it does not yet chunk SNP submission.
+`ModelMarketplace` defines the canonical chunk geometry that the PRS job flow follows.
 
-`startPRS()` still receives the full SNP vector in one call.
+That means:
 
-So `v1` should be understood as:
+* the model's `chunkSize` determines the SNP upload boundaries
+* the model's `chunkCount` determines how many PRS compute steps exist
+* `PRSComputeEngine` can align model chunk `k` with SNP chunk `k` deterministically
 
-* fixing the first proven bottleneck
-* not claiming to fix every future scaling boundary
-
-After this refactor, SNP ingestion may become the next practical ceiling, especially on real fhEVM infrastructure.
-
-That is acceptable for `v1` because the system is being improved one bottleneck at a time.
+The SNP side of that design is documented in [`snp-ingestion.md`](snp-ingestion.md).
 
 ---
 
@@ -535,13 +532,13 @@ The table below summarizes the main `v1` controls.
 |---|---|---|---|
 | Owner-only chunk append | `appendPublicModelChunk`, `appendEncryptedModelChunk` | Unauthorized modification of draft models | It does not judge whether the model is scientifically valid |
 | Owner-only finalize | `finalizeModel` | Third-party freezing or tampering with publication state | It does not add curation or governance |
-| Finalize-before-use | `startPRS` requires finalized model | Jobs running against incomplete or mutable models | It does not solve SNP access-control |
+| Finalize-before-use | `createPRSJob` requires finalized model | Jobs running against incomplete or mutable models | It does not solve SNP access-control |
 | Sequential append only | Contract derives next chunk index and expected length | Skipped chunks, out-of-order writes, malformed progress | It is less flexible than arbitrary chunk scheduling |
 | No overwrite of stored chunk | Chunk storage must be empty before write | Silent replacement of earlier payloads | It does not verify chunk semantics beyond shape |
 | Public/private path separation | Public and private append/getter checks | Type confusion between plaintext and encrypted model paths | It does not make public models confidential |
 | Private reader allowlist | `setPrivateModelReader`, `getEncryptedWeightChunk` | Arbitrary reading of private model chunks | It is a simple allowlist, not the final real-fhEVM privacy story |
-| Engine authorization for private compute | `startPRS` checks engine authorization | Late failure when a private model has not authorized the engine | It does not validate off-chain encrypted input provenance |
-| Length validation at job start | `startPRS` compares SNP length to `weightCount` | Wasting compute on obviously invalid jobs | It does not solve large-SNP ingestion scaling |
+| Engine authorization for private compute | `createPRSJob` checks engine authorization | Late failure when a private model has not authorized the engine | It does not validate off-chain encrypted input provenance |
+| Chunk-aligned job geometry | `createPRSJob` copies `weightCount`, `chunkSize`, and `chunkCount` from the model header | Mismatched chunk boundaries between model and compute job | It does not prove the SNP payload came from a registered sample |
 | Requester-only partial/final output access | `readPartial`, `finalize` | Granting decrypt access to arbitrary observers | It does not stop anyone from paying gas to advance `computeChunk` |
 | Event trail for publication lifecycle | model creation/append/finalize/reader-set events | Opaque state changes with poor observability | Events do not prove scientific correctness by themselves |
 | Provenance hashes and metadata pointer | `manifestURI`, `manifestHash`, `sourceModelHash` | Unverifiable metadata drift and unclear model origin | The contract anchors these fields but does not prove they are truthful |
@@ -554,7 +551,7 @@ The `v1` controls are real and useful, but they are not the whole future securit
 
 The most important unresolved items are:
 
-* `GenomicRegistry` is still not wired into `PRSComputeEngine.startPRS()`
+* `GenomicRegistry` is still not wired into `PRSComputeEngine.createPRSJob()` / SNP upload flow
   * so model execution still accepts arbitrary SNP vectors directly
 * there is no anti-spam or fee mechanism for model publication
 * there is no on-chain scientific validation of model quality
@@ -604,7 +601,7 @@ That symmetry is useful because collaborators can learn one model lifecycle whil
 `v1` does not yet solve:
 
 * the long-term economics of storing very large public models in ordinary contract storage
-* chunked SNP submission
+* registry-backed SNP submission / ACL-enforced sample linkage
 * a chunk-parallel map-reduce reduction pipeline
 * final production fhEVM input-proof semantics for private model upload
 
@@ -628,68 +625,6 @@ It still supports permissionless relayers because anyone may call `computeChunk(
 
 ---
 
-## Security model in V1
-
-### Upload permissions
-
-Only the model owner may:
-
-* append chunks
-* finalize the model
-* grant or revoke private-model readers
-
-This prevents arbitrary third parties from mutating draft models.
-
-### Finalization
-
-The model cannot be finalized until:
-
-* all declared weights have been uploaded
-
-After finalization:
-
-* appends are blocked forever
-
-This protects integrity and reproducibility.
-
-### Sequential append rules
-
-Because chunks are appended in order:
-
-* no caller-chosen chunk index exists for upload
-* no overwrite path exists
-* the contract derives the next chunk position itself
-
-This substantially reduces accidental or malicious chunk corruption risk.
-
-### Private-model reader permissions
-
-Private chunk reads are protected by a simple reader allowlist:
-
-* the model owner can always read
-* the owner may authorize specific readers, including a compute engine
-
-This keeps the mock design compatible with the idea that private model chunks should not be freely retrievable through the contract interface.
-
-### Compute permissions
-
-`computeChunk(jobId)` remains permissionless in `v1`.
-
-That is acceptable because:
-
-* the caller learns no plaintext score
-* the caller pays the gas
-* the job state remains deterministic
-
-However:
-
-* `readPartial(jobId)` is requester-only
-* `finalize(jobId)` is requester-only
-
-That keeps encrypted outputs from being granted to arbitrary observers through the contract API.
-
----
-
 ## Public and private models in V1
 
 The publication lifecycle is intentionally symmetric.
@@ -710,20 +645,12 @@ This symmetry is useful because it keeps the mental model shared across both mod
 
 ---
 
-## Main tradeoffs of V1
+## Relationship to the other V1 docs
 
-### What V1 improves immediately
+This document covers the model side of the `v1` design.
 
-* removes one-shot model publication
-* removes whole-array model reads from compute
-* gives us immutable finalized model artifacts
-* gives us a cleaner benchmark story for larger fixtures
+For the rest of the system:
 
-### What V1 still does not solve
-
-* public models still consume ordinary on-chain storage
-* very large public models may still become economically unattractive
-* SNP submission is still monolithic
-* true map-reduce parallel chunk execution is not implemented
-
-That is why `v1` should be viewed as the first serious scaling refactor, not the final architecture.
+* [`overview.md`](overview.md) describes the complete `v1` target
+* [`snp-ingestion.md`](snp-ingestion.md) describes the PRS job upload and compute lifecycle
+* [`quantization.md`](quantization.md) describes the integer encoding design that feeds publication and compute

@@ -17,7 +17,7 @@ Confidential on-chain Polygenic Risk Scoring (PRS) via fhEVM. Computes encrypted
 
 ```sh
 npm run build          # hardhat compile
-npm run test           # hardhat test (mock FHE) — 47 tests, no external node needed
+npm run test           # hardhat test (mock FHE) — no external node needed
 npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 ```
 
@@ -29,7 +29,7 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 |---|---|
 | `GenomicRegistry` | URI-based encrypted SNP sample registry + per-address ACL |
 | `ModelMarketplace` | Public (`uint64[]`) and private (`euint64[]`) GWAS model listing |
-| `PRSComputeEngine` | Marketplace-aware chunked dot-product (MapReduce pattern) |
+| `PRSComputeEngine` | Marketplace-aware chunked dot-product with staged SNP upload and sequential chunk accumulation |
 | `ResultOracle` | DP noise injection + encrypted categorical classification (Low/Med/High) |
 | `BioETHPRS` (HEPRS.sol) | Standalone variant — embeds model directly, no marketplace |
 
@@ -37,7 +37,7 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 
 - **Mock vs Real FHE**: `contracts/fhevm/FHE.sol` is a plaintext mock for Hardhat. The current repo builds and tests against that mock locally. Real fhEVM deployment is a separate package-based migration using `@fhevm/solidity` plus `@fhevm/hardhat-plugin`.
 - **TFHE.sol wrapper**: Contracts import `./TFHE.sol` which forwards to `FHE.sol`. Use `TFHE.asEuint64()`, `.add()`, `.mul()`, `.mulPlain()`, `.allow()`, `.makePubliclyDecryptable()`.
-- **Chunked computation**: FHE dot-products exceed block gas limits. All PRS jobs use `startPRS → computeChunk (×N) → finalize` pattern with on-chain state machine accumulating `partialSum`.
+- **Chunked computation**: FHE dot-products exceed block gas limits. Marketplace-backed PRS jobs use `createPRSJob → appendSnpChunk (×N) → finalizeSnpUpload → computeChunk (×N) → finalize` with an on-chain state machine accumulating `partialSum`.
 - **Quantization**: Float weights are scaled to `uint64` integers (e.g., `0.0045 × 10^8 = 450000`). Accumulation of N terms must stay within `2^64`.
 - **ACL**: `FHE.allow(handle, address)` grants decrypt rights. `FHE.makePubliclyDecryptable(handle)` for public outputs like risk category.
 
@@ -47,7 +47,10 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 |---|---|
 | `docs/README.md` | Documentation map and reading entrypoints |
 | `docs/architecture-roadmap.md` | Architecture, roadmap, known edge cases, and threat model |
-| `docs/design/model-marketplace-v1.md` | Detailed `ModelMarketplace v1` design, publication lifecycle, and security controls |
+| `docs/design/v1/overview.md` | Current `v1` system target across publication, SNP upload, and compute |
+| `docs/design/v1/model-marketplace.md` | Detailed model publication lifecycle, provenance, and marketplace controls |
+| `docs/design/v1/snp-ingestion.md` | Detailed PRS job shell, SNP upload, and compute lifecycle |
+| `docs/design/v1/quantization.md` | Signed-weight quantization and overflow-safe encoding design |
 | `docs/onboarding/contributor-onboarding.md` | Full educational guide — bio, crypto, systems background |
 | `docs/onboarding/concepts-cheatsheet.md` | Quick concept reference |
 | `docs/onboarding/e2e-walkthrough-short.md` | End-to-end scenario walkthrough |
@@ -57,5 +60,5 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 | `docs/reference/scaling-ceilings.md` | Quick overflow screening reference |
 | `reports/scaling-ceiling-findings.md` | Collaborator-facing explanation of the generated scale ceiling results |
 | `reports/advisor-findings.md` | Collaborator-facing advisor findings across copied HEPRS fixtures |
-| `reports/heprs-fixture-findings.md` | Collaborator-facing HEPRS mock-test findings and current gas boundary |
+| `reports/heprs-fixture-findings.md` | Historical HEPRS mock-test findings from the pre-staged-SNP-upload baseline |
 | `docs/PIIS2667237525003078.pdf` | HEPRS reference paper |

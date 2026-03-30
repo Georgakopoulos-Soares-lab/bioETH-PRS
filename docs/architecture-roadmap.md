@@ -47,11 +47,12 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 ### C. Contract 3: PRS Compute Engine — `PRSComputeEngine.sol` (Logic Layer)
 
 * **Constraint:** A 1,000+ SNP calculation exceeds Block Gas Limits (~30 M gas on Hardhat, variable on live fhEVM).
-* **Solution:** Asynchronous **Chunking / MapReduce** pattern.
+* **Solution:** Asynchronous chunked state-machine pattern.
   * The calculation is broken into transactions aligned to the model's published chunk size.
+  * PRS jobs use a shell + chunked SNP upload + finalize-upload lifecycle before compute begins.
   * An on-chain state machine accumulates the encrypted `partialSum` across blocks.
 * Reads only the **next required model chunk** from `ModelMarketplace` and automatically uses either `mul` (private) or `mulPlain` (public) per model type.
-* **Functions:** `startPRS(modelId, encryptedSnps)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
+* **Functions:** `createPRSJob(modelId)`, `appendSnpChunk(jobId, encryptedSnpsChunk)`, `finalizeSnpUpload(jobId)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
 * A standalone variant `HEPRS.sol` (contains the `BioETHPRS` contract) also exists; it embeds models directly instead of referencing the marketplace.
 
 ### D. Contract 4: Result Oracle — `ResultOracle.sol` (Output Layer)
@@ -72,13 +73,15 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 
 ## 4. Engineering Specifications & Optimizations
 
-See also `docs/design/quantization-design.md` for the dedicated production-oriented design of quantization, signed-weight handling, offsets, and overflow-safe score encoding.
-See also `docs/design/model-marketplace-v1.md` for the current chunked publication, metadata, permissions, and chunk-oriented compute design of `ModelMarketplace`.
+See also `docs/design/v1/overview.md` for the current `v1` system target across publication, SNP upload, and compute.
+See also `docs/design/v1/quantization.md` for the dedicated production-oriented design of quantization, signed-weight handling, offsets, and overflow-safe score encoding.
+See also `docs/design/v1/model-marketplace.md` for the current chunked publication, metadata, permissions, and chunk-oriented compute design of `ModelMarketplace`.
+See also `docs/design/v1/snp-ingestion.md` for the current chunked PRS job upload and compute lifecycle.
 See also `docs/reference/quantization-advisor.md` for the standalone advisor capability that helps model publishers choose candidate scales before upload.
 See also `docs/reference/scaling-ceilings.md` for the simple scale-vs-SNP quick-screen reference under `uint64`.
 See also `reports/scaling-ceiling-findings.md` for the collaborator-facing explanation of the generated ceiling results.
 See also `reports/advisor-findings.md` for the current 100/500/1000/5000 SNP advisor results and what they imply for the present contract shape.
-See also `reports/heprs-fixture-findings.md` for the HEPRS-backed mock-test results and the current `5000`-SNP gas boundary.
+See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed mock-test baseline from before staged SNP upload.
 
 * **Quantization Strategy:** GWAS weights (floats, e.g., 0.0045) are scaled by a factor (e.g., $10^8$) to fit into **`euint64`** integers.
 * **Bit-Depth Optimization (planned, not yet implemented):** Intermediate chunk calculations should use **`euint16`** (cheaper gas) where possible, aggregating into larger types only for the final sum. The current contracts use `euint64` exclusively.
@@ -125,7 +128,7 @@ See also `reports/heprs-fixture-findings.md` for the HEPRS-backed mock-test resu
 2. **Differential Privacy Tuning:** Benchmark the exact amount of noise required to secure weights without destroying clinical accuracy.  Generate ROC / AUC curves at several noise levels.
 3. **Gas Profiling:** Generate data points for the "Gas vs. SNP Count" curve from `scripts/gas_profile.ts` on a live fhEVM node.  Target SNP counts: 100, 300, 600, 1 000, 5 000.
    * For local mock timing on real HEPRS fixtures, use `npm run profile:heprs` with the default `chunkSize=128`.
-4. **Registry ↔ Engine ACL Wiring:** Make `PRSComputeEngine.startPRS` verify that the caller has access to the sample in `GenomicRegistry` before accepting SNP data.
+4. **Registry ↔ Engine ACL Wiring:** Make `PRSComputeEngine` verify that the caller has access to the sample in `GenomicRegistry` before a PRS job is allowed to upload SNP data.
 5. **Access-control on `computeChunk`:** Currently any address may call `computeChunk(jobId)`. Decide if this is acceptable (permissionless relay) or restrict to `job.requester` or an allow-list.
 6. **End-to-end Client Flow:** Integrate `fhevmjs` re-encryption, gateway-assisted decryption, and public decryption of the `ResultOracle` category.
 
@@ -150,7 +153,7 @@ See also `reports/heprs-fixture-findings.md` for the HEPRS-backed mock-test resu
 
 ### 7-A. Registry ↔ Compute Engine Disconnect
 
-The `PRSComputeEngine` accepts any `euint64[]` from any caller. There is no on-chain check that the encrypted SNPs correspond to a registered sample for which the caller has permission. An attacker could submit arbitrary ciphertexts to probe the model. **Mitigation:** Wire `GenomicRegistry.getSample()` into `startPRS()` and require the caller to prove ownership or delegated access.
+The `PRSComputeEngine` still accepts arbitrary encrypted SNP chunks from the requester. There is no on-chain check that those chunks correspond to a registered sample for which the caller has permission. An attacker could still submit arbitrary ciphertexts to probe the model. **Mitigation:** Wire `GenomicRegistry.getSample()` into the PRS job creation / SNP-upload flow and require the caller to prove ownership or delegated access.
 
 ### 7-B. Marketplace Trust & Model Integrity
 
@@ -170,9 +173,9 @@ Multiplying two `euint64` values can produce a result exceeding 64 bits (max $\a
 
 Anyone can call `computeChunk(jobId)`, not just the requester. This is a design choice (allows relayers / meta-transactions) but also allows griefing if the computation has side-effects or if gas is wasted.  **Mitigation:** If permissionless relay is intended, document it; otherwise add `require(job.requester == msg.sender)`.
 
-### 7-F. SNP Ingestion Still Monolithic
+### 7-F. Incomplete or Abandoned PRS Job Uploads
 
-`startPRS(modelId, encryptedSnps)` now validates length up front against the finalized model header, so mismatched arrays fail immediately instead of wasting the first `computeChunk` call. The remaining issue is different: the full encrypted SNP vector is still submitted and stored in one transaction. For large fixtures, this is now the first gas ceiling after chunked model publication. **Mitigation:** Introduce chunked SNP ingestion or a registry-backed SNP reference path so `startPRS` no longer has to ingest the full vector at once.
+Chunked SNP ingestion removes the old one-shot payload ceiling, but it also creates a new lifecycle state: jobs can now remain half-uploaded if the requester never finishes appending SNP chunks. Compute is correctly blocked until `finalizeSnpUpload`, but abandoned jobs still consume contract state. **Mitigation:** Add cancellation, expiry, or cleanup rules for incomplete jobs and consider whether deposits or fees should discourage abandoned uploads.
 
 ### 7-G. Gas Limit vs. Chunk Size
 

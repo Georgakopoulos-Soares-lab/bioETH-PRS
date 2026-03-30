@@ -56,11 +56,11 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 |----------|------|
 | **GenomicRegistry** | Stores IPFS/Arweave URIs of encrypted SNP data with per-address access control. |
 | **ModelMarketplace** | Lists GWAS weight vectors — **public** (`uint64[]`, cheaper `mulPlain`) or **private** (`euint64[]`, full FHE `mul`). |
-| **PRSComputeEngine** | Reads models from the marketplace and computes the encrypted dot product in configurable chunks to stay within block gas limits. |
+| **PRSComputeEngine** | Creates PRS job shells, ingests SNPs in model-aligned chunks, and computes the encrypted dot product chunk by chunk. |
 | **HEPRS** | Standalone variant that embeds models directly (useful for quick experiments). |
 | **ResultOracle** | Adds encrypted DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
 
-For the documentation map, see [docs/README.md](docs/README.md). For the practical command guide, see [docs/reference/development-workflows.md](docs/reference/development-workflows.md). For the full theory, edge cases, roadmap, and known risks, see [docs/architecture-roadmap.md](docs/architecture-roadmap.md). For the current chunked marketplace design, see [docs/design/model-marketplace-v1.md](docs/design/model-marketplace-v1.md). For the dedicated signed-weight and quantization design, see [docs/design/quantization-design.md](docs/design/quantization-design.md). For the standalone advisor workflow, see [docs/reference/quantization-advisor.md](docs/reference/quantization-advisor.md). For the quick scale-vs-SNP overflow screen, see [docs/reference/scaling-ceilings.md](docs/reference/scaling-ceilings.md). For collaborator-facing result reports, see [reports/scaling-ceiling-findings.md](reports/scaling-ceiling-findings.md), [reports/advisor-findings.md](reports/advisor-findings.md), and [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md).
+For the documentation map, see [docs/README.md](docs/README.md). For the practical command guide, see [docs/reference/development-workflows.md](docs/reference/development-workflows.md). For the full theory, edge cases, roadmap, and known risks, see [docs/architecture-roadmap.md](docs/architecture-roadmap.md). For the current `v1` system target, see [docs/design/v1/overview.md](docs/design/v1/overview.md). For the model publication design, see [docs/design/v1/model-marketplace.md](docs/design/v1/model-marketplace.md). For the PRS job upload design, see [docs/design/v1/snp-ingestion.md](docs/design/v1/snp-ingestion.md). For the signed-weight and quantization design, see [docs/design/v1/quantization.md](docs/design/v1/quantization.md). For the standalone advisor workflow, see [docs/reference/quantization-advisor.md](docs/reference/quantization-advisor.md). For the quick scale-vs-SNP overflow screen, see [docs/reference/scaling-ceilings.md](docs/reference/scaling-ceilings.md). For collaborator-facing result reports, see [reports/scaling-ceiling-findings.md](reports/scaling-ceiling-findings.md), [reports/advisor-findings.md](reports/advisor-findings.md), and the historical baseline at [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md).
 
 ---
 
@@ -78,11 +78,15 @@ contracts/
     FHE.sol                  Local plaintext mock of FHE for Hardhat
     EncryptedTypes.sol       UDVTs (ebool, euint8, euint64)
 test/
-  bioeth_prs_test.ts         Chunked PRS unit test
+  bioeth_prs_test.ts         Standalone HEPRS prototype tests
+  model_marketplace_chunked_test.ts     Model marketplace unit tests
+  prs_compute_engine_chunked_snp_test.ts PRS job-upload unit tests
   registry_marketplace_oracle_test.ts   End-to-end integration test
+  heprs_fixture_test.ts      HEPRS-backed integration tests
   utils/fhevm.ts             fhevmjs helpers (encrypt64Array, getInstance)
 scripts/
   gas_profile.ts             Gas vs. SNP-count profiling script
+  heprs_fixture_profile.ts   HEPRS-backed timing/profile script
 ```
 
 ---
@@ -95,7 +99,7 @@ scripts/
 | **npm** (or **yarn / pnpm**) | ≥ 9 | Ships with Node.js |
 | **Git** | any | For cloning the repo |
 
-> **No Docker needed** for mock-mode development. All 47 tests run entirely in Hardhat's in-process EVM with a plaintext FHE mock — no external node required.
+> **No Docker needed** for mock-mode development. The full local suite runs entirely in Hardhat's in-process EVM with a plaintext FHE mock — no external node required.
 
 ---
 
@@ -151,7 +155,7 @@ npm test
 npx hardhat test
 ```
 
-Expected output: **47 passing**.
+Expected output: the full mock-mode suite passes.
 
 For a fuller command cookbook, including single-file test runs, `--grep` usage, advisor commands, and profiling commands, see [docs/reference/development-workflows.md](docs/reference/development-workflows.md).
 
@@ -160,8 +164,9 @@ For a fuller command cookbook, including single-file test runs, `--grep` usage, 
 | File | What it covers |
 |------|---------------|
 | `test/model_marketplace_chunked_test.ts` | Focused `ModelMarketplace v1` unit coverage for shells, chunk appends, finalization, permissions, and edge cases. |
+| `test/prs_compute_engine_chunked_snp_test.ts` | Focused `PRSComputeEngine` unit coverage for job shells, SNP upload, readiness, compute relays, and requester-only outputs. |
 | `test/registry_marketplace_oracle_test.ts` | Cross-contract integration test covering registry ACL, marketplace-backed PRS, and oracle classification. |
-| `test/heprs_fixture_test.ts` | HEPRS-backed integration coverage using fixed advisor recommendations, including the current `5000`-SNP boundary. |
+| `test/heprs_fixture_test.ts` | HEPRS-backed integration coverage using fixed advisor recommendations across the staged job-upload flow. |
 | `test/bioeth_prs_test.ts` | Standalone `HEPRS.sol` prototype behavior using the older embedded-model path. |
 | `test/quantization_advisor_test.ts` | Advisor recommendation ranking and CLI-summary behavior. |
 | `test/scale_ceiling_reference_test.ts` | Quick overflow-screen reference logic. |
@@ -181,7 +186,7 @@ The mock mode covers 100% of contract logic. Real-FHE migration is a separate mi
 
 ## Gas Profiling
 
-The profiling script deploys `ModelMarketplace` + `PRSComputeEngine` and iterates over several SNP counts measuring gas per phase (model listing, job start, chunk computation).
+The profiling script deploys `ModelMarketplace` + `PRSComputeEngine` and iterates over several SNP counts measuring gas per phase (model listing, job creation, SNP upload, chunk computation).
 
 ```bash
 npm run profile:gas
@@ -217,9 +222,9 @@ npm run profile:heprs
 This script runs the current mock contract flow with the HEPRS fixture data and reports:
 
 * total runtime per fixture
-* load / quantization / upload / start / finalize timings
+* load / quantization / publication / job-upload / finalize timings
 * per-chunk timing summary
-* the current `5000`-SNP boundary, which now appears at `startPRS()` because SNP ingestion is still monolithic
+* how the staged job shell + SNP chunk upload flow behaves on the copied HEPRS fixtures
 
 Default behavior:
 
@@ -238,7 +243,7 @@ These timings are local Hardhat mock timings. They are useful for collaborator d
 
 See also:
 
-* [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md)
+* historical baseline: [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md)
 * [reports/advisor-findings.md](reports/advisor-findings.md)
 
 ---
@@ -284,7 +289,7 @@ npx hardhat test --network fhevm
 | `Error: Debug Failure. Output generation failed` | ts-node incompatible with TypeScript ≥ 5.8 | Ensure `tsconfig.json` has `"ts-node": { "swc": true }` and `@swc/core` is installed (`npm install --save-dev @swc/core`). |
 | `Module '"hardhat"' has no exported member 'ethers'` | Wrong `module`/`moduleResolution` in tsconfig | Set `"module": "CommonJS"` and `"moduleResolution": "node"` in `tsconfig.json`. |
 | `out of gas` during `computeChunk` | Model chunk size is too large for the chain's gas limit | Publish the model with a smaller `chunkSize` or increase `blockGasLimit` in `hardhat.config.ts`. |
-| `out of gas` during `startPRS` | SNP vector submission is too large for the current chain / mock limit | Treat this as the next scaling boundary after chunked model publication; future work is chunked SNP ingestion. |
+| `out of gas` during `appendSnpChunk` | The model-aligned chunk size is too large for SNP upload on the current chain / mock limit | Reduce the published model `chunkSize`, which also reduces SNP upload chunk size. |
 | `typechain-types` out of date | Generated types stale after contract edits | Run `npx hardhat compile` to regenerate. |
 | `Source not found: contracts/fhevm/…` | Local mock missing | Ensure `contracts/fhevm/FHE.sol` and `contracts/fhevm/EncryptedTypes.sol` exist. |
 

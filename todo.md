@@ -12,8 +12,9 @@ The current implemented state is:
   - model finalization / freeze
   - chunk-addressed reads instead of whole-array reads
 - `PRSComputeEngine` now:
-  - reads finalized model metadata up front
-  - validates SNP length at `startPRS`
+  - creates PRS job shells from finalized model metadata
+  - ingests SNPs in aligned chunks
+  - finalizes SNP upload before compute begins
   - processes one published model chunk per `computeChunk`
   - supports both public `mulPlain` and private encrypted-chunk reads
 - Dedicated marketplace unit coverage exists in `test/model_marketplace_chunked_test.ts`.
@@ -23,10 +24,9 @@ The current implemented state is:
   - `docs/design/`
   - `docs/reference/`
 - Current local status:
-  - `npm test` passes
-  - 47 tests passing
-  - the old `5000`-SNP model-publication bottleneck is removed
-  - the next major scaling boundary is monolithic SNP ingestion in `startPRS(...)`
+  - tests have not yet been rerun after the current chunked SNP-ingestion refactor
+  - the old `5000`-SNP model-publication bottleneck is removed in design and code
+  - chunked SNP ingestion is now implemented in design and code
 
 ## Recently Completed
 
@@ -40,6 +40,11 @@ The current implemented state is:
 - Replace whole-model compute reads with chunk-oriented retrieval.
 - Add owner-only publication controls and private-reader allowlist behavior.
 - Align compute chunking to the model's published chunk size.
+- Replace monolithic PRS job creation with staged SNP ingestion:
+  - `createPRSJob(...)`
+  - `appendSnpChunk(...)`
+  - `finalizeSnpUpload(...)`
+- Add dedicated engine unit coverage for the new PRS job upload lifecycle.
 
 ### Testing
 
@@ -57,31 +62,23 @@ The current implemented state is:
 
 ### Documentation cleanup
 
-- Write the live design doc for the implemented marketplace flow:
-  - `docs/design/model-marketplace-v1.md`
+- Restructure the design docs around a single `v1` system target:
+  - `docs/design/v1/overview.md`
+  - `docs/design/v1/model-marketplace.md`
+  - `docs/design/v1/snp-ingestion.md`
+  - `docs/design/v1/quantization.md`
 - Reorganize docs into onboarding / design / reference folders.
 - Add `docs/README.md` as the documentation entrypoint.
 - Convert top-level `ONBOARDING.md` into a lightweight pointer to the onboarding folder.
 
 ## Active Priorities
 
-### 1. Make SNP ingestion scalable
+### 1. Wire registry ACL into job creation
 
-This is now the most important engineering gap.
+The compute engine still accepts arbitrary encrypted SNP chunks from the requester.
 
-- Design and implement a scalable replacement for monolithic `startPRS(modelId, encryptedSnps)`.
-- Evaluate two candidate directions:
-  - chunked SNP upload into the job state
-  - registry-backed SNP references so compute jobs do not need to ingest the full vector directly
-- Add tests that explicitly target the current `5000`-SNP boundary and the post-fix behavior.
-- Update profiling so publication cost, SNP-ingestion cost, and compute cost are reported separately.
-
-### 2. Wire registry ACL into job creation
-
-The compute engine still accepts arbitrary encrypted SNP arrays from the caller.
-
-- Decide whether `startPRS(...)` should:
-  - accept raw encrypted SNP arrays
+- Decide whether the PRS job flow should:
+  - accept raw encrypted SNP chunks
   - accept a `sampleId`
   - accept both paths with different trust assumptions
 - Enforce `GenomicRegistry` access checks in the compute path if sample-linked execution is the intended default.
@@ -89,6 +86,17 @@ The compute engine still accepts arbitrary encrypted SNP arrays from the caller.
   - owner access
   - delegated access
   - unauthorized access rejection
+
+### 2. Test and benchmark the chunked SNP-ingestion path
+
+- Run the dedicated engine unit tests and updated integration tests.
+- Verify the HEPRS `5000` fixture end-to-end under the staged SNP upload flow.
+- Rerun profiling so the docs and reports reflect:
+  - model publication
+  - PRS job creation
+  - SNP upload
+  - SNP upload finalization
+  - chunked compute
 
 ### 3. Decide and document the `computeChunk` permission model
 

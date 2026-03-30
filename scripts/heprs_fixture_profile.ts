@@ -46,35 +46,15 @@ interface SuccessfulFixtureProfile {
     deployMarketplace: number;
     publishModel: number;
     deployEngine: number;
-    startPrs: number;
+    createJob: number;
+    uploadSnps: number;
+    finalizeSnpUpload: number;
     readPartial: number;
     finalize: number;
   };
 }
 
-interface StartPrsBoundaryFixtureProfile {
-  fixtureSize: HeprsFixtureSize;
-  vectorLength: number;
-  chunkSize: number;
-  recommendation: HeprsAdvisorRecommendation;
-  localChunkCount: number;
-  status: "start_prs_out_of_gas";
-  failedStep: "startPRS";
-  failureMessage: string;
-  timingsMs: {
-    total: number;
-    loadFixture: number;
-    quantizeWeights: number;
-    localReferenceDotProduct: number;
-    localChunkedDotProduct: number;
-    deployMarketplace: number;
-    publishModel: number;
-    deployEngine: number;
-    startPrsFailure: number;
-  };
-}
-
-type FixtureProfile = SuccessfulFixtureProfile | StartPrsBoundaryFixtureProfile;
+type FixtureProfile = SuccessfulFixtureProfile;
 
 function nowNs(): bigint {
   return process.hrtime.bigint();
@@ -153,21 +133,6 @@ function parseCliArgs(argv: string[]): CliOptions {
   };
 }
 
-function chunkedDotProductBigInt(
-  lhs: bigint[],
-  rhs: bigint[],
-  chunkLength: number
-): bigint {
-  let sum = 0n;
-  for (let start = 0; start < lhs.length; start += chunkLength) {
-    sum += dotProductBigInt(
-      lhs.slice(start, start + chunkLength),
-      rhs.slice(start, start + chunkLength)
-    );
-  }
-  return sum;
-}
-
 async function profileFixture(
   fixtureSize: HeprsFixtureSize,
   chunkSize: number
@@ -233,51 +198,23 @@ async function profileFixture(
   });
   const engine = deployEngineResult.value;
 
-  const jobId = await engine.jobCount();
-  const startPrsStart = nowNs();
-  let startPrsResult:
-    | { value: void; ms: number }
-    | undefined;
-  try {
-    startPrsResult = await timed(async () => {
-      const tx = await engine.startPRS(modelId, snps);
+  const createJobResult = await timed(async () => {
+    const tx = await engine.createPRSJob(modelId);
+    await tx.wait();
+  });
+
+  const jobId = await engine.jobCount() - 1n;
+  const uploadSnpsResult = await timed(async () => {
+    for (const chunk of chunkBigIntVector(snps, chunkSize)) {
+      const tx = await engine.appendSnpChunk(jobId, chunk);
       await tx.wait();
-    });
-  } catch (error) {
-    const failureMessage = error instanceof Error ? error.message : String(error);
-    if (!/out of gas/i.test(failureMessage)) {
-      throw error;
     }
+  });
 
-    const chunkedLocalResult = await timed(() => (
-      chunkedDotProductBigInt(snps, quantized.weights, chunkSize)
-    ));
-    if (chunkedLocalResult.value !== expected) {
-      throw new Error(`Fixture ${fixtureSize} local chunked math mismatch after startPRS failure`);
-    }
-
-    return {
-      fixtureSize,
-      vectorLength: snps.length,
-      chunkSize,
-      recommendation,
-      localChunkCount: Math.ceil(snps.length / chunkSize),
-      status: "start_prs_out_of_gas",
-      failedStep: "startPRS",
-      failureMessage,
-      timingsMs: {
-        total: nsToMs(nowNs() - totalStart),
-        loadFixture: fixtureResult.ms,
-        quantizeWeights: quantizeResult.ms,
-        localReferenceDotProduct: expectedResult.ms,
-        localChunkedDotProduct: chunkedLocalResult.ms,
-        deployMarketplace: deployMarketplaceResult.ms,
-        publishModel: publishModelResult.ms,
-        deployEngine: deployEngineResult.ms,
-        startPrsFailure: nsToMs(nowNs() - startPrsStart)
-      }
-    };
-  }
+  const finalizeSnpUploadResult = await timed(async () => {
+    const tx = await engine.finalizeSnpUpload(jobId);
+    await tx.wait();
+  });
 
   const chunkTimes: number[] = [];
   const totalChunks = Math.ceil(snps.length / chunkSize);
@@ -339,7 +276,9 @@ async function profileFixture(
       deployMarketplace: deployMarketplaceResult.ms,
       publishModel: publishModelResult.ms,
       deployEngine: deployEngineResult.ms,
-      startPrs: startPrsResult.ms,
+      createJob: createJobResult.ms,
+      uploadSnps: uploadSnpsResult.ms,
+      finalizeSnpUpload: finalizeSnpUploadResult.ms,
       readPartial: readPartialResult.ms,
       finalize: finalizeResult.ms
     }
@@ -360,22 +299,12 @@ function summarizeProfile(profile: FixtureProfile, verbose: boolean): string {
     `advisor: tier=${profile.recommendation.tier}, scale=${profile.recommendation.scale}, bits=${profile.recommendation.requiredWeightBits}/${profile.recommendation.requiredAccumulatorBits}`
   );
 
-  if (profile.status === "full_flow") {
-    lines.push(
-      `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, publishModel=${formatMs(profile.timingsMs.publishModel)}, startPRS=${formatMs(profile.timingsMs.startPrs)}, chunkTotal=${formatMs(profile.chunkTiming.totalMs)}, finalize=${formatMs(profile.timingsMs.finalize)}`,
-      `chunks: count=${profile.chunkTiming.chunkCount}, avg=${formatMs(profile.chunkTiming.averageMs)}, min=${formatMs(profile.chunkTiming.minMs)}, max=${formatMs(profile.chunkTiming.maxMs)}`
-    );
-    if (verbose) {
-      lines.push(`perChunkMs=${profile.chunkTiming.perChunkMs.map((value) => value.toFixed(2)).join(", ")}`);
-    }
-  } else {
-    lines.push(
-      `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, publishModel=${formatMs(profile.timingsMs.publishModel)}, startPRSFailure=${formatMs(profile.timingsMs.startPrsFailure)}, localChunkedMath=${formatMs(profile.timingsMs.localChunkedDotProduct)}`,
-      `boundary: failedStep=${profile.failedStep}, localChunkCount=${profile.localChunkCount}`
-    );
-    if (verbose) {
-      lines.push(`failureMessage=${profile.failureMessage}`);
-    }
+  lines.push(
+    `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, publishModel=${formatMs(profile.timingsMs.publishModel)}, createJob=${formatMs(profile.timingsMs.createJob)}, uploadSnps=${formatMs(profile.timingsMs.uploadSnps)}, finalizeSnpUpload=${formatMs(profile.timingsMs.finalizeSnpUpload)}, chunkTotal=${formatMs(profile.chunkTiming.totalMs)}, finalize=${formatMs(profile.timingsMs.finalize)}`,
+    `chunks: count=${profile.chunkTiming.chunkCount}, avg=${formatMs(profile.chunkTiming.averageMs)}, min=${formatMs(profile.chunkTiming.minMs)}, max=${formatMs(profile.chunkTiming.maxMs)}`
+  );
+  if (verbose) {
+    lines.push(`perChunkMs=${profile.chunkTiming.perChunkMs.map((value) => value.toFixed(2)).join(", ")}`);
   }
 
   return lines.join("\n");

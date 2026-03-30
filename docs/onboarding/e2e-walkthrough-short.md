@@ -102,19 +102,20 @@ Public models are cheaper to compute because multiplication can use plaintext we
 
 The model is registered and receives an identifier: `modelID = 7`
 
-## Step 5: Alice starts a PRS computation job
+## Step 5: Alice creates a PRS job
 
 Alice calls the compute engine:
 
 ```text
-startPRS(modelId=7, encryptedSNPHandles)
+createPRSJob(modelId=7)
 ```
 
-The compute engine creates a job structure:
+The compute engine creates a job shell:
 
 ```text
 modelId = 7  
-snps = encrypted handles  
+uploadedSnpCount = 0  
+snpsFinalized = false  
 nextChunkIndex = 0  
 processedWeights = 0  
 chunkSize = 2  (read from the published model)  
@@ -125,7 +126,19 @@ complete = false
 
 The partial sum is an **encrypted accumulator**.
 
-## Step 6: First computeChunk transaction
+## Step 6: Alice uploads SNP chunks
+
+Alice appends the encrypted SNP payload in the same chunk geometry as the model:
+
+```text
+appendSnpChunk(jobId, [Enc(0), Enc(1)])
+appendSnpChunk(jobId, [Enc(2)])
+finalizeSnpUpload(jobId)
+```
+
+Now the job is ready for compute.
+
+## Step 7: First computeChunk transaction
 
 Someone calls: `computeChunk(jobId)`
 
@@ -152,7 +165,7 @@ The blockchain still cannot see the value 3.
 
 ---
 
-## Step 7: Second computeChunk transaction
+## Step 8: Second computeChunk transaction
 
 Another transaction calls: `computeChunk(jobId)`
 
@@ -269,11 +282,12 @@ Alice receives her result without exposing:
 3. Alice uploads encrypted genome to IPFS  
 4. Alice registers metadata in `GenomicRegistry`  
 5. CardioLab publishes PRS model in `ModelMarketplace`  
-6. Alice calls `startPRS()`  
-7. Multiple `computeChunk()` transactions run encrypted multiplications  
-8. `finalize()` returns encrypted PRS score  
-9. Alice sends score to `ResultOracle`  
-10. `ResultOracle` adds noise and classifies result  
+6. Alice creates a PRS job shell  
+7. Alice uploads SNP chunks and finalizes SNP upload  
+8. Multiple `computeChunk()` transactions run encrypted multiplications  
+9. `finalize()` returns encrypted PRS score  
+10. Alice sends score to `ResultOracle`  
+11. `ResultOracle` adds noise and classifies result  
 11. Gateway decrypts final category for Alice  
 
 ## Key Architectural Ideas

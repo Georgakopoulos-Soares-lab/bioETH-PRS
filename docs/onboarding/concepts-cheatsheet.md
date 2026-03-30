@@ -310,7 +310,9 @@ chunk size = 50
 Compute flow:
 
 ```text
-startPRS()
+createPRSJob()
+appendSnpChunk() repeated multiple times
+finalizeSnpUpload()
 computeChunk() repeated multiple times
 finalize()
 ```

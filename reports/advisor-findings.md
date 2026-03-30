@@ -45,7 +45,7 @@ Measured local wall-clock runtime per advisor command:
 | `5000 SNP` | `0.96s` |
 
 These are local script runtimes, not on-chain times and not gas costs.
-For execution-path timing on the HEPRS-backed mock contract flow, see [reports/heprs-fixture-findings.md](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/reports/heprs-fixture-findings.md).
+For the historical pre-staged-SNP-upload execution-path timing baseline on the HEPRS-backed mock contract flow, see [reports/heprs-fixture-findings.md](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/reports/heprs-fixture-findings.md).
 
 ## Results
 

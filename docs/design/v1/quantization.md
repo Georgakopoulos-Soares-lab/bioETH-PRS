@@ -1,4 +1,4 @@
-# Quantization and Signed-Weight Encoding Design
+# V1 Quantization and Signed-Weight Encoding Design
 
 ## Why this document exists
 
