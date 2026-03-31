@@ -140,4 +140,6 @@ Important unresolved items remain outside this target:
 - no model deprecation / versioning semantics exist yet
 - mock-mode behavior still needs real fhEVM / Sepolia validation
 
+The V1 quantization math (`weightZeroPoint`, `genoSum` accumulation, `scoreOffset`) is now implemented — see [`quantization.md`](quantization.md).
+
 For the broader roadmap and risk register, see [`../../architecture-roadmap.md`](../../architecture-roadmap.md).

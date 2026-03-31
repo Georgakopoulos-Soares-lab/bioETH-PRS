@@ -17,10 +17,13 @@ contract PRSComputeEngine {
         uint256 nextChunkIndex;
         uint256 processedWeights;
         euint64 partialSum;
+        euint64 genoSum;
         address requester;
         bool isPrivate;
         bool snpsFinalized;
         bool complete;
+        uint64 weightZeroPoint;
+        uint64 scoreOffset;
     }
 
     ModelMarketplace public marketplace;
@@ -60,7 +63,9 @@ contract PRSComputeEngine {
             bool finalized,
             uint256 weightCount,
             uint256 chunkSize,
-            uint256 chunkCount
+            uint256 chunkCount,
+            uint64 weightZeroPoint,
+            uint64 scoreOffset
         ) = marketplace.getModelConfig(modelId);
 
         require(finalized, "Model not finalized");
@@ -80,10 +85,13 @@ contract PRSComputeEngine {
             nextChunkIndex: 0,
             processedWeights: 0,
             partialSum: TFHE.asEuint64(0),
+            genoSum: TFHE.asEuint64(0),
             requester: msg.sender,
             isPrivate: isPrivate,
             snpsFinalized: false,
-            complete: false
+            complete: false,
+            weightZeroPoint: weightZeroPoint,
+            scoreOffset: scoreOffset
         });
 
         jobs.push(job);
@@ -142,6 +150,7 @@ contract PRSComputeEngine {
         require(snps.length == expectedLength, "Invalid SNP chunk");
 
         euint64 acc = job.partialSum;
+        euint64 genoAcc = job.genoSum;
         if (job.isPrivate) {
             euint64[] memory encryptedWeights = marketplace
                 .getEncryptedWeightChunk(job.modelId, chunkIndex);
@@ -150,8 +159,8 @@ contract PRSComputeEngine {
                 "Invalid model chunk"
             );
             for (uint256 i = 0; i < encryptedWeights.length; i++) {
-                euint64 term = encryptedWeights[i].mul(snps[i]);
-                acc = acc.add(term);
+                acc = acc.add(encryptedWeights[i].mul(snps[i]));
+                genoAcc = genoAcc.add(snps[i]);
             }
         } else {
             uint64[] memory publicWeights = marketplace.getPublicWeightChunk(
@@ -163,13 +172,14 @@ contract PRSComputeEngine {
                 "Invalid model chunk"
             );
             for (uint256 i = 0; i < publicWeights.length; i++) {
-                euint64 term = snps[i].mulPlain(publicWeights[i]);
-                acc = acc.add(term);
+                acc = acc.add(snps[i].mulPlain(publicWeights[i]));
+                genoAcc = genoAcc.add(snps[i]);
             }
         }
 
         uint256 processedWeights = job.processedWeights + expectedLength;
         job.partialSum = acc;
+        job.genoSum = genoAcc;
         job.processedWeights = processedWeights;
         job.nextChunkIndex = chunkIndex + 1;
         if (job.nextChunkIndex == job.chunkCount) {
@@ -197,8 +207,16 @@ contract PRSComputeEngine {
         Job storage job = jobs[jobId];
         require(job.complete, "Job not complete");
         require(job.requester == msg.sender, "Not requester");
-        job.partialSum = TFHE.allow(job.partialSum, msg.sender);
-        return job.partialSum;
+
+        // V1 quantization correction (avoids negative intermediate):
+        //   encoded_score = (weighted_sum + score_offset) - (weight_zero_point * geno_sum)
+        // Rearranged so the subtraction never underflows: weighted_sum + score_offset
+        // is guaranteed >= weight_zero_point * geno_sum when score_offset = -raw_min.
+        euint64 withOffset = TFHE.addPlain(job.partialSum, job.scoreOffset);
+        euint64 correction = TFHE.mulPlain(job.genoSum, job.weightZeroPoint);
+        euint64 encodedScore = TFHE.sub(withOffset, correction);
+        encodedScore = TFHE.allow(encodedScore, msg.sender);
+        return encodedScore;
     }
 
     function jobCount() external view returns (uint256) {

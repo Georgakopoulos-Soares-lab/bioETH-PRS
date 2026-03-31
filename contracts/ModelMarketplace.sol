@@ -16,6 +16,8 @@ contract ModelMarketplace {
         string manifestURI;
         bytes32 manifestHash;
         bytes32 sourceModelHash;
+        uint64 weightZeroPoint;
+        uint64 scoreOffset;
     }
 
     ModelHeader[] private modelHeaders;
@@ -54,7 +56,9 @@ contract ModelMarketplace {
         uint256 chunkSize,
         string calldata manifestURI,
         bytes32 manifestHash,
-        bytes32 sourceModelHash
+        bytes32 sourceModelHash,
+        uint64 weightZeroPoint,
+        uint64 scoreOffset
     ) external returns (uint256) {
         require(weightCount > 0, "Weight count must be > 0");
         require(chunkSize > 0, "Chunk size must be > 0");
@@ -71,7 +75,9 @@ contract ModelMarketplace {
                 uploadedWeightCount: 0,
                 manifestURI: manifestURI,
                 manifestHash: manifestHash,
-                sourceModelHash: sourceModelHash
+                sourceModelHash: sourceModelHash,
+                weightZeroPoint: weightZeroPoint,
+                scoreOffset: scoreOffset
             })
         );
 
@@ -192,7 +198,9 @@ contract ModelMarketplace {
             bool finalized,
             uint256 weightCount,
             uint256 chunkSize,
-            uint256 chunkCount
+            uint256 chunkCount,
+            uint64 weightZeroPoint,
+            uint64 scoreOffset
         )
     {
         require(modelId < modelHeaders.length, "Invalid model");
@@ -202,7 +210,9 @@ contract ModelMarketplace {
             model.finalized,
             model.weightCount,
             model.chunkSize,
-            model.chunkCount
+            model.chunkCount,
+            model.weightZeroPoint,
+            model.scoreOffset
         );
     }
 
@@ -221,7 +231,9 @@ contract ModelMarketplace {
             uint256 uploadedWeightCount,
             string memory manifestURI,
             bytes32 manifestHash,
-            bytes32 sourceModelHash
+            bytes32 sourceModelHash,
+            uint64 weightZeroPoint,
+            uint64 scoreOffset
         )
     {
         require(modelId < modelHeaders.length, "Invalid model");
@@ -236,7 +248,9 @@ contract ModelMarketplace {
             model.uploadedWeightCount,
             model.manifestURI,
             model.manifestHash,
-            model.sourceModelHash
+            model.sourceModelHash,
+            model.weightZeroPoint,
+            model.scoreOffset
         );
     }
 

@@ -30,6 +30,9 @@ Desktop.ini
 *.swo
 *~
 
+# === Claude Code (machine-specific permissions — do not commit) ===
+.claude/settings.local.json
+
 # === Logs ===
 *.log
 npm-debug.log*

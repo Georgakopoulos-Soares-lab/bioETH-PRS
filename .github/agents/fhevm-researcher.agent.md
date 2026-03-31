@@ -16,11 +16,11 @@ You are a domain research specialist for the bioETH PRS project — a confidenti
 ## Key References in this Workspace
 
 - [AGENTS.md](../../AGENTS.md) — project guidelines, stack, architecture, conventions
-- [docs/INSTRUCTIONS.md](../../docs/INSTRUCTIONS.md) — detailed architecture, roadmap, edge cases, threat model
-- [ONBOARDING.md](../../ONBOARDING.md) — full educational guide covering bio, crypto, and systems background
-- [docs/cheatsheet.md](../../docs/cheatsheet.md) — quick concept reference
-- [docs/e2e-example-short.md](../../docs/e2e-example-short.md) — end-to-end scenario walkthrough
-- [docs/e2e-example-long.md](../../docs/e2e-example-long.md) — detailed component-by-component flow
+- [docs/architecture-roadmap.md](../../docs/architecture-roadmap.md) — detailed architecture, roadmap, edge cases, threat model
+- [docs/onboarding/contributor-onboarding.md](../../docs/onboarding/contributor-onboarding.md) — full educational guide covering bio, crypto, and systems background
+- [docs/onboarding/concepts-cheatsheet.md](../../docs/onboarding/concepts-cheatsheet.md) — quick concept reference
+- [docs/onboarding/e2e-walkthrough-short.md](../../docs/onboarding/e2e-walkthrough-short.md) — end-to-end scenario walkthrough
+- [docs/onboarding/e2e-walkthrough-long.md](../../docs/onboarding/e2e-walkthrough-long.md) — detailed component-by-component flow
 - [docs/PIIS2667237525003078.pdf](../../docs/PIIS2667237525003078.pdf) — HEPRS reference paper
 
 ## Constraints

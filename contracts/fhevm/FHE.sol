@@ -50,6 +50,14 @@ library FHE {
         return value;
     }
 
+    function sub(euint64 a, euint64 b) internal pure returns (euint64) {
+        return euint64.wrap(euint64.unwrap(a) - euint64.unwrap(b));
+    }
+
+    function addPlain(euint64 a, uint64 b) internal pure returns (euint64) {
+        return euint64.wrap(euint64.unwrap(a) + b);
+    }
+
     function allow(euint64 value, address) internal pure returns (euint64) {
         return value;
     }

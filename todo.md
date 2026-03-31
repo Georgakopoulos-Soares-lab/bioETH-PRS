@@ -24,9 +24,10 @@ The current implemented state is:
   - `docs/design/`
   - `docs/reference/`
 - Current local status:
-  - tests have not yet been rerun after the current chunked SNP-ingestion refactor
+  - all 55 tests pass under mock-FHE (Hardhat)
   - the old `5000`-SNP model-publication bottleneck is removed in design and code
-  - chunked SNP ingestion is now implemented in design and code
+  - chunked SNP ingestion is implemented in design and code
+  - V1 quantization correction is implemented in design and code
 
 ## Recently Completed
 
@@ -59,6 +60,7 @@ The current implemented state is:
   - marketplace + engine + oracle flow
   - HEPRS-backed fixtures
 - Lock HEPRS test scaling to the fixed recommendation map in `test/utils/heprs.ts`.
+- Rerun and verified all 55 tests pass after chunked SNP-ingestion refactor and V1 quantization implementation.
 
 ### Documentation cleanup
 
@@ -87,16 +89,14 @@ The compute engine still accepts arbitrary encrypted SNP chunks from the request
   - delegated access
   - unauthorized access rejection
 
-### 2. Test and benchmark the chunked SNP-ingestion path
+### 2. Rerun profiling for the full v1 flow
 
-- Run the dedicated engine unit tests and updated integration tests.
-- Verify the HEPRS `5000` fixture end-to-end under the staged SNP upload flow.
 - Rerun profiling so the docs and reports reflect:
-  - model publication
+  - model publication (with `weightZeroPoint` / `scoreOffset`)
   - PRS job creation
   - SNP upload
   - SNP upload finalization
-  - chunked compute
+  - chunked compute + finalize (with correction step)
 
 ### 3. Decide and document the `computeChunk` permission model
 
@@ -151,14 +151,14 @@ Local mock correctness is no longer the main unknown.
 
 ### Quantization and type strategy
 
-- Keep using the advisor + HEPRS fixtures as the main correctness reference.
+- V1 signed-weight encoding is implemented (`weightZeroPoint`, `scoreOffset`, `genoSum` accumulation).
 - Expand measured evidence for:
-  - scale choice
-  - encoded threshold quality
-  - overflow headroom
+  - scale choice vs MSE tradeoff across HEPRS fixtures
+  - encoded threshold quality for ResultOracle classification
+  - overflow headroom under real model weight distributions
 - Revisit whether `euint64` everywhere is too conservative once real measurements exist.
-- Evaluate later optimizations:
-  - narrower intermediates
+- Evaluate V2 optimizations:
+  - narrower intermediates (`euint16` weights)
   - widening accumulators
   - SIMD / slot-packing
 

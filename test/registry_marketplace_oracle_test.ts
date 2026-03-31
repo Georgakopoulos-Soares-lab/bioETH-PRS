@@ -67,7 +67,9 @@ describe("Registry / Marketplace / Oracle — mock FHE (Hardhat)", function () {
         2n,
         "ipfs://manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
       await marketplace.createModelShell(
         false,
@@ -75,7 +77,9 @@ describe("Registry / Marketplace / Oracle — mock FHE (Hardhat)", function () {
         2n,
         "ipfs://manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
       await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
       await marketplace.appendPublicModelChunk(modelId, [3n]);
@@ -115,7 +119,9 @@ describe("Registry / Marketplace / Oracle — mock FHE (Hardhat)", function () {
         2n,
         "ipfs://private-manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
       await marketplace.createModelShell(
         true,
@@ -123,7 +129,9 @@ describe("Registry / Marketplace / Oracle — mock FHE (Hardhat)", function () {
         2n,
         "ipfs://private-manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
       await marketplace.appendEncryptedModelChunk(modelId, [2n, 3n]);
       await marketplace.appendEncryptedModelChunk(modelId, [4n]);

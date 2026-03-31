@@ -25,6 +25,14 @@ library TFHE {
         return FHE.mul(a, b);
     }
 
+    function sub(euint64 a, euint64 b) internal pure returns (euint64) {
+        return FHE.sub(a, b);
+    }
+
+    function addPlain(euint64 a, uint64 b) internal pure returns (euint64) {
+        return FHE.addPlain(a, b);
+    }
+
     function allow(
         euint64 value,
         address account

@@ -19,7 +19,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
       chunkSize,
       manifestURI,
       ethers.ZeroHash,
-      ethers.keccak256(ethers.toUtf8Bytes("public-source"))
+      ethers.keccak256(ethers.toUtf8Bytes("public-source")),
+      0n,
+      0n
     );
     await marketplace.createModelShell(
       false,
@@ -27,7 +29,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
       chunkSize,
       manifestURI,
       ethers.ZeroHash,
-      ethers.keccak256(ethers.toUtf8Bytes("public-source"))
+      ethers.keccak256(ethers.toUtf8Bytes("public-source")),
+      0n,
+      0n
     );
 
     return { marketplace, modelId };
@@ -45,7 +49,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
       chunkSize,
       manifestURI,
       ethers.ZeroHash,
-      ethers.keccak256(ethers.toUtf8Bytes("private-source"))
+      ethers.keccak256(ethers.toUtf8Bytes("private-source")),
+      0n,
+      0n
     );
     await marketplace.createModelShell(
       true,
@@ -53,7 +59,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
       chunkSize,
       manifestURI,
       ethers.ZeroHash,
-      ethers.keccak256(ethers.toUtf8Bytes("private-source"))
+      ethers.keccak256(ethers.toUtf8Bytes("private-source")),
+      0n,
+      0n
     );
 
     return { marketplace, modelId };
@@ -120,7 +128,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
           2n,
           "ipfs://manifest",
           ethers.ZeroHash,
-          ethers.ZeroHash
+          ethers.ZeroHash,
+          0n,
+          0n
         )
       ).to.be.revertedWith("Weight count must be > 0");
 
@@ -131,7 +141,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
           0n,
           "ipfs://manifest",
           ethers.ZeroHash,
-          ethers.ZeroHash
+          ethers.ZeroHash,
+          0n,
+          0n
         )
       ).to.be.revertedWith("Chunk size must be > 0");
     });
@@ -147,7 +159,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
           2n,
           "ipfs://manifest",
           ethers.ZeroHash,
-          ethers.ZeroHash
+          ethers.ZeroHash,
+          0n,
+          0n
         )
       ).to.emit(marketplace, "ModelShellCreated")
         .withArgs(0n, owner.address, false, 5n, 2n);
@@ -184,7 +198,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
         2n,
         "ipfs://manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
 
       await expect(
@@ -270,7 +286,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
         2n,
         "ipfs://manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
 
       await expect(
@@ -354,7 +372,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
         2n,
         "ipfs://manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
 
       await expect(marketplace.connect(stranger).finalizeModel(0n))
@@ -376,7 +396,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
         2n,
         "ipfs://private-manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
 
       expect(await marketplace.canReadPrivateModel(0n, reader.address)).to.equal(false);
@@ -406,7 +428,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
         2n,
         "ipfs://public-manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
 
       await expect(
@@ -419,7 +443,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
         2n,
         "ipfs://private-manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
       await marketplace.connect(owner).createModelShell(
         true,
@@ -427,7 +453,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
         2n,
         "ipfs://private-manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
 
       await expect(
@@ -474,7 +502,9 @@ describe("ModelMarketplace — chunked publication v1", function () {
         2n,
         "ipfs://private-manifest",
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        0n,
+        0n
       );
 
       await expect(

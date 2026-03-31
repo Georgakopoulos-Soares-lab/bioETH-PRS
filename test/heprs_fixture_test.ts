@@ -42,7 +42,10 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
       );
       const chunkSize = 128n;
       const firstChunkLength = Number(chunkSize);
-      const expected = dotProductBigInt(snps, quantized.weights);
+      // V1 corrected encoded score: (weighted_sum + scoreOffset) - weightZeroPoint * genoSum
+      const genoSum = snps.reduce((a, b) => a + b, 0n);
+      const naiveDotProduct = dotProductBigInt(snps, quantized.weights);
+      const expected = naiveDotProduct + quantized.scoreOffset - quantized.weightZeroPoint * genoSum;
       const expectedFirstChunk = dotProductBigInt(
         snps.slice(0, firstChunkLength),
         quantized.weights.slice(0, firstChunkLength)
@@ -60,7 +63,9 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
         chunkSize,
         `ipfs://heprs-${fixtureSize}`,
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        quantized.weightZeroPoint,
+        quantized.scoreOffset
       );
       await marketplace.createModelShell(
         false,
@@ -68,7 +73,9 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
         chunkSize,
         `ipfs://heprs-${fixtureSize}`,
         ethers.ZeroHash,
-        ethers.ZeroHash
+        ethers.ZeroHash,
+        quantized.weightZeroPoint,
+        quantized.scoreOffset
       );
       for (const chunk of chunkBigIntVector(quantized.weights, firstChunkLength)) {
         await marketplace.appendPublicModelChunk(modelId, chunk);
@@ -110,9 +117,13 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
     expect(snps.length).to.equal(5001);
     expect(quantized.scale).to.equal(recommendation.scale);
 
-    const expected = dotProductBigInt(snps, quantized.weights);
+    // V1 corrected encoded score: (weighted_sum + scoreOffset) - weightZeroPoint * genoSum
+    const genoSum = snps.reduce((a, b) => a + b, 0n);
+    const naiveDotProduct = dotProductBigInt(snps, quantized.weights);
+    const expected = naiveDotProduct + quantized.scoreOffset - quantized.weightZeroPoint * genoSum;
     const chunked = chunkedDotProductBigInt(snps, quantized.weights, chunkLength);
-    expect(chunked).to.equal(expected);
+    // chunked naive dot product should still match the naive dot product (sanity check)
+    expect(chunked).to.equal(naiveDotProduct);
     const expectedFirstChunk = dotProductBigInt(
       snps.slice(0, chunkLength),
       quantized.weights.slice(0, chunkLength)
@@ -126,7 +137,9 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
       BigInt(chunkLength),
       "ipfs://heprs-5000",
       ethers.ZeroHash,
-      ethers.ZeroHash
+      ethers.ZeroHash,
+      quantized.weightZeroPoint,
+      quantized.scoreOffset
     );
     await marketplace.createModelShell(
       false,
@@ -134,7 +147,9 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
       BigInt(chunkLength),
       "ipfs://heprs-5000",
       ethers.ZeroHash,
-      ethers.ZeroHash
+      ethers.ZeroHash,
+      quantized.weightZeroPoint,
+      quantized.scoreOffset
     );
     for (const chunk of chunkBigIntVector(quantized.weights, chunkLength)) {
       await marketplace.appendPublicModelChunk(modelId, chunk);

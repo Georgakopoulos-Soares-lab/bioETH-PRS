@@ -80,12 +80,18 @@ export function quantizeSignedWeightsToUint64(
 ) {
   const scaled = weights.map((weight) => Math.round(weight * scale));
   const minWeight = Math.min(...scaled);
-  const offset = minWeight < 0 ? -minWeight : 0;
+  const weightZeroPoint = minWeight < 0 ? BigInt(-minWeight) : 0n;
+
+  // Exact worst-case minimum score: all SNPs at max dosage (2), only negative
+  // weights contribute. scoreOffset = -rawMin lifts the score into [0, encodedRange].
+  const rawMin = scaled.reduce((sum, q) => sum + 2 * Math.min(q, 0), 0);
+  const scoreOffset = rawMin < 0 ? BigInt(-rawMin) : 0n;
 
   return {
     scale,
-    offset,
-    weights: scaled.map((weight) => BigInt(weight + offset))
+    weightZeroPoint,
+    scoreOffset,
+    weights: scaled.map((weight) => BigInt(weight) + weightZeroPoint)
   };
 }
 

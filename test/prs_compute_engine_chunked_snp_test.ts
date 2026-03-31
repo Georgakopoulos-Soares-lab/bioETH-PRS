@@ -22,7 +22,9 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       chunkSize,
       "ipfs://public-model",
       ethers.ZeroHash,
-      ethers.ZeroHash
+      ethers.ZeroHash,
+      0n,
+      0n
     );
     await marketplace.createModelShell(
       false,
@@ -30,7 +32,9 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       chunkSize,
       "ipfs://public-model",
       ethers.ZeroHash,
-      ethers.ZeroHash
+      ethers.ZeroHash,
+      0n,
+      0n
     );
     for (const chunk of chunkArray(weights, Number(chunkSize))) {
       await marketplace.appendPublicModelChunk(modelId, chunk);
@@ -86,7 +90,9 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       2n,
       "ipfs://draft-model",
       ethers.ZeroHash,
-      ethers.ZeroHash
+      ethers.ZeroHash,
+      0n,
+      0n
     );
 
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
@@ -213,7 +219,9 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       2n,
       "ipfs://private-model",
       ethers.ZeroHash,
-      ethers.ZeroHash
+      ethers.ZeroHash,
+      0n,
+      0n
     );
     await marketplace.createModelShell(
       true,
@@ -221,7 +229,9 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       2n,
       "ipfs://private-model",
       ethers.ZeroHash,
-      ethers.ZeroHash
+      ethers.ZeroHash,
+      0n,
+      0n
     );
     await marketplace.appendEncryptedModelChunk(modelId, [2n, 3n]);
     await marketplace.appendEncryptedModelChunk(modelId, [4n]);

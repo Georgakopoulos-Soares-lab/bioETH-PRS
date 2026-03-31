@@ -416,20 +416,25 @@ Using only "largest weight times SNP count" leaves money on the table and can st
 
 ---
 
-## Recommended next implementation order
+## Implementation status
 
-1. Freeze the V1 math and metadata format.
-2. Implement an offline quantization manifest generator.
-3. Add tests that compare:
-   * original float score
-   * quantized signed score
-   * encoded unsigned score
-   * on-chain mock result
-4. Add contract support for:
-   * weight zero-point
-   * genotype sum accumulation
-   * score offset
-5. Only after that, extend toward V2.
+The V1 math is implemented in `ModelMarketplace` and `PRSComputeEngine`.
+
+`ModelMarketplace.ModelHeader` stores `weightZeroPoint` and `scoreOffset` as `uint64` fields, set at `createModelShell` time and returned by `getModelConfig` and `getModelHeader`.
+
+`PRSComputeEngine` accumulates `genoSum` alongside `partialSum` in every `computeChunk` call. `finalize` applies the correction:
+
+```solidity
+euint64 withOffset = TFHE.addPlain(job.partialSum, job.scoreOffset);
+euint64 correction = TFHE.mulPlain(job.genoSum, job.weightZeroPoint);
+euint64 encodedScore = TFHE.sub(withOffset, correction);
+```
+
+The rearrangement `(partialSum + scoreOffset) - (weightZeroPoint * genoSum)` avoids an unsigned underflow on the intermediate `raw_score_q` when the signed dot product is negative.
+
+`test/utils/heprs.ts::quantizeSignedWeightsToUint64` computes `weightZeroPoint` and `scoreOffset` from the float weights and passes them through to all HEPRS fixture tests. All 55 tests pass under the mock fhEVM stack.
+
+Next steps toward V2 are bit-depth optimization and decimal dosage support, both tracked in the architecture roadmap.
 
 ---
 
