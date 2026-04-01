@@ -1,150 +1,163 @@
-# HEPRS Fixture Historical Findings
+# HEPRS Fixture Findings
 
-> Historical note: this report reflects the pre-chunked-SNP-ingestion measurement baseline. The PRS job flow has since been refactored to use staged SNP upload, so this report should be rerun before treating its boundary findings as current.
+> Updated 1 April 2026 — reflects the current `@fhevm/solidity` + staged-SNP-upload
+> implementation with chunked encrypted input proofs. All four fixtures (100 / 500 /
+> 1000 / 5000 SNPs) now complete end-to-end.
 
 ## Purpose
 
-This report captures what we learned from running the HEPRS-backed tests and the dedicated HEPRS profiling harness before staged SNP upload was implemented, independent of the advisor.
-
-It is about:
-
-* whether the current implementation reproduces the expected PRS math
-* how far the current mock contract path scales
-* where the first real gas boundary appears
+This report captures benchmark results from the HEPRS profiling harness running on
+the latest contract architecture: chunked model publication, staged SNP upload with
+encrypted input proofs (`fhevmjs`), chunked FHE dot-product computation, and
+event-based score retrieval.
 
 ## How These Results Were Produced
 
-We copied the HEPRS fixture datasets into [test/fixtures/heprs](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/test/fixtures/heprs) and ran the HEPRS-specific test file:
+### Test suite
+
+55 Hardhat tests pass (21 s) covering all five contracts:
 
 ```bash
-npx hardhat test test/heprs_fixture_test.ts
+npm run test     # hardhat test via @fhevm/hardhat-plugin mock coprocessor
 ```
 
-That test uses [test/heprs_fixture_test.ts](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/test/heprs_fixture_test.ts) together with [test/utils/heprs.ts](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/test/utils/heprs.ts).
-
-For timing and chunk-level measurement, we also ran:
+### Profiler
 
 ```bash
-npm run profile:heprs
+npm run profile:heprs   # default chunkSize = 10
 ```
 
-using [scripts/heprs_fixture_profile.ts](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/scripts/heprs_fixture_profile.ts).
+The profiler (`scripts/heprs_fixture_profile.ts`) runs as a Mocha `describe/it`
+block inside `hardhat test` so the `@fhevm/hardhat-plugin` mock coprocessor is
+fully initialised. Each fixture goes through every stage of the real contract flow:
 
-To inspect a single boundary case directly, for example:
+1. **Quantization** — float weights scaled to `uint64` via the advisor
+2. **Model publication** — chunked `publishModelChunk` calls on `ModelMarketplace`
+3. **Job creation** — `createPRSJob` on `PRSComputeEngine`
+4. **SNP upload** — `appendSnpChunk` with `fhevm.createEncryptedInput()` producing
+   `externalEuint64[]` + `inputProof` (max 32 values per proof, matching the
+   2048-bit input-proof limit)
+5. **Finalize upload** — `finalizeSnpUpload`
+6. **Compute** — chunked `computeChunk` calls (10 SNPs per chunk)
+7. **Finalize** — `finalize`, then `JobFinalized` event parsed for the encrypted
+   score handle, debug-decrypted for verification
 
-```bash
-npm run profile:heprs -- --fixture 5000 --chunk-size 128
+### Fixture naming
+
+Fixture names like "100 SNP" mean 100 SNPs + 1 intercept, so actual vector lengths
+are 101, 501, 1001, 5001.
+
+## Timing Results (chunkSize = 10)
+
+All times are local Hardhat mock-coprocessor wall-clock measurements. They reflect
+relative phase costs and scaling trends, **not** real-chain latencies or gas costs.
+
+| Fixture | Vector len | Chunks | Total | Publish | Upload SNPs | Compute | Finalize |
+|--------:|-----------:|-------:|------:|--------:|------------:|--------:|---------:|
+| 100     | 101        | 11     | 383 ms | 16 ms  | 157 ms      | 63 ms   | 72 ms    |
+| 500     | 501        | 51     | 1646 ms | 54 ms | 655 ms      | 345 ms  | 368 ms   |
+| 1000    | 1001       | 101    | 3138 ms | 99 ms | 1306 ms     | 643 ms  | 686 ms   |
+| 5000    | 5001       | 501    | 15628 ms | 468 ms | 6515 ms   | 3338 ms | 3434 ms  |
+
+**Per-chunk compute averages:** 5.7 ms (100 SNP) to 6.7 ms (5000 SNP) — nearly
+constant, confirming linear scaling.
+
+### Phase breakdown
+
+| Phase | % of total (5000 SNP) | Notes |
+|---|---:|---|
+| SNP upload | 42% | Dominated by `fhevm.createEncryptedInput()` proof generation |
+| Compute chunks | 21% | 501 chunks x ~6.7 ms average |
+| Finalize | 22% | Includes mock-coprocessor bookkeeping |
+| Model publish | 3% | Chunked, scales linearly |
+| Other | 12% | Job creation, SNP finalize, fixture loading |
+
+## Chunk-Size Constraints
+
+Two independent limits determine the maximum chunk size:
+
+### 1. Input-proof limit (SNP upload): 32 values
+
+The `fhevmjs` encrypted-input proof has a 2048-bit budget. Each `euint64` value
+consumes 64 bits, so a single `appendSnpChunk` call can pack at most
+**32 encrypted values**.
+
+### 2. HCU limit (compute): 10 values
+
+Each SNP in `computeChunk` requires **3 FHE operations**:
+- `FHE.asEuint64(weight)` — trivial encryption of the public weight
+- `FHE.mul(snp, encWeight)` — ciphertext multiplication
+- `FHE.add(partialSum, product)` — accumulation
+
+The mock coprocessor enforces a per-transaction HCU (Homomorphic Compute Unit)
+budget of approximately 30 operations. At 3 ops per SNP, the maximum is
+**10 SNPs per compute chunk**.
+
+We confirmed this empirically: chunkSize = 32 triggers
+`HCUTransactionLimitExceeded()` at the first `computeChunk` call (32 x 3 = 96 ops).
+
+### Binding constraint
+
+The **compute step** is the binding bottleneck. Upload can handle 32 values per
+transaction, but compute can only process 10. The profiler therefore uses
+**chunkSize = 10** for both upload and compute to keep the flow uniform.
+
+## Mathematical Correctness
+
+All four fixtures produce scores that match the expected value:
+
+```
+expected = sum(snp[i] * quantizedWeight[i]) + scoreOffset - weightZeroPoint * sum(snp[i])
 ```
 
-Important note:
+The quantization advisor selects:
+- 100 / 500 SNP: `scale = 3,000,000` (balanced tier, 16/32 bits)
+- 1000 / 5000 SNP: `scale = 1,000,000` (balanced tier, 16/32 bits)
 
-* the HEPRS fixture names like `100 SNP` really mean `100 SNPs + 1 intercept`
-* so the actual vector lengths are `101`, `501`, `1001`, `5001`
-* the profiler used `chunkSize = 128`
+All scores verified via `fhevm.debugger.decryptEuint()` against local plaintext
+dot product.
 
-### Timing snapshot
+## Scaling Analysis
 
-Measured local runtimes from the dedicated profiling harness:
+| SNPs | Transactions required | Est. linear model |
+|-----:|----------------------:|---|
+| 100  | 11 upload + 11 compute + 3 = **25 tx** | ~5 tx per 100 SNPs |
+| 500  | 51 upload + 51 compute + 3 = **105 tx** | |
+| 1000 | 101 upload + 101 compute + 3 = **205 tx** | |
+| 5000 | 501 upload + 501 compute + 3 = **1005 tx** | |
 
-```bash
-npm run profile:heprs
-```
+The "+ 3" accounts for `createPRSJob`, `finalizeSnpUpload`, and `finalize`.
 
-| Fixture | Chunk count | Total time | Key phase timings |
-|---|---:|---:|---|
-| `100 SNP` | `1` | `394.81ms` | `publish=8.09ms`, `start=2.13ms`, `chunkTotal=3.95ms`, `finalize=0.37ms` |
-| `500 SNP` | `4` | `44.83ms` | `publish=11.50ms`, `start=5.51ms`, `chunkTotal=14.32ms`, `finalize=0.27ms` |
-| `1000 SNP` | `8` | `76.88ms` | `publish=27.88ms`, `start=13.61ms`, `chunkTotal=20.05ms`, `finalize=0.28ms` |
-| `5000 SNP` | `40` local chunks | `188.20ms` | `publish=105.10ms`, `startPRSFailure=66.37ms`, local chunked math `0.13ms` |
+Transaction count scales linearly at ~2N/10 = N/5 total transactions for N SNPs,
+which is the expected outcome for a chunked architecture.
 
-These are local Hardhat mock runtimes, not real fhEVM runtimes, not gas costs, and not chain-finality times.
-The most stable signals are the phase timings and chunk counts, not the end-to-end totals, because cold-start deployment/setup overhead can dominate a single isolated run.
+## Key Differences From Previous Report
 
-## Results
-
-| Fixture | What was executed | Result |
+| Aspect | Previous (pre-staged SNP upload) | Current |
 |---|---|---|
-| `100 SNP` | Chunked public-model publication, PRS job creation, chunked computation, finalize | Matches plaintext dot product |
-| `500 SNP` | Chunked public-model publication, PRS job creation, chunked computation, finalize | Matches plaintext dot product |
-| `1000 SNP` | Chunked public-model publication, PRS job creation, chunked computation, finalize | Matches plaintext dot product |
-| `5000 SNP` | Chunked model publication + `startPRS` boundary check | Chunked publication succeeds and local chunked math matches the full dot product, but `startPRS` runs out of gas before PRS execution begins |
+| SNP ingestion | Monolithic — 5000 SNP failed at `startPRS()` | Staged chunked upload — all fixtures pass |
+| Encryption | Transparent mock values | `fhevmjs` encrypted inputs with proofs |
+| Chunk size | 128 (no HCU enforcement) | 10 (HCU-constrained) |
+| 5000 SNP | Failed (OOG at SNP storage) | Passes in ~15.6 s |
+| Score retrieval | Direct `readPartial()` | Event-based (`JobFinalized`) + debug decrypt |
+| Mock framework | Old transparent `TFHE.mock.sol` | `@fhevm/hardhat-plugin` mock coprocessor |
 
-## Main Findings
+## Implications
 
-### 1. The core PRS math is behaving correctly
+1. **All HEPRS fixtures now complete end-to-end** — the staged-SNP-upload
+   architecture eliminates the previous 5000-SNP boundary.
 
-For `100`, `500`, and `1000` SNP HEPRS fixtures, the current mock contract path reproduces the same result as the local plaintext dot product.
+2. **Transaction cost is the practical concern** — a 5000-SNP PRS requires ~1005
+   transactions. On-chain, each is a separate block inclusion. Batching or
+   session-based optimisations could reduce this.
 
-That validates:
+3. **HCU is the binding constraint, not input proofs** — future fhEVM releases
+   with higher HCU budgets would directly increase chunk size and reduce
+   transaction counts.
 
-* fixture loading
-* quantized integer mapping
-* chunked accumulation logic at `chunkSize = 128`
-* final score agreement for these reference-sized datasets
+4. **Mock timings are developer-feedback only** — real fhEVM latencies will be
+   orders of magnitude higher due to actual TFHE bootstrapping. These numbers
+   are useful for regression detection, not performance claims.
 
-### 2. Chunked publication fixed the old first boundary
-
-For `5000` SNPs, the current failure is not “the PRS math is wrong.”
-
-The test shows:
-
-* local chunked math still equals the full dot product
-* chunked model publication now succeeds
-* but `startPRS()` still runs out of gas because the SNP vector is still submitted monolithically
-
-The new failing path is [contracts/PRSComputeEngine.sol](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/contracts/PRSComputeEngine.sol), specifically `startPRS(modelId, encryptedSnps)`, which still stores the full SNP array in one transaction.
-
-Interpretation: the old first scaling problem, model publication/storage, has been improved by `ModelMarketplace v1`. The next scaling problem is SNP ingestion.
-
-### 3. Chunked compute and chunked publication still do not solve monolithic SNP ingestion
-
-The arithmetic loop is chunked in [contracts/PRSComputeEngine.sol](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/contracts/PRSComputeEngine.sol), and model publication is now chunked in [contracts/ModelMarketplace.sol](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/contracts/ModelMarketplace.sol), but one important whole-array operation remains:
-
-* `startPRS()` still accepts and stores the full SNP array at once
-
-Interpretation: chunked compute plus chunked model publication is a real step forward, but the system still needs a scalable SNP-ingestion path.
-
-### 4. The current timing profile should be read carefully
-
-The per-profile times are not monotonic with SNP count:
-
-* `100 SNP` appears slower than `500 SNP`
-* `5000 SNP` appears relatively fast
-
-That does **not** mean larger models are cheaper.
-
-Interpretation:
-
-* the `100 SNP` profile pays a large cold-start deployment/setup cost
-* the `5000` case fails at `startPRS()`, so it never enters a full compute-chunk execution path
-* the meaningful scaling signal for successful runs is the chunk section:
-  * `1` chunk at `100 SNP`
-  * `4` chunks at `500 SNP`
-  * `8` chunks at `1000 SNP`
-* mock Hardhat timings are useful for local developer feedback, but not for claiming real-chain performance
-
-### 5. The 5000-SNP result is now a start-PRS boundary result, not a publication result
-
-For `5000` SNPs, the profiler shows:
-
-* `40` chunks would be needed locally at `chunkSize = 128`
-* local chunked math is trivial (`~0.14ms`)
-* chunked publication succeeds in about `105.10ms`
-* the real blocker is `startPRS()`, which fails after about `66.37ms`
-
-Interpretation: when someone asks “how far does 5000 get today?”, the honest answer is that the current contract flow now reaches the post-publication boundary. It gets through chunked model publication and stops at SNP ingestion.
-
-## What It Means For The Project
-
-These test results imply:
-
-* the implementation direction is mathematically sound for small-to-medium HEPRS-style models
-* the next engineering priority is not redoing PRS math
-* the next priority is redesigning how large SNP arrays enter the system
-
-In practical terms:
-
-* keep the HEPRS fixtures as regression tests
-* keep the current `100` / `500` / `1000` full-flow tests
-* treat `5000` as the current boundary case that motivates chunked SNP ingestion
-* treat these timings as local development signals only until we benchmark on real fhEVM infrastructure
+5. **The quantization pipeline is stable** — the advisor consistently selects
+   appropriate scales that keep accumulation within `uint64` bounds.

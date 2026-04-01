@@ -7,7 +7,7 @@
     "advisor:quantization": "ts-node scripts/quantization_advisor.ts",
     "advisor:scale-ceilings": "ts-node scripts/scale_ceiling_reference.ts",
     "build": "hardhat compile",
-    "profile:heprs": "node -r ts-node/register -r hardhat/register scripts/heprs_fixture_profile.ts",
+    "profile:heprs": "hardhat test scripts/heprs_fixture_profile.ts",
     "test": "hardhat test",
     "profile:gas": "hardhat run scripts/gas_profile.ts"
   },

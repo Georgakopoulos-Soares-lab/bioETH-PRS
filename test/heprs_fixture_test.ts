@@ -3,6 +3,7 @@ import { ethers } from "hardhat";
 import { encryptUint64Array, debugDecryptUint64 } from "./utils/fhevm-helpers";
 
 import {
+  HEPRS_FIXTURE_SIZES,
   chunkBigIntVector,
   dotProductBigInt,
   getHeprsBalancedRecommendation,
@@ -196,4 +197,29 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
     const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
     expect(await debugDecryptUint64(scoreHandle)).to.equal(expected);
   });
+});
+
+const UINT64_MAX = 2n ** 64n - 1n;
+
+describe("HEPRS quantization — overflow safety across all individuals", function () {
+  // Pure TypeScript: no contract calls, no FHE. Verifies that the encoded score
+  // produced by the quantization formula stays within uint64 bounds for every
+  // individual in every fixture. An overflow here would silently corrupt the
+  // on-chain accumulator.
+  for (const fixtureSize of HEPRS_FIXTURE_SIZES) {
+    it(`encoded scores stay within uint64 for all 50 individuals — ${fixtureSize} SNP fixture`, function () {
+      const { genotypes, betas } = loadHeprsFixture(fixtureSize);
+      const quantized = quantizeHeprsWeightsWithRecommendation(fixtureSize, betas);
+
+      for (let idx = 0; idx < genotypes.length; idx++) {
+        const snps = toBigIntVector(genotypes[idx]);
+        const naive = dotProductBigInt(snps, quantized.weights);
+        const genoSum = snps.reduce((a, b) => a + b, 0n);
+        const encoded = naive + quantized.scoreOffset - quantized.weightZeroPoint * genoSum;
+
+        expect(encoded, `individual ${idx}: encoded score is negative`).to.be.gte(0n);
+        expect(encoded, `individual ${idx}: encoded score overflows uint64`).to.be.lte(UINT64_MAX);
+      }
+    });
+  }
 });

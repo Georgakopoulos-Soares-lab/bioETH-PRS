@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
 
-import { ethers } from "hardhat";
+import { ethers, fhevm } from "hardhat";
+import { FhevmType } from "@fhevm/hardhat-plugin";
 
 import {
   HEPRS_FIXTURE_SIZES,
@@ -80,7 +81,7 @@ function parseFixtureSize(value: string): HeprsFixtureSize {
 
 function parseCliArgs(argv: string[]): CliOptions {
   const fixtureSizes: HeprsFixtureSize[] = [];
-  let chunkSize = 128;
+  let chunkSize = 10;
   let verbose = false;
   let jsonOutPath: string | undefined;
 
@@ -122,6 +123,11 @@ function parseCliArgs(argv: string[]): CliOptions {
       continue;
     }
 
+    // Skip non-flag tokens injected by `hardhat run` (e.g. "run", the script path)
+    if (!arg.startsWith("--")) {
+      continue;
+    }
+
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -154,7 +160,11 @@ async function profileFixture(
   }
 
   const expectedResult = await timed(() => dotProductBigInt(snps, quantized.weights));
-  const expected = expectedResult.value;
+  const naiveDotProduct = expectedResult.value;
+
+  // V1 offset-corrected encoded score: (weighted_sum + scoreOffset) - weightZeroPoint * genoSum
+  const genoSum = snps.reduce((a, b) => a + b, 0n);
+  const expected = naiveDotProduct + quantized.scoreOffset - quantized.weightZeroPoint * genoSum;
 
   const deployMarketplaceResult = await timed(async () => {
     const Marketplace = await ethers.getContractFactory("ModelMarketplace");
@@ -169,7 +179,9 @@ async function profileFixture(
       BigInt(chunkSize),
       `ipfs://heprs/${fixtureSize}`,
       ethers.ZeroHash,
-      ethers.ZeroHash
+      ethers.ZeroHash,
+      quantized.weightZeroPoint,
+      quantized.scoreOffset
     );
     const tx = await marketplace.createModelShell(
       false,
@@ -177,7 +189,9 @@ async function profileFixture(
       BigInt(chunkSize),
       `ipfs://heprs/${fixtureSize}`,
       ethers.ZeroHash,
-      ethers.ZeroHash
+      ethers.ZeroHash,
+      quantized.weightZeroPoint,
+      quantized.scoreOffset
     );
     await tx.wait();
 
@@ -204,9 +218,15 @@ async function profileFixture(
   });
 
   const jobId = await engine.jobCount() - 1n;
+  const [signer] = await ethers.getSigners();
+  const engineAddr = await engine.getAddress();
+
   const uploadSnpsResult = await timed(async () => {
     for (const chunk of chunkBigIntVector(snps, chunkSize)) {
-      const tx = await engine.appendSnpChunk(jobId, chunk);
+      const input = fhevm.createEncryptedInput(engineAddr, signer.address);
+      for (const v of chunk) input.add64(v);
+      const { handles, inputProof } = await input.encrypt();
+      const tx = await engine.appendSnpChunk(jobId, handles, inputProof);
       await tx.wait();
     }
   });
@@ -233,7 +253,8 @@ async function profileFixture(
     chunkTimes.push(chunkResult.ms);
     if (i === 0) {
       readPartialResult = await timed(async () => {
-        return engine.readPartial.staticCall(jobId);
+        const handle = await engine.getPartialSum(jobId);
+        return fhevm.debugger.decryptEuint(FhevmType.euint64, handle);
       });
     }
   }
@@ -243,7 +264,13 @@ async function profileFixture(
   }
 
   const finalizeResult = await timed(async () => {
-    return engine.finalize.staticCall(jobId);
+    const tx = await engine.finalize(jobId);
+    const receipt = await tx.wait();
+    const finalEvent = receipt!.logs.find(
+      (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+    );
+    const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+    return fhevm.debugger.decryptEuint(FhevmType.euint64, scoreHandle);
   });
 
   if (readPartialResult.value !== partialFirstChunk) {
@@ -314,32 +341,35 @@ function stringifyProfiles(profiles: FixtureProfile[]): string {
   return JSON.stringify(profiles, null, 2);
 }
 
-async function main() {
-  const options = parseCliArgs(process.argv.slice(2));
-  const profiles: FixtureProfile[] = [];
+// Run as a Hardhat test so the @fhevm/hardhat-plugin mock coprocessor is
+// fully initialized before any FHE operations execute.
+// Usage: npm run profile:heprs [-- --fixture 100 --chunk-size 10]
+describe("HEPRS fixture profiler", function () {
+  // Allow up to 30 min for all four fixtures at chunkSize=10
+  this.timeout(1_800_000);
 
-  for (const fixtureSize of options.fixtureSizes) {
-    profiles.push(await profileFixture(fixtureSize, options.chunkSize));
-  }
+  it("profiles all requested fixtures and prints timing summary", async function () {
+    const options = parseCliArgs(process.argv.slice(2));
+    const profiles: FixtureProfile[] = [];
 
-  console.log("HEPRS fixture profile");
-  console.log(`fixtures=${options.fixtureSizes.join(",")}`);
-  console.log(`chunkSize=${options.chunkSize}`);
-  console.log("");
+    for (const fixtureSize of options.fixtureSizes) {
+      profiles.push(await profileFixture(fixtureSize, options.chunkSize));
+    }
 
-  for (const profile of profiles) {
-    console.log(summarizeProfile(profile, options.verbose));
+    console.log("\nHEPRS fixture profile");
+    console.log(`fixtures=${options.fixtureSizes.join(",")}`);
+    console.log(`chunkSize=${options.chunkSize}`);
     console.log("");
-  }
 
-  if (options.jsonOutPath) {
-    const outPath = path.resolve(options.jsonOutPath);
-    fs.writeFileSync(outPath, stringifyProfiles(profiles));
-    console.log(`Wrote JSON profile to ${outPath}`);
-  }
-}
+    for (const profile of profiles) {
+      console.log(summarizeProfile(profile, options.verbose));
+      console.log("");
+    }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+    if (options.jsonOutPath) {
+      const outPath = path.resolve(options.jsonOutPath);
+      fs.writeFileSync(outPath, stringifyProfiles(profiles));
+      console.log(`Wrote JSON profile to ${outPath}`);
+    }
+  });
 });
