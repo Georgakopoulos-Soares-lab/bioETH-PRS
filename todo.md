@@ -2,212 +2,166 @@
 
 ## Current Snapshot
 
-The repo is no longer at the "what should v1 be?" stage.
+The repo is at a stable, tested v1 state with real fhEVM library integration.
 
 The current implemented state is:
 
-- `ModelMarketplace v1` is implemented with:
-  - model shell creation
-  - sequential public/private chunk append
-  - model finalization / freeze
-  - chunk-addressed reads instead of whole-array reads
-- `PRSComputeEngine` now:
-  - creates PRS job shells from finalized model metadata
-  - ingests SNPs in aligned chunks
-  - finalizes SNP upload before compute begins
-  - processes one published model chunk per `computeChunk`
-  - supports both public `mulPlain` and private encrypted-chunk reads
-- Dedicated marketplace unit coverage exists in `test/model_marketplace_chunked_test.ts`.
-- HEPRS-backed integration tests use fixed advisor recommendations instead of recomputing them every run.
-- Documentation has been reorganized into:
-  - `docs/onboarding/`
-  - `docs/design/`
-  - `docs/reference/`
-- Current local status:
-  - all 55 tests pass under mock-FHE (Hardhat)
-  - the old `5000`-SNP model-publication bottleneck is removed in design and code
-  - chunked SNP ingestion is implemented in design and code
-  - V1 quantization correction is implemented in design and code
+- `ModelMarketplace v1` is implemented with chunked publication lifecycle
+- `PRSComputeEngine` implements staged SNP ingestion, chunked compute, and the V1 quantization correction
+- Contracts import from `@fhevm/solidity` (real Zama library) and inherit `ZamaEthereumConfig`
+- Local testing via `@fhevm/hardhat-plugin` mock coprocessor — validates handles, ACL, and input proofs while performing plaintext arithmetic
+- Same contract bytecode deploys to Sepolia for real FHE — no contract changes needed
+- **59 tests pass** under the mock coprocessor (~21s)
+- **chunkSize = 10** in all profiling and tests — HCU-constrained (3 ops/SNP × ~30 HCU/tx)
+- HEPRS profiler captures both timing and gas per phase across all 4 fixtures
+- All 50 individuals × 4 fixtures (200 checks) verified safe within `uint64` bounds
+- Design docs include chunk-size constraints, local vs Sepolia comparison, and V1 quantization worked example
 
 ## Recently Completed
 
-### Marketplace and compute refactor
+### fhEVM library migration
 
-- Replace one-shot model upload with chunked publication lifecycle:
-  - `createModelShell(...)`
-  - `appendPublicModelChunk(...)`
-  - `appendEncryptedModelChunk(...)`
-  - `finalizeModel(...)`
-- Replace whole-model compute reads with chunk-oriented retrieval.
-- Add owner-only publication controls and private-reader allowlist behavior.
-- Align compute chunking to the model's published chunk size.
-- Replace monolithic PRS job creation with staged SNP ingestion:
-  - `createPRSJob(...)`
-  - `appendSnpChunk(...)`
-  - `finalizeSnpUpload(...)`
-- Add dedicated engine unit coverage for the new PRS job upload lifecycle.
+- Migrated contracts from transparent local mock (`contracts/fhevm/FHE.mock.sol`) to official `@fhevm/solidity` library
+- All contracts now inherit `ZamaEthereumConfig` and import from `@fhevm/solidity/lib/FHE.sol`
+- Replaced `mulPlain` with `FHE.mul(snp, FHE.asEuint64(weight))` (trivially-encrypted C×P path)
+- SNP upload now uses `fhevm.createEncryptedInput()` → `externalEuint64[]` + `inputProof`
+- Score retrieval via `JobFinalized` event + `fhevm.debugger.decryptEuint()`
+- Old transparent mock files archived in `mock-archive/` — not on any import path
 
-### Testing
+### Profiling overhaul
 
-- Add dedicated `ModelMarketplace` unit tests covering:
-  - shell creation
-  - chunk geometry
-  - append rules
-  - finalize rules
-  - reader permissions
-  - edge cases and invalid reads
-- Update integration coverage for:
-  - marketplace + engine + oracle flow
-  - HEPRS-backed fixtures
-- Lock HEPRS test scaling to the fixed recommendation map in `test/utils/heprs.ts`.
-- Rerun and verified all 55 tests pass after chunked SNP-ingestion refactor and V1 quantization implementation.
+- Profiler (`scripts/heprs_fixture_profile.ts`) runs as Mocha `describe/it` block so mock coprocessor is fully initialised
+- Added per-phase gas tracking from transaction receipts (publishModel, createJob, uploadSnps, finalizeSnpUpload, compute, finalize)
+- Fixed `scripts/gas_profile.ts` — was broken (old contract API, wrong command); now runs as `hardhat test` with proper encrypted inputs
+- `package.json`: `profile:gas` now runs `hardhat test scripts/gas_profile.ts`
+- Reports updated with fresh timing and gas data
 
-### Documentation cleanup
+### Testing additions
 
-- Restructure the design docs around a single `v1` system target:
-  - `docs/design/v1/overview.md`
-  - `docs/design/v1/model-marketplace.md`
-  - `docs/design/v1/snp-ingestion.md`
-  - `docs/design/v1/quantization.md`
-- Reorganize docs into onboarding / design / reference folders.
-- Add `docs/README.md` as the documentation entrypoint.
-- Convert top-level `ONBOARDING.md` into a lightweight pointer to the onboarding folder.
+- Added overflow safety test suite: all 50 individuals × 4 fixtures = 200 checks, all within `[0, 2^64)`
+- Test count: 55 → 59 passing
+- Confirmed: `chunkSize = 32` triggers `HCUTransactionLimitExceeded` (96 ops > 30 HCU); `chunkSize = 10` is the empirically confirmed ceiling
+
+### Documentation patches
+
+- `docs/design/v1/snp-ingestion.md` — new "Chunk-size constraints in practice" section: HCU math, 10/32 limits, binding constraint, Sepolia guidance
+- `docs/design/v1/overview.md` — chunk-size ceiling noted under core design decisions; links to snp-ingestion.md
+- `docs/architecture-roadmap.md` — Local vs Sepolia comparison table in §3-E; §7 renamed from "Known Edge Cases" to "Known Implementation Gaps"
+- `docs/design/v1/quantization.md` — test count corrected (55 → 59)
+- `README.md` — stale mock file paths removed, chunk size corrected, Running Tests section updated, Real FHE section corrected
+- `docs/onboarding/contributor-onboarding.md` — missing Step 4 fixed
+- `CLAUDE.md` — `profile:heprs` added to Build & Test section
+
+### Marketplace and compute refactor (prior work, still current)
+
+- Chunked model publication lifecycle: `createModelShell` → `appendPublicModelChunk` × N → `finalizeModel`
+- Staged SNP ingestion: `createPRSJob` → `appendSnpChunk` × N → `finalizeSnpUpload` → `computeChunk` × N → `finalize`
+- V1 quantization correction: `(weighted_sum + scoreOffset) - (weightZeroPoint × genoSum)`
+- `JobFinalized` event emitted by `finalize()` — used by profiler and off-chain indexers
 
 ## Active Priorities
 
-### 1. Wire registry ACL into job creation
+### 1. Sepolia deployment — confirm real FHE path
 
-The compute engine still accepts arbitrary encrypted SNP chunks from the requester.
+This is the most important next step (flagged by collaborator).
 
-- Decide whether the PRS job flow should:
-  - accept raw encrypted SNP chunks
-  - accept a `sampleId`
-  - accept both paths with different trust assumptions
-- Enforce `GenomicRegistry` access checks in the compute path if sample-linked execution is the intended default.
-- Add tests for:
-  - owner access
-  - delegated access
-  - unauthorized access rejection
-
-### 2. Rerun profiling for the full v1 flow
-
-- Rerun profiling so the docs and reports reflect:
-  - model publication (with `weightZeroPoint` / `scoreOffset`)
-  - PRS job creation
-  - SNP upload
-  - SNP upload finalization
-  - chunked compute + finalize (with correction step)
-
-### 3. Decide and document the `computeChunk` permission model
-
-Current behavior is permissionless relaying.
-
-- Decide whether this remains the intended design.
-- If yes:
-  - document the relay model clearly in the design docs
-  - reason about griefing / wasted-gas scenarios
-- If no:
-  - restrict execution to requester or approved operators
-  - update tests and docs accordingly
-
-### 4. Harden the output and DP story
-
-The current oracle still trusts caller-supplied noise.
-
-- Decide the near-term DP posture:
-  - caller-supplied noise with guardrails
-  - commitment-based enforcement
-  - on-chain/generated noise later
-- Decide the user-facing output policy:
-  - encrypted raw score available only to requester
-  - risk category as the main public-facing output
-- Remove or mitigate the zero-noise loophole before making strong model-extraction claims.
-
-### 5. Validate the real fhEVM / Sepolia path
-
-Local mock correctness is no longer the main unknown.
-
-- Run the end-to-end flow on Sepolia with real fhEVM packages.
+- Deploy contracts to Sepolia testnet
+- Run a single 100-SNP HEPRS fixture end-to-end with real TFHE ciphertext
 - Validate:
-  - ciphertext input flow
-  - ACL behavior
+  - ciphertext input flow (`externalEuint64` + `inputProof` through gateway)
+  - ACL behavior on real chain
   - gateway / re-encryption / decryption flow
-  - chunk-size limits under real fhEVM costs
-- Record the main mock-vs-real differences in the docs.
+  - `JobFinalized` event + score decryption via re-encryption key
+- Measure real HCU ceiling — determines production chunkSize and transaction count
+- Record mock vs real differences in `docs/architecture-roadmap.md §7-I`
+
+### 2. Wire registry ACL into job creation
+
+The compute engine still accepts arbitrary encrypted SNP chunks from the requester — no check against `GenomicRegistry`.
+
+- Decide whether the PRS job flow should verify `sampleId` ownership before accepting SNPs
+- Enforce `GenomicRegistry` access checks in the compute path if sample-linked execution is the default
+- Add tests for owner access, delegated access, unauthorized rejection
+- Tracked in `docs/architecture-roadmap.md §7-A`
+
+### 3. Harden the DP / output story
+
+The oracle still trusts caller-supplied noise.
+
+- Decide near-term DP posture: caller-supplied with guardrails / commitment-based / on-chain generated
+- Decide user-facing output policy: encrypted raw score (requester-only) vs risk category (public)
+- Zero-noise loophole must be addressed before making model-extraction claims
+- Tracked in `docs/architecture-roadmap.md §7-D`
+
+### 4. Decouple upload and compute chunk sizes
+
+Currently both use `chunkSize = 10` for uniformity.
+
+- Upload can safely handle up to 32 values per proof (2048-bit budget)
+- Compute is bound to 10 on the mock; real HCU ceiling on Sepolia is unknown
+- Decoupling reduces upload transactions by ~3× at no contract cost
+- Should be done after measuring real Sepolia HCU ceiling (Priority 1)
 
 ## Secondary Engineering Work
 
 ### Marketplace improvements
 
-- Add model versioning / deprecation semantics.
-- Decide whether pricing / fee mechanics are in scope.
-- Decide whether public-model storage should remain fully on-chain in later versions or move toward commitment-based storage.
+- Add model versioning / deprecation semantics
+- Decide whether pricing / fee mechanics are in scope
+- Decide whether public-model storage should remain fully on-chain or move toward commitment-based storage
 
 ### Job lifecycle improvements
 
-- Add job cancellation / cleanup for incomplete jobs.
-- Consider a `JobFinalized` event for off-chain indexing.
-- Decide whether stale job state needs expiry semantics.
+- Add job cancellation / cleanup for incomplete jobs
+- Decide whether stale job state needs expiry semantics
 
 ### Quantization and type strategy
 
-- V1 signed-weight encoding is implemented (`weightZeroPoint`, `scoreOffset`, `genoSum` accumulation).
-- Expand measured evidence for:
-  - scale choice vs MSE tradeoff across HEPRS fixtures
-  - encoded threshold quality for ResultOracle classification
-  - overflow headroom under real model weight distributions
-- Revisit whether `euint64` everywhere is too conservative once real measurements exist.
-- Evaluate V2 optimizations:
-  - narrower intermediates (`euint16` weights)
-  - widening accumulators
-  - SIMD / slot-packing
+- Expand measured evidence: scale choice vs MSE tradeoff, encoded threshold quality for `ResultOracle`, overflow headroom under real weight distributions
+- Revisit whether `euint64` everywhere is too conservative once real Sepolia measurements exist
+- Evaluate V2 optimizations: narrower intermediates (`euint16` weights), widening accumulators, SIMD / slot-packing
 
 ## Research / Paper Work
 
 ### Feasibility evidence
 
-- Produce a clean benchmark story for:
-  - model publication
-  - SNP ingestion
-  - chunked compute
-  - finalize / output path
-- Compare:
-  - small fixture behavior
-  - HEPRS-backed fixture behavior
-  - mock vs real fhEVM behavior
+- Produce a clean benchmark story for mock and real fhEVM:
+  - model publication, SNP ingestion, chunked compute, finalize / output path
+  - mock timing baseline now exists in `reports/heprs-fixture-findings.md`
+  - real Sepolia numbers are the missing piece
+- Compare mock gas estimates against real fhEVM precompile costs
 
 ### Scientific validation
 
-- Compare de-quantized on-chain outputs against reference PRS tooling such as PLINK / PRSice.
-- Quantify:
-  - MSE
-  - rank correlation
-  - AUC or equivalent clinical utility measures
+- Compare de-quantized on-chain outputs against reference PRS tooling (PLINK / PRSice)
+- Quantify MSE, rank correlation, AUC or equivalent clinical utility measures
+- Cross-check formula against HEPRS paper Python reference with same betas / genotypes
 
 ### Security analysis
 
-- Formalize the threat model for:
-  - model extraction
-  - repeated query attacks
-  - noisy categorical release
-  - sample access abuse
-- Be explicit about which protections are implemented, mocked, assumed, or future work.
+- Formalize threat model: model extraction, repeated query attacks, noisy categorical release, sample access abuse
+- Be explicit about which protections are implemented, mocked, assumed, or future work
 
-## Items No Longer Open In The Same Way
+## Items No Longer Open
 
-These were previously major open design questions, but the repo now has an implemented answer for `v1`:
+Previously open questions that now have an implemented and tested answer:
 
-- `v1` supports both public and private model publication paths.
-- The marketplace now uses chunked on-chain storage instead of one-shot upload.
-- Compute no longer uses whole-model reads.
-- The current collaborator-facing design doc is the implemented marketplace design, not just a brainstorm.
-- The main bottleneck is no longer model publication for the HEPRS `5000` fixture; it is SNP ingestion.
+- `v1` supports both public and private model publication paths
+- Marketplace uses chunked on-chain storage — not one-shot upload
+- Compute uses chunk-addressed reads — not whole-model reads
+- 5000-SNP fixture completes end-to-end (staged SNP upload removes the old OOG boundary)
+- V1 quantization correction is implemented, tested, and documented
+- `computeChunk` permission model decided: permissionless relay is intentional (documented in `docs/design/v1/snp-ingestion.md`)
+- `JobFinalized` event is implemented — used by profiler and available to off-chain indexers
+- Full profiling with timing + gas now exists in `reports/heprs-fixture-findings.md`
+- Chunk-size constraints (10 for compute, 32 for upload) are empirically confirmed and documented
+- Mock vs real fhEVM distinction is clearly documented and the contracts are ready for Sepolia without code changes
 
 ## Keep This File Useful
 
 When updating this file:
 
-- move completed items into `Recently Completed`
+- move completed items into `Recently Completed` or `Items No Longer Open`
 - remove questions that already have an implemented answer
 - keep `Active Priorities` short and execution-oriented
 - keep paper/research work separate from core engineering work
