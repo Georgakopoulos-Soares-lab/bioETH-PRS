@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./TFHE.sol";
-
 /// @title GenomicRegistry - Data layer for encrypted SNP vector pointers.
 contract GenomicRegistry {
     struct Sample {

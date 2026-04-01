@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./fhevm/FHE.sol";
+import {FHE, euint64, euint8, ebool} from "@fhevm/solidity/lib/FHE.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @title ResultOracle - Applies DP noise and returns categorical PRS risk.
-contract ResultOracle {
-    using FHE for euint64;
-    using FHE for euint8;
-    using FHE for ebool;
-
+contract ResultOracle is ZamaEthereumConfig {
     enum RiskCategory {
         Low,
         Medium,

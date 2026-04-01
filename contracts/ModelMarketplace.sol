@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./fhevm/EncryptedTypes.sol";
+import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @title ModelMarketplace - Chunked GWAS model publication for public and private weights.
-contract ModelMarketplace {
+contract ModelMarketplace is ZamaEthereumConfig {
     struct ModelHeader {
         address owner;
         bool isPrivate;
@@ -120,7 +121,8 @@ contract ModelMarketplace {
 
     function appendEncryptedModelChunk(
         uint256 modelId,
-        euint64[] calldata encryptedWeights
+        externalEuint64[] calldata encryptedWeights,
+        bytes calldata inputProof
     ) external {
         ModelHeader storage model = _requireOwnedDraftModel(modelId);
         require(model.isPrivate, "Model is public");
@@ -136,7 +138,9 @@ contract ModelMarketplace {
         euint64[] storage chunk = encryptedWeightChunks[modelId][chunkIndex];
         require(chunk.length == 0, "Chunk already uploaded");
         for (uint256 i = 0; i < encryptedWeights.length; i++) {
-            chunk.push(encryptedWeights[i]);
+            euint64 w = FHE.fromExternal(encryptedWeights[i], inputProof);
+            FHE.allowThis(w);
+            chunk.push(w);
         }
 
         model.uploadedWeightCount += encryptedWeights.length;

@@ -9,26 +9,24 @@ Confidential on-chain Polygenic Risk Scoring via fhEVM — encrypted dot-product
 ## Build & Test
 
 ```sh
-npm run build                    # hardhat compile (Solidity 0.8.24)
-npm run test                     # hardhat test in mock-FHE mode (no external node)
+npm run build                    # hardhat compile (Solidity 0.8.24, evmVersion cancun)
+npm run test                     # hardhat test via @fhevm/hardhat-plugin mock coprocessor
 npm run profile:gas              # gas vs SNP-count curve
 npm run advisor:quantization     # float-to-uint64 scaling advisor
 npm run advisor:scale-ceilings   # quick uint64 overflow screen
 ```
 
-> Mock FHE (`contracts/fhevm/FHE.sol`) performs plaintext arithmetic locally. Real ciphertext tests require Sepolia + `@fhevm/hardhat-plugin`. There is no supported local Docker node.
+> Contracts compile against `@fhevm/solidity` (the real Zama library). Locally, `@fhevm/hardhat-plugin` deploys a mock coprocessor that validates the full fhEVM protocol (handles, ACL, proofs) while performing plaintext arithmetic behind the scenes. The same contracts deploy to Sepolia for real FHE. Old transparent mock files are archived in `mock-archive/`.
 
 ## Contract Map
 
 | Contract | File | Role |
 |---|---|---|
 | GenomicRegistry | [contracts/GenomicRegistry.sol](contracts/GenomicRegistry.sol) | URI registry + per-address ACL |
-| ModelMarketplace | [contracts/ModelMarketplace.sol](contracts/ModelMarketplace.sol) | Public / private GWAS weight chunks |
-| PRSComputeEngine | [contracts/PRSComputeEngine.sol](contracts/PRSComputeEngine.sol) | Chunked dot-product state machine |
-| ResultOracle | [contracts/ResultOracle.sol](contracts/ResultOracle.sol) | DP noise + categorical classification |
-| BioETHPRS | [contracts/HEPRS.sol](contracts/HEPRS.sol) | Standalone variant (no marketplace) |
-| TFHE wrapper | [contracts/TFHE.sol](contracts/TFHE.sol) | Thin FHE op wrappers |
-| FHE mock | [contracts/fhevm/FHE.sol](contracts/fhevm/FHE.sol) | Plaintext mock for local tests |
+| ModelMarketplace | [contracts/ModelMarketplace.sol](contracts/ModelMarketplace.sol) | Public / private GWAS weight chunks (`ZamaEthereumConfig`) |
+| PRSComputeEngine | [contracts/PRSComputeEngine.sol](contracts/PRSComputeEngine.sol) | Chunked dot-product state machine (`ZamaEthereumConfig`) |
+| ResultOracle | [contracts/ResultOracle.sol](contracts/ResultOracle.sol) | DP noise + categorical classification (`ZamaEthereumConfig`) |
+| BioETHPRS | [contracts/HEPRS.sol](contracts/HEPRS.sol) | Standalone variant (`ZamaEthereumConfig`) |
 
 ## Security Invariants — Never Violate
 
@@ -42,9 +40,11 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 ## Key Conventions
 
 - **Encrypted types**: `euint64` for SNP values and weights, `euint8` for categorical outputs, `ebool` for comparisons.
-- **Multiplication cost**: Use `TFHE.mulPlain(snp, weight)` (C×P, ~60% cheaper) when model weights are public. Use `TFHE.mul(weight, snp)` (C×C) only for private-weight models.
+- **Multiplication**: Public weights use `FHE.mul(snp, FHE.asEuint64(weight))` (trivially encrypted — coprocessor optimizes C×P internally). Private weights use `FHE.mul(weight, snp)` (C×C).
 - **Chunked pattern**: `createPRSJob → appendSnpChunk (×N) → finalizeSnpUpload → computeChunk (×N) → finalize`. Each step is a separate transaction.
-- **Import path**: Contracts use `./TFHE.sol` wrapper → forwards to `./fhevm/FHE.sol` in mock mode. Do not import `FHE.sol` directly except in `ResultOracle`.
+- **Import path**: Contracts import directly from `@fhevm/solidity/lib/FHE.sol` and inherit `ZamaEthereumConfig` from `@fhevm/solidity/config/ZamaConfig.sol`.
+- **Encrypted inputs**: Functions receiving user-encrypted data accept `externalEuint64` + `bytes inputProof`, then call `FHE.fromExternal()` + `FHE.allowThis()` before storing.
+- **ACL discipline**: Call `FHE.allowThis(handle)` on every new handle stored in contract state. Call `FHE.allow(handle, user)` before returning handles to users.
 
 ## Slash Commands
 

@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./TFHE.sol";
+import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import "./ModelMarketplace.sol";
 
 /// @title PRSComputeEngine - Chunked PRS dot-product against chunk-published models.
-contract PRSComputeEngine {
-    using TFHE for euint64;
-
+contract PRSComputeEngine is ZamaEthereumConfig {
     struct Job {
         uint256 modelId;
         uint256 weightCount;
@@ -76,6 +75,9 @@ contract PRSComputeEngine {
             );
         }
 
+        euint64 zero = FHE.asEuint64(0);
+        FHE.allowThis(zero);
+
         Job memory job = Job({
             modelId: modelId,
             weightCount: weightCount,
@@ -84,8 +86,8 @@ contract PRSComputeEngine {
             uploadedSnpCount: 0,
             nextChunkIndex: 0,
             processedWeights: 0,
-            partialSum: TFHE.asEuint64(0),
-            genoSum: TFHE.asEuint64(0),
+            partialSum: zero,
+            genoSum: zero,
             requester: msg.sender,
             isPrivate: isPrivate,
             snpsFinalized: false,
@@ -102,7 +104,8 @@ contract PRSComputeEngine {
 
     function appendSnpChunk(
         uint256 jobId,
-        euint64[] calldata encryptedSnps
+        externalEuint64[] calldata encryptedSnps,
+        bytes calldata inputProof
     ) external {
         Job storage job = _requireOwnedPendingUploadJob(jobId);
 
@@ -117,7 +120,9 @@ contract PRSComputeEngine {
         euint64[] storage chunk = snpChunks[jobId][chunkIndex];
         require(chunk.length == 0, "SNP chunk already uploaded");
         for (uint256 i = 0; i < encryptedSnps.length; i++) {
-            chunk.push(encryptedSnps[i]);
+            euint64 snp = FHE.fromExternal(encryptedSnps[i], inputProof);
+            FHE.allowThis(snp);
+            chunk.push(snp);
         }
 
         job.uploadedSnpCount += encryptedSnps.length;
@@ -159,8 +164,8 @@ contract PRSComputeEngine {
                 "Invalid model chunk"
             );
             for (uint256 i = 0; i < encryptedWeights.length; i++) {
-                acc = acc.add(encryptedWeights[i].mul(snps[i]));
-                genoAcc = genoAcc.add(snps[i]);
+                acc = FHE.add(acc, FHE.mul(encryptedWeights[i], snps[i]));
+                genoAcc = FHE.add(genoAcc, snps[i]);
             }
         } else {
             uint64[] memory publicWeights = marketplace.getPublicWeightChunk(
@@ -172,10 +177,13 @@ contract PRSComputeEngine {
                 "Invalid model chunk"
             );
             for (uint256 i = 0; i < publicWeights.length; i++) {
-                acc = acc.add(snps[i].mulPlain(publicWeights[i]));
-                genoAcc = genoAcc.add(snps[i]);
+                acc = FHE.add(acc, FHE.mul(snps[i], FHE.asEuint64(publicWeights[i])));
+                genoAcc = FHE.add(genoAcc, snps[i]);
             }
         }
+
+        FHE.allowThis(acc);
+        FHE.allowThis(genoAcc);
 
         uint256 processedWeights = job.processedWeights + expectedLength;
         job.partialSum = acc;
@@ -198,7 +206,7 @@ contract PRSComputeEngine {
         require(jobId < jobs.length, "Invalid job");
         Job storage job = jobs[jobId];
         require(job.requester == msg.sender, "Not requester");
-        job.partialSum = TFHE.allow(job.partialSum, msg.sender);
+        job.partialSum = FHE.allow(job.partialSum, msg.sender);
         return job.partialSum;
     }
 
@@ -212,10 +220,10 @@ contract PRSComputeEngine {
         //   encoded_score = (weighted_sum + score_offset) - (weight_zero_point * geno_sum)
         // Rearranged so the subtraction never underflows: weighted_sum + score_offset
         // is guaranteed >= weight_zero_point * geno_sum when score_offset = -raw_min.
-        euint64 withOffset = TFHE.addPlain(job.partialSum, job.scoreOffset);
-        euint64 correction = TFHE.mulPlain(job.genoSum, job.weightZeroPoint);
-        euint64 encodedScore = TFHE.sub(withOffset, correction);
-        encodedScore = TFHE.allow(encodedScore, msg.sender);
+        euint64 withOffset = FHE.add(job.partialSum, FHE.asEuint64(job.scoreOffset));
+        euint64 correction = FHE.mul(job.genoSum, FHE.asEuint64(job.weightZeroPoint));
+        euint64 encodedScore = FHE.sub(withOffset, correction);
+        encodedScore = FHE.allow(encodedScore, msg.sender);
         return encodedScore;
     }
 

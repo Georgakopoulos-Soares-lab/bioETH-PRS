@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./TFHE.sol";
+import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @title BioETHPRS - bioETH PRS Homomorphic Encryption Polygenic Risk Scoring (Zama FHEVM)
 /// @notice Prototype contract (our bioETH PRS implementation) with chunked PRS computation.
-contract BioETHPRS {
-    using TFHE for euint64;
-
+contract BioETHPRS is ZamaEthereumConfig {
     struct Model {
         euint64[] weights;
         address owner;
@@ -44,16 +43,18 @@ contract BioETHPRS {
     );
 
     function uploadModel(
-        euint64[] calldata encryptedWeights,
+        externalEuint64[] calldata encryptedWeights,
+        bytes calldata inputProof,
         bool isPrivate
     ) external returns (uint256) {
-        models.push(
-            Model({
-                weights: encryptedWeights,
-                owner: msg.sender,
-                isPrivate: isPrivate
-            })
-        );
+        Model storage model = models.push();
+        model.owner = msg.sender;
+        model.isPrivate = isPrivate;
+        for (uint256 i = 0; i < encryptedWeights.length; i++) {
+            euint64 w = FHE.fromExternal(encryptedWeights[i], inputProof);
+            FHE.allowThis(w);
+            model.weights.push(w);
+        }
         uint256 modelId = models.length - 1;
         emit ModelUploaded(modelId, msg.sender, isPrivate);
         return modelId;
@@ -70,23 +71,29 @@ contract BioETHPRS {
     /// @notice Initialize a chunked PRS computation job.
     function startPRS(
         uint256 modelId,
-        euint64[] calldata encryptedSnps,
+        externalEuint64[] calldata encryptedSnps,
+        bytes calldata inputProof,
         uint256 chunkSize
     ) external returns (uint256) {
         require(modelId < models.length, "Invalid model");
         require(chunkSize > 0, "Chunk size must be > 0");
 
-        Job memory job = Job({
-            modelId: modelId,
-            snps: encryptedSnps,
-            nextIndex: 0,
-            chunkSize: chunkSize,
-            partialSum: TFHE.asEuint64(0),
-            requester: msg.sender,
-            complete: false
-        });
+        euint64 zero = FHE.asEuint64(0);
+        FHE.allowThis(zero);
 
-        jobs.push(job);
+        Job storage job = jobs.push();
+        job.modelId = modelId;
+        job.nextIndex = 0;
+        job.chunkSize = chunkSize;
+        job.partialSum = zero;
+        job.requester = msg.sender;
+        job.complete = false;
+        for (uint256 i = 0; i < encryptedSnps.length; i++) {
+            euint64 snp = FHE.fromExternal(encryptedSnps[i], inputProof);
+            FHE.allowThis(snp);
+            job.snps.push(snp);
+        }
+
         uint256 jobId = jobs.length - 1;
         emit JobCreated(jobId, modelId, msg.sender);
         return jobId;
@@ -109,10 +116,11 @@ contract BioETHPRS {
 
         euint64 acc = job.partialSum;
         for (uint256 i = start; i < end; i++) {
-            euint64 term = model.weights[i].mul(job.snps[i]);
-            acc = acc.add(term);
+            euint64 term = FHE.mul(model.weights[i], job.snps[i]);
+            acc = FHE.add(acc, term);
         }
 
+        FHE.allowThis(acc);
         job.partialSum = acc;
         job.nextIndex = end;
         if (end == job.snps.length) {
@@ -126,7 +134,7 @@ contract BioETHPRS {
     function readPartial(uint256 jobId) external returns (euint64) {
         require(jobId < jobs.length, "Invalid job");
         Job storage job = jobs[jobId];
-        job.partialSum = TFHE.allow(job.partialSum, msg.sender);
+        FHE.allow(job.partialSum, msg.sender);
         return job.partialSum;
     }
 
@@ -136,7 +144,7 @@ contract BioETHPRS {
         Job storage job = jobs[jobId];
         require(job.complete, "Job not complete");
         require(job.requester == msg.sender, "Not requester");
-        job.partialSum = TFHE.allow(job.partialSum, msg.sender);
+        FHE.allow(job.partialSum, msg.sender);
         return job.partialSum;
     }
 }

@@ -1,4 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config";
+import "@fhevm/hardhat-plugin";
 import "@nomicfoundation/hardhat-toolbox";
 
 // Disable Hardhat telemetry prompt
@@ -8,6 +9,7 @@ const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.24",
     settings: {
+      evmVersion: "cancun",
       optimizer: { enabled: true, runs: 200 }
     }
   },
