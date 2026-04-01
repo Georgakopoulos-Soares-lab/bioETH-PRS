@@ -24,7 +24,7 @@ For architecture and design context, see:
 Local development uses:
 
 - Hardhat
-- the plaintext mock in `contracts/fhevm/FHE.sol`
+- `@fhevm/hardhat-plugin` mock coprocessor (validates handles, ACL, and proofs; runs plaintext arithmetic)
 - no Docker
 - no local fhEVM node
 
@@ -249,34 +249,34 @@ npm install
 npm run build
 ```
 
-2. Run the full local suite:
+1. Run the full local suite:
 
 ```bash
 npm test
 ```
 
-3. If working on the marketplace or PRS job lifecycle, start with:
+1. If working on the marketplace or PRS job lifecycle, start with:
 
 ```bash
 npx hardhat test test/model_marketplace_chunked_test.ts
 npx hardhat test test/prs_compute_engine_chunked_snp_test.ts
 ```
 
-4. If working on end-to-end behavior, run:
+1. If working on end-to-end behavior, run:
 
 ```bash
 npx hardhat test test/registry_marketplace_oracle_test.ts
 npx hardhat test test/heprs_fixture_test.ts
 ```
 
-5. If working on quantization choices, run:
+1. If working on quantization choices, run:
 
 ```bash
 npm run advisor:scale-ceilings
 npm run advisor:quantization -- <weights.csv> [genotypes.csv]
 ```
 
-6. If you need timing / feasibility evidence, run:
+1. If you need timing / feasibility evidence, run:
 
 ```bash
 npm run profile:gas

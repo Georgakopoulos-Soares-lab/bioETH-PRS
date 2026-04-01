@@ -51,8 +51,8 @@ At this point:
 
 `ModelMarketplace` stores either:
 
-- Public plaintext weights (`uint64[]`), using cheaper `mulPlain`
-- Encrypted weights (`euint64[]`), using full encrypted `mul`
+- Public plaintext weights (`uint64[]`), using trivially-encrypted multiplication: `FHE.mul(snp, FHE.asEuint64(weight))`
+- Encrypted weights (`euint64[]`), using full encrypted `FHE.mul(weight, snp)` (C×C)
 
 In this scenario, the model is public:
 
@@ -92,10 +92,12 @@ The current lifecycle initializes `nextChunkIndex = 0`, `processedWeights = 0`, 
 Alice appends SNP chunks that align to the model's chunk geometry:
 
 ```text
-appendSnpChunk(jobId, [Enc(0), Enc(1)])
-appendSnpChunk(jobId, [Enc(2)])
+appendSnpChunk(jobId, [Enc(0), Enc(1)], inputProof)
+appendSnpChunk(jobId, [Enc(2)], inputProof)
 finalizeSnpUpload(jobId)
 ```
+
+(Each `appendSnpChunk` call also carries the ZK `inputProof` that the fhEVM protocol uses to verify the encrypted inputs were produced by the caller.)
 
 What each component knows now:
 
@@ -129,13 +131,13 @@ For index `0`:
 
 - SNP handle corresponds to encrypted `0`
 - Weight is plaintext `4`
-- Runtime performs `mulPlain`
+- Contract calls `FHE.mul(snp, FHE.asEuint64(4))` — coprocessor optimizes as C×P
 
 For index `1`:
 
 - SNP handle corresponds to encrypted `1`
 - Weight is plaintext `3`
-- Runtime performs `mulPlain`
+- Contract calls `FHE.mul(snp, FHE.asEuint64(3))` — coprocessor optimizes as C×P
 
 The products are then added into `partialSum`.
 

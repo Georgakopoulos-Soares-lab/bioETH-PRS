@@ -133,12 +133,12 @@ This selects which payload type and arithmetic path the model uses.
 If `false`:
 
 * the payload chunks are `uint64[]`
-* compute uses plaintext-times-ciphertext `mulPlain`
+* compute uses `FHE.mul(snp, FHE.asEuint64(weight))` (trivially-encrypted C×P)
 
 If `true`:
 
 * the payload chunks are `euint64[]`
-* compute uses encrypted-times-encrypted `mul`
+* compute uses `FHE.mul(encryptedWeight, snp)` (C×C)
 
 ### `finalized`
 
@@ -618,6 +618,7 @@ This design gives us a strong experimental story:
 * `ModelMarketplace v1` addresses that gap while preserving correctness and provenance
 
 That is a meaningful result for this repo and a much better base for later benchmarking and writing.
+
 * easier to audit
 * easier to benchmark cleanly
 
@@ -638,8 +639,8 @@ Both public and private models use:
 
 The only difference is the payload type and the arithmetic path:
 
-* public chunk: `uint64[]`, used with `mulPlain`
-* private chunk: `euint64[]`, used with encrypted `mul`
+* public chunk: `uint64[]`, used with `FHE.mul(snp, FHE.asEuint64(weight))` (C×P trivial)
+* private chunk: `euint64[]`, used with `FHE.mul(encryptedWeight, snp)` (C×C)
 
 This symmetry is useful because it keeps the mental model shared across both modes while still respecting the cost and privacy differences between them.
 

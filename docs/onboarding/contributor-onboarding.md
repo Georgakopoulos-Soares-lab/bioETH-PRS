@@ -31,7 +31,7 @@
    - 6.2 ModelMarketplace
    - 6.3 PRSComputeEngine (and HEPRS standalone)
    - 6.4 ResultOracle
-   - 6.5 TFHE.sol and the FHE mock
+   - 6.5 `@fhevm/solidity` and the mock coprocessor
 7. [The Math: Quantization and Fixed-Point Arithmetic](#7-the-math-quantization-and-fixed-point-arithmetic)
 8. [fhEVM — How Encrypted EVM Execution Works](#8-fhevm--how-encrypted-evm-execution-works)
    - 8.1 The EVM and Gas Limits
@@ -253,8 +253,8 @@ Research     ModelMarketplace      Lists GWAS weight vectors (public or private)
 Logic        PRSComputeEngine      Chunked FHE dot product over N SNPs
 Logic        BioETHPRS (in `contracts/HEPRS.sol`)    Standalone variant (embeds models, no Marketplace)
 Output       ResultOracle          DP noise injection + Low/Med/High classification
-Library      TFHE.sol              Thin wrapper around Zama FHE library
-Mock         contracts/fhevm/      Plaintext stub for local Hardhat tests
+Library      @fhevm/solidity       Zama FHE library (imported directly by all contracts)
+Plugin       @fhevm/hardhat-plugin Mock coprocessor for local Hardhat development
 ```
 
 The layer separation matters because:
@@ -287,7 +287,7 @@ The layer separation matters because:
 
  5. Client calls PRSComputeEngine                 createPRSJob(modelId)
     → jobId                                       → creates PRS job shell
-    then appends SNP chunks                       appendSnpChunk(jobId, handlesChunk)
+    then appends SNP chunks                       appendSnpChunk(jobId, handles, inputProof)
     then marks upload ready                       finalizeSnpUpload(jobId)
 
  6. Any party calls computeChunk                  PRSComputeEngine.computeChunk(jobId)
@@ -368,17 +368,17 @@ Two listing modes:
 
 | Mode | Storage type | Multiplication type | Gas cost | Privacy |
 |------|-------------|---------------------|----------|---------|
-| Public | `uint64[]` | `mulPlain` (C×P) | Low | Weights visible to all |
-| Private | `euint64[]` | `mul` (C×C) | High | Weights remain encrypted |
+| Public | `uint64[]` | `FHE.mul(snp, FHE.asEuint64(weight))` (C×P trivial) | Low | Weights visible to all |
+| Private | `euint64[]` | `FHE.mul(weight, snp)` (C×C) | High | Weights remain encrypted |
 
-**Key insight — mulPlain vs. mul:**
+**Key insight — C×P vs. C×C multiplication:**
 
-In TFHE, there are two multiplication operations:
+In TFHE, there are two effective multiplication paths:
 
-- **Ciphertext × Ciphertext (`mul`):** Both operands are encrypted.  Requires a full key-switching operation.  Expensive.
-- **Ciphertext × Plaintext (`mulPlain`):** One operand is a known plaintext number.  Much cheaper because key-switching is not needed.
+- **Ciphertext × Ciphertext (C×C):** Both operands are encrypted.  Requires a full key-switching operation.  Expensive.
+- **Ciphertext × Trivial (C×P):** The plaintext weight is trivially encrypted with `FHE.asEuint64(weight)`.  The coprocessor recognises trivial ciphertexts and skips key-switching internally.  Much cheaper.
 
-If a researcher is fine with their weights being public (open science model), they list them as `uint64[]`.  The `PRSComputeEngine` then uses `mulPlain(snp, weight)` for each term — roughly 60% cheaper per operation.
+If a researcher is fine with their weights being public (open science model), they list them as `uint64[]`.  The `PRSComputeEngine` then uses `FHE.mul(snp, FHE.asEuint64(weight))` for each term — the coprocessor optimizes this as a cheaper C×P operation internally, roughly 60% cheaper per operation than full C×C.
 
 **What it does NOT do (yet):**
 
@@ -474,29 +474,31 @@ Note: `noisyScore` in the event is an encrypted handle, not the plaintext value.
 
 ---
 
-### 6.5 TFHE.sol and the FHE mock
+### 6.5 `@fhevm/solidity` and the mock coprocessor
 
-**File:** `contracts/TFHE.sol`
+**Package:** `@fhevm/solidity`
 
-A pure Solidity **library** that re-exports functions from Zama's `FHE.sol`.  Its role is to give contracts a stable internal import path (`./TFHE.sol`) while the repo stays on its local mock-based Hardhat setup.
+All contracts import directly from `@fhevm/solidity/lib/FHE.sol` and inherit `ZamaEthereumConfig` from `@fhevm/solidity/config/ZamaConfig.sol`. The `ZamaEthereumConfig` base contract inspects `block.chainid` at construction time and calls `FHE.setCoprocessor(...)` with the correct ACL, coprocessor, and KMS verifier addresses for Ethereum mainnet (chainid 1), Sepolia (11155111), or local Hardhat (31337).
 
-**File:** `contracts/fhevm/FHE.sol` (the **mock**)
+**Plugin:** `@fhevm/hardhat-plugin`
 
-This is the secret that makes local `npx hardhat compile` and `npx hardhat test` work without a fhEVM Docker node.  It implements the same function signatures as the real Zama `FHE.sol` but performs plaintext arithmetic:
+This Hardhat plugin is what makes local `npx hardhat compile` and `npx hardhat test` work without a fhEVM Docker node. It deploys a mock coprocessor, ACL, and KMS verifier into the local Hardhat network at the same addresses that Sepolia uses. The mock validates handle creation, ACL rules, and input proofs — but executes plaintext arithmetic behind the scenes:
 
 ```solidity
-// Real FHE.sol: calls an EVM precompile that triggers homomorphic addition
-function add(euint64 a, euint64 b) internal returns (euint64) { ... }
+// Real fhEVM: triggers encrypted addition in the coprocessor
+FHE.add(a, b)  → coprocessor computes TFHE addition, returns new ciphertext handle
 
-// Mock FHE.sol: simply adds the unwrapped uint64 values
-function add(euint64 a, euint64 b) internal pure returns (euint64) {
-    return euint64.wrap(euint64.unwrap(a) + euint64.unwrap(b));
-}
+// Mock coprocessor: same call, same handle protocol, but plain arithmetic under the hood
+FHE.add(a, b)  → evaluates a + b in plaintext, wraps result in a valid handle
 ```
 
-Hardhat always compiles using the mock in this project. Tests run in plaintext directly with `npm test` — no environment variable or Docker node required. This enables rapid iteration.
+The key difference from the old transparent mock: ACL checks and `inputProof` validation are enforced even in mock mode. A function that forgets `FHE.allowThis(handle)` before storing a handle will fail in tests, just as it would on Sepolia.
 
-> **Caution:** A test passing on the mock is **not** sufficient evidence of correctness on a real fhEVM deployment. The mock ignores ciphertext bounds, ACL enforcement, and real gas costs. Validate on Sepolia testnet before claiming a feature is production-ready. (Zama deprecated the local Docker node — real FHE is now Sepolia-only.)
+**Archive:** `mock-archive/`
+
+The old transparent plaintext mock files (`FHE.mock.sol`, `TFHE.mock.sol`, `EncryptedTypes.mock.sol`) are stored here for historical reference. They bypassed all handle and ACL logic. They are no longer on any import path.
+
+> **Caution:** A test passing with the mock coprocessor is **not** sufficient evidence of correctness on a real fhEVM deployment. Real fhEVM introduces true ciphertext expansion and real gas costs. Validate on Sepolia testnet before claiming a feature is production-ready. (Zama deprecated the local Docker node — real FHE is now Sepolia-only.)
 
 ---
 
@@ -756,7 +758,7 @@ The roadmap targets cheaper intermediate ops using `euint16` before widening.  N
 | **makePubliclyDecryptable** | Zama FHE function that marks a ciphertext as decryptable by any gateway caller. |
 | **Minor allele** | The less-common DNA variant at a given SNP position. |
 | **Model Extraction Attack** | An attack where an adversary probes a model with crafted inputs to reverse-engineer its parameters. |
-| **mulPlain** | Ciphertext × Plaintext multiplication — cheaper than Ciphertext × Ciphertext because no key-switching is needed. |
+| **C×P multiplication** | Ciphertext × trivially-encrypted plaintext — cheaper than C×C because the coprocessor skips key-switching. Expressed in code as `FHE.mul(snp, FHE.asEuint64(weight))`. Previously called `mulPlain` in old API versions. |
 | **Polygenic** | Influenced by many genes (as opposed to monogenic, influenced by one). |
 | **PRS (Polygenic Risk Score)** | A single score summarising genetic predisposition, computed as the dot product of GWAS weights and personal dosage values. |
 | **Quantization** | Converting floating-point numbers to scaled integers by multiplying by a scaling factor $S$. |

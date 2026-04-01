@@ -30,42 +30,36 @@ contracts.
 
 ## Phase 2 — FHE plumbing (the abstraction layer)
 
-These three files are the foundation everything else builds on. Read them in order.
+The FHE layer is provided by two npm packages. Read the relevant source files from within `node_modules` if you want to understand the internals, but for everyday development the contracts, comments, and Zama documentation are sufficient.
 
-### 4. `contracts/fhevm/EncryptedTypes.sol` (7 lines)
+### 4. `@fhevm/solidity` — the FHE library
 
-Defines the three custom types used everywhere:
+All contracts import from `@fhevm/solidity/lib/FHE.sol`. This is the real Zama library that works on both local Hardhat (mock mode) and Sepolia (real FHE).
 
-- `ebool` — encrypted boolean
-- `euint8` — encrypted 8-bit integer (used for risk category)
-- `euint64` — encrypted 64-bit integer (used for SNPs, weights, scores)
+Key types and functions you'll see throughout the contracts:
 
-In mock mode these are just thin wrappers over their plain counterparts.
-**Key insight:** `euint64.wrap(x)` / `euint64.unwrap(x)` — these are how Solidity
-converts between the encrypted type and the raw value in mock mode.
+- `euint64` — encrypted 64-bit integer (SNPs, weights, scores)
+- `euint8` — encrypted 8-bit integer (risk category output)
+- `ebool` — encrypted boolean (comparison results)
+- `externalEuint64` — wire type for ciphertexts arriving *from* a user
+- `FHE.fromExternal(ext, proof)` — validates input proof, returns internal handle
+- `FHE.allowThis(handle)` — grants the contract itself ACL permission on a new handle
+- `FHE.allow(handle, addr)` — grants a specific address decrypt rights
+- `FHE.makePubliclyDecryptable(handle)` — marks a handle as gateway-decryptable by anyone
+- `FHE.add(a, b)`, `FHE.mul(a, b)`, `FHE.sub(a, b)`, `FHE.lt(a, b)`, `FHE.select(cond, a, b)`
+- `FHE.asEuint64(plainValue)` — trivially-encrypts a plaintext for use as an operand
 
-### 5. `contracts/fhevm/FHE.sol` (~57 lines)
+**Key insight:** There is no `mulPlain`. Use `FHE.mul(ciphertext, FHE.asEuint64(plainValue))` — the coprocessor internally optimizes trivial-ciphertext operands as cheap C×P multiplications.
 
-The local plaintext mock of Zama's FHE library. Every operation that would be
-cryptographically expensive on a real fhEVM node is just normal arithmetic here:
+### 5. `@fhevm/hardhat-plugin` — the mock coprocessor
 
-- `FHE.add(a, b)` → `a + b`
-- `FHE.mul(a, b)` → `a * b`
-- `FHE.lt(a, b)` → `a < b`
-- `FHE.select(cond, a, b)` → `cond ? a : b`
-- `FHE.allow(handle, addr)` → no-op (on real fhEVM this grants decrypt rights)
-- `FHE.makePubliclyDecryptable(x)` → no-op (on real fhEVM this marks the handle)
+This plugin is loaded in `hardhat.config.ts` and deploys mock ACL, coprocessor, and KMS contracts into the local Hardhat network at the same addresses as Sepolia. The mock performs plaintext arithmetic but enforces the full fhEVM protocol rules: handles, ACL, and input proofs are all validated.
 
-**Key insight:** This mock keeps local Hardhat development fast, but moving to a
-real fhEVM network is a broader migration to Zama's package-based workflow, not
-just a config-file swap.
+**Key insight:** Unlike the old transparent mock (`mock-archive/FHE.mock.sol`), forgetting `FHE.allowThis(handle)` or submitting a handle without a valid proof will fail even in local tests.
 
-### 6. `contracts/TFHE.sol` (~41 lines)
+### 6. `mock-archive/` — historical reference only
 
-A thin pass-through wrapper that re-exports `FHE.sol` under the `TFHE` name.
-Contracts import `TFHE` (not `FHE` directly) so they stay compatible with Zama's
-real API naming. You don't need to read this carefully — just know it exists
-and why.
+The old transparent plaintext mock files (`FHE.mock.sol`, `TFHE.mock.sol`, `EncryptedTypes.mock.sol`) are stored here. They performed bare `uint64` arithmetic with no handle or ACL logic. They are no longer on any import path. Read them only if you want to understand what the codebase looked like before the `@fhevm/solidity` migration.
 
 ---
 
@@ -160,8 +154,8 @@ It no longer stores the whole SNP vector in the job header. Instead it uses:
 
 **Public vs private branch in `computeChunk`:**
 
-- Public model → `snps[i].mulPlain(publicWeights[i])`
-- Private model → `encryptedWeights[i].mul(snps[i])`
+- Public model → `FHE.mul(snps[i], FHE.asEuint64(publicWeights[i]))` (C×P trivial)
+- Private model → `FHE.mul(encryptedWeights[i], snps[i])` (C×C)
 
 **Key insight:** The engine is now symmetric with the marketplace lifecycle:
 
@@ -221,19 +215,19 @@ The integration test. Three independent `describe` blocks — read them in order
 
 1. **GenomicRegistry ACL** — owner reads, stranger denied, grant/revoke cycle
 2. **ModelMarketplace → PRSComputeEngine** — full chunked dot-product with a
-   public model (uses `mulPlain` path)
+   public model (trivially-encrypted C×P path)
 3. **ResultOracle classification** — four cases: below low, between thresholds,
    above high, noise shifts bucket
 
 The second block is the most important: it shows the full pipeline from model
 listing through chunked computation to reading the partial sum.
 
-### 14. `test/utils/fhevm.ts`
+### 14. `test/utils/fhevm-helpers.ts`
 
-Only needed for real fhEVM (Sepolia). Provides `encrypt64Array` which calls
-`fhevmjs` to produce real ciphertext handles + ZK proofs. In mock mode this
-file is never imported by the tests — but read it to understand what real
-encryption would look like.
+Provides `fhevmjs` helpers for generating real ciphertext handles + ZK input proofs.
+In mock mode the plugin handles proof validation automatically, but this utility is
+still used in tests to produce the `externalEuint64[]` + `inputProof` arguments that
+`appendSnpChunk`, `appendEncryptedModelChunk`, `uploadModel`, and `startPRS` expect.
 
 ---
 

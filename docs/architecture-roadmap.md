@@ -40,7 +40,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 
 * Stores Researcher GWAS weights through a **chunked publication lifecycle** rather than one-shot full-array upload.
 * **Mode A (Private Weights):** Weights stored as chunked `euint64[]` payloads ($C \times C$ multiplication). Maximum IP protection; higher gas.
-* **Mode B (Public Weights):** Weights stored as chunked `uint64[]` payloads ($C \times P$ via `mulPlain`). ~60% gas savings, "Open Science" model.
+* **Mode B (Public Weights):** Weights stored as chunked `uint64[]` payloads ($C \times P$ via trivial encryption: `FHE.mul(snp, FHE.asEuint64(weight))`). ~60% gas savings, "Open Science" model.
 * **Functions:** `createModelShell(...)`, `appendPublicModelChunk(...)`, `appendEncryptedModelChunk(...)`, `finalizeModel(modelId)`, `getModelHeader(modelId)`, chunk getters.
 * **Current limitation:** No payment / fee mechanism, no model deprecation flow yet, and public weights still live in ordinary on-chain storage in `v1` (see Edge Cases § 7-B).
 
@@ -51,8 +51,8 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
   * The calculation is broken into transactions aligned to the model's published chunk size.
   * PRS jobs use a shell + chunked SNP upload + finalize-upload lifecycle before compute begins.
   * An on-chain state machine accumulates the encrypted `partialSum` across blocks.
-* Reads only the **next required model chunk** from `ModelMarketplace` and automatically uses either `mul` (private) or `mulPlain` (public) per model type.
-* **Functions:** `createPRSJob(modelId)`, `appendSnpChunk(jobId, encryptedSnpsChunk)`, `finalizeSnpUpload(jobId)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
+* Reads only the **next required model chunk** from `ModelMarketplace` and automatically uses either `FHE.mul(weight, snp)` (private, C×C) or `FHE.mul(snp, FHE.asEuint64(weight))` (public, C×P trivial) per model type.
+* **Functions:** `createPRSJob(modelId)`, `appendSnpChunk(jobId, encryptedSnps, inputProof)`, `finalizeSnpUpload(jobId)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
 * A standalone variant `HEPRS.sol` (contains the `BioETHPRS` contract) also exists; it embeds models directly instead of referencing the marketplace.
 
 ### D. Contract 4: Result Oracle — `ResultOracle.sol` (Output Layer)
@@ -64,10 +64,9 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 
 ### E. Supporting Libraries
 
-* **`TFHE.sol`** (library) — thin Solidity wrappers around the Zama `FHE` library (`asEuint64`, `add`, `mul`, `mulPlain`, `allow`, `makePubliclyDecryptable`).
-* **`contracts/fhevm/FHE.sol`** — a **mock** FHE library for local Hardhat testing. It unwraps user-defined types and performs plaintext arithmetic so tests run without a live fhEVM node.
-* **`contracts/fhevm/EncryptedTypes.sol`** — defines `ebool`, `euint8`, `euint64` as Solidity user-defined value types.
-* **`@fhevm/solidity`** (npm package) — official Zama Solidity package for real fhEVM deployments. The real `FHE.sol` lives at `node_modules/@fhevm/solidity/lib/FHE.sol`.
+* **`@fhevm/solidity`** (npm package) — official Zama Solidity library. Contracts import directly from `@fhevm/solidity/lib/FHE.sol` and inherit `ZamaEthereumConfig` from `@fhevm/solidity/config/ZamaConfig.sol`. Provides `FHE.asEuint64()`, `FHE.add()`, `FHE.mul()`, `FHE.allow()`, `FHE.makePubliclyDecryptable()`, `FHE.fromExternal()`, and the `externalEuint64` wire type.
+* **`@fhevm/hardhat-plugin`** — Hardhat plugin that deploys a mock coprocessor locally (chainid 31337) at the same addresses used on Sepolia. Validates handles, ACL, and input proofs while performing plaintext arithmetic behind the scenes.
+* **`mock-archive/`** — Historical archive of the old transparent plaintext mock files (`FHE.mock.sol`, `TFHE.mock.sol`, `EncryptedTypes.mock.sol`). No longer on any import path — kept for reference only.
 
 ---
 
@@ -86,7 +85,7 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 * **Quantization Strategy:** GWAS weights (floats, e.g., 0.0045) are scaled by a factor (e.g., $10^8$) to fit into **`euint64`** integers.
 * **Bit-Depth Optimization (planned, not yet implemented):** Intermediate chunk calculations should use **`euint16`** (cheaper gas) where possible, aggregating into larger types only for the final sum. The current contracts use `euint64` exclusively.
 * **SIMD / Slot Packing (planned, not yet implemented):** Pack multiple SNPs into a single ciphertext vector to reduce the number of `fheMul` operations.
-* **`mulPlain` Optimization (implemented):** `PRSComputeEngine` uses cheaper plaintext-times-ciphertext multiplication when model weights are public.
+* **Trivial-Encryption Optimization (implemented):** `PRSComputeEngine` uses `FHE.mul(snp, FHE.asEuint64(weight))` for public model weights, which the coprocessor optimizes as a cheaper C×P operation internally (equivalent to the old `mulPlain`).
 * **Target Metrics:** Reduce cost from ~$150 (Naive FHE) to ~$45 (Optimized) per run.
 
 ---
@@ -96,25 +95,23 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 **Environment:**
 
 * **OS:** macOS (Apple Silicon).
-* **Stack:** Hardhat + Node.js (v20+) with plaintext FHE mock — no Docker or external node needed.
-* **Solidity:** `0.8.24`, optimizer at 200 runs.
+* **Stack:** Hardhat + Node.js (v20+) via `@fhevm/hardhat-plugin` mock coprocessor — no Docker or external node needed.
+* **Solidity:** `0.8.24`, `evmVersion: cancun`, optimizer at 200 runs.
 * **Real FHE:** Sepolia testnet only (Zama deprecated the local Docker node approach).
 
 **Codebase:**
 
 | File | Purpose |
 |------|---------|
-| `contracts/HEPRS.sol` (contains `BioETHPRS`) | Standalone chunked dot-product contract (`uploadModel`, `startPRS`, `computeChunk`, `finalize`). |
+| `contracts/HEPRS.sol` (contains `BioETHPRS`) | Standalone chunked dot-product contract (`uploadModel`, `startPRS`, `computeChunk`, `finalize`). Inherits `ZamaEthereumConfig`. |
 | `contracts/GenomicRegistry.sol` | URI-based SNP sample registry with per-address ACL. |
-| `contracts/ModelMarketplace.sol` | Public and private GWAS model listing. |
-| `contracts/PRSComputeEngine.sol` | Marketplace-aware chunked PRS engine. |
-| `contracts/ResultOracle.sol` | DP noise injection + categorical classification via Zama `FHE` library. |
-| `contracts/TFHE.sol` | Wrapper library forwarding to Zama `FHE`. |
-| `contracts/fhevm/FHE.sol` | Local plaintext mock of FHE for Hardhat simulations. |
-| `contracts/fhevm/EncryptedTypes.sol` | UDVTs (`ebool`, `euint8`, `euint64`). |
-| `test/bioeth_prs_test.ts` | Chunked PRS unit tests — 5 passing, runs with `npm test` (no env var needed). |
+| `contracts/ModelMarketplace.sol` | Public and private GWAS model listing. Inherits `ZamaEthereumConfig`. |
+| `contracts/PRSComputeEngine.sol` | Marketplace-aware chunked PRS engine. Inherits `ZamaEthereumConfig`. |
+| `contracts/ResultOracle.sol` | DP noise injection + categorical classification. Inherits `ZamaEthereumConfig`. |
+| `mock-archive/` | Archived transparent plaintext mock files (no longer on any import path). |
+| `test/bioeth_prs_test.ts` | Chunked PRS unit tests for `BioETHPRS`. |
 | `test/registry_marketplace_oracle_test.ts` | End-to-end integration test across all four contracts. |
-| `test/utils/fhevm.ts` | `fhevmjs` helper: `getFhevmInstance()`, `encrypt64Array()`. |
+| `test/utils/fhevm-helpers.ts` | `fhevmjs` helpers for encryption + input proof generation. |
 | `scripts/gas_profile.ts` | Deploys marketplace + engine, runs multi-SNP gas profiling. |
 | `scripts/heprs_fixture_profile.ts` | Profiles HEPRS-backed mock runs with phase timing and per-chunk timing. |
 
@@ -187,4 +184,4 @@ The `computeChunk` function mutates storage (`nextChunkIndex`, `processedWeights
 
 ### 7-I. Mock vs. Real FHE Divergence
 
-The local `contracts/fhevm/FHE.sol` mock performs plaintext arithmetic. Tests that pass on the mock may still fail on a real fhEVM deployment due to: differing gas costs, ciphertext expansion, ACL requirements, or gateway decryption flow.  **Mitigation:** Confirm results on the Sepolia testnet (real FHE) before claiming a feature is production-ready. There is no local Docker node option — Zama deprecated it.
+The `@fhevm/hardhat-plugin` mock coprocessor validates handles, ACL, and input proofs but still performs plaintext arithmetic. Tests that pass in mock mode may still fail on a real fhEVM deployment due to: differing gas costs, ciphertext expansion, or gateway decryption flow.  **Mitigation:** Confirm results on the Sepolia testnet (real FHE) before claiming a feature is production-ready. There is no local Docker node option — Zama deprecated it.

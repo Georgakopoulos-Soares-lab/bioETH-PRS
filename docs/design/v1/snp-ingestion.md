@@ -186,11 +186,11 @@ For chunk `k`, the engine:
 
 Public models use:
 
-- `mulPlain`
+- `FHE.mul(snp, FHE.asEuint64(weight))` (trivially-encrypted C×P)
 
 Private models use:
 
-- encrypted `mul`
+- `FHE.mul(encryptedWeight, snp)` (C×C)
 
 ### `finalize(jobId)`
 

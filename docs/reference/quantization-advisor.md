@@ -280,8 +280,8 @@ That would let the advisor evolve from a useful early-stage ranking tool into so
 
 In a future production version, the gas model would also likely depend explicitly on execution mode:
 
-* public weights using `mulPlain`
-* private weights using encrypted `mul`
+* public weights using `FHE.mul(snp, FHE.asEuint64(weight))` (C×P trivial path)
+* private weights using `FHE.mul(encryptedWeight, snp)` (C×C encrypted path)
 * different cost curves for each mode
 
 That is an important next step because the advisor should eventually reflect not just bit widths, but also the actual arithmetic path the contracts will take.

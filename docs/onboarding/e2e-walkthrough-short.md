@@ -131,8 +131,8 @@ The partial sum is an **encrypted accumulator**.
 Alice appends the encrypted SNP payload in the same chunk geometry as the model:
 
 ```text
-appendSnpChunk(jobId, [Enc(0), Enc(1)])
-appendSnpChunk(jobId, [Enc(2)])
+appendSnpChunk(jobId, [Enc(0), Enc(1)], inputProof)
+appendSnpChunk(jobId, [Enc(2)], inputProof)
 finalizeSnpUpload(jobId)
 ```
 
@@ -288,7 +288,7 @@ Alice receives her result without exposing:
 9. `finalize()` returns encrypted PRS score  
 10. Alice sends score to `ResultOracle`  
 11. `ResultOracle` adds noise and classifies result  
-11. Gateway decrypts final category for Alice  
+12. Gateway decrypts final category for Alice  
 
 ## Key Architectural Ideas
 

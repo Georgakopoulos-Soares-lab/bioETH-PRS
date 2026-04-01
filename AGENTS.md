@@ -35,8 +35,8 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 
 ## Key Conventions
 
-- **Mock vs Real FHE**: `contracts/fhevm/FHE.sol` is a plaintext mock for Hardhat. The current repo builds and tests against that mock locally. Real fhEVM deployment is a separate package-based migration using `@fhevm/solidity` plus `@fhevm/hardhat-plugin`.
-- **TFHE.sol wrapper**: Contracts import `./TFHE.sol` which forwards to `FHE.sol`. Use `TFHE.asEuint64()`, `.add()`, `.mul()`, `.mulPlain()`, `.allow()`, `.makePubliclyDecryptable()`.
+- **Mock vs Real FHE**: Contracts compile against `@fhevm/solidity` (the real Zama library). Locally, `@fhevm/hardhat-plugin` deploys a mock coprocessor that validates the full fhEVM protocol (handles, ACL, proofs) while performing plaintext arithmetic. The same contracts deploy to Sepolia for real FHE. Old transparent mock files are archived in `mock-archive/`.
+- **Import path**: Contracts import directly from `@fhevm/solidity/lib/FHE.sol` and inherit `ZamaEthereumConfig` from `@fhevm/solidity/config/ZamaConfig.sol`. Use `FHE.asEuint64()`, `FHE.add()`, `FHE.mul()`, `FHE.allow()`, `FHE.makePubliclyDecryptable()`. There is no `mulPlain` — trivially encrypt a plaintext first: `FHE.mul(snp, FHE.asEuint64(weight))`.
 - **Chunked computation**: FHE dot-products exceed block gas limits. Marketplace-backed PRS jobs use `createPRSJob → appendSnpChunk (×N) → finalizeSnpUpload → computeChunk (×N) → finalize` with an on-chain state machine accumulating `partialSum`.
 - **Quantization**: Float weights are scaled to `uint64` integers (e.g., `0.0045 × 10^8 = 450000`). Accumulation of N terms must stay within `2^64`.
 - **ACL**: `FHE.allow(handle, address)` grants decrypt rights. `FHE.makePubliclyDecryptable(handle)` for public outputs like risk category.

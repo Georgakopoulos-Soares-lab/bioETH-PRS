@@ -425,9 +425,9 @@ The V1 math is implemented in `ModelMarketplace` and `PRSComputeEngine`.
 `PRSComputeEngine` accumulates `genoSum` alongside `partialSum` in every `computeChunk` call. `finalize` applies the correction:
 
 ```solidity
-euint64 withOffset = TFHE.addPlain(job.partialSum, job.scoreOffset);
-euint64 correction = TFHE.mulPlain(job.genoSum, job.weightZeroPoint);
-euint64 encodedScore = TFHE.sub(withOffset, correction);
+euint64 withOffset = FHE.add(job.partialSum, FHE.asEuint64(job.scoreOffset));
+euint64 correction = FHE.mul(job.genoSum, FHE.asEuint64(job.weightZeroPoint));
+euint64 encodedScore = FHE.sub(withOffset, correction);
 ```
 
 The rearrangement `(partialSum + scoreOffset) - (weightZeroPoint * genoSum)` avoids an unsigned underflow on the intermediate `raw_score_q` when the signed dot product is negative.
@@ -443,15 +443,15 @@ Next steps toward V2 are bit-depth optimization and decimal dosage support, both
 These references informed the design direction:
 
 * PGS Catalog scoring file conventions:
-  * https://www.pgscatalog.org/downloads/
+  * <https://www.pgscatalog.org/downloads/>
 * PLINK 2.0 scoring:
-  * https://www.cog-genomics.org/plink/2.0/score
+  * <https://www.cog-genomics.org/plink/2.0/score>
 * Zama Protocol supported encrypted types:
-  * https://docs.zama.org/protocol/solidity-guides/smart-contract/types
+  * <https://docs.zama.org/protocol/solidity-guides/smart-contract/types>
 * Zama HCU cost guide:
-  * https://docs.zama.org/protocol/solidity-guides/development-guide/hcu
+  * <https://docs.zama.org/protocol/solidity-guides/development-guide/hcu>
 * Zama roadmap:
-  * https://docs.zama.org/protocol/protocol/roadmap
+  * <https://docs.zama.org/protocol/protocol/roadmap>
 * HEPRS reference paper in this repo:
   * `docs/PIIS2667237525003078.pdf`
 * Quantization advisor capability:
