@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { encryptUint64Array, debugDecryptUint64 } from "./utils/fhevm-helpers";
 
 import {
   chunkBigIntVector,
@@ -27,11 +28,12 @@ function chunkedDotProductBigInt(
   return sum;
 }
 
-describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
+describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", function () {
   this.timeout(120000);
 
   for (const fixtureSize of ONCHAIN_HEPRS_FIXTURE_SIZES) {
     it(`matches a plaintext dot product on the HEPRS ${fixtureSize}-SNP fixture using the balanced advisor recommendation`, async function () {
+      const [signer] = await ethers.getSigners();
       const { genotypes, betas } = loadHeprsFixture(fixtureSize);
       const sampleIndex = 0;
       const snps = toBigIntVector(genotypes[sampleIndex]);
@@ -40,7 +42,9 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
         fixtureSize,
         betas
       );
-      const chunkSize = 128n;
+      // fhEVM constraints: 2048-bit input limit (max 32 euint64s) and per-tx HCU limit.
+      // Each element requires mul + 2×add = ~3 FHE ops; chunk size 10 stays within limits.
+      const chunkSize = 10n;
       const firstChunkLength = Number(chunkSize);
       // V1 corrected encoded score: (weighted_sum + scoreOffset) - weightZeroPoint * genoSum
       const genoSum = snps.reduce((a, b) => a + b, 0n);
@@ -84,34 +88,43 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
 
       const Engine = await ethers.getContractFactory("PRSComputeEngine");
       const engine = await Engine.deploy(await marketplace.getAddress());
+      const engineAddr = await engine.getAddress();
 
       const jobId = await engine.createPRSJob.staticCall(modelId);
       await engine.createPRSJob(modelId);
       for (const chunk of chunkBigIntVector(snps, firstChunkLength)) {
-        await engine.appendSnpChunk(jobId, chunk);
+        const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
+        await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
       }
       await engine.finalizeSnpUpload(jobId);
 
       await engine.computeChunk(jobId);
-      const partial = await engine.readPartial.staticCall(jobId);
-      expect(partial).to.equal(expectedFirstChunk);
+      const partialHandle = await engine.getPartialSum(jobId);
+      expect(await debugDecryptUint64(partialHandle)).to.equal(expectedFirstChunk);
 
       const totalChunks = Math.ceil(snps.length / firstChunkLength);
       for (let i = 1; i < totalChunks; i++) {
         await engine.computeChunk(jobId);
       }
 
-      const score = await engine.finalize.staticCall(jobId);
-      expect(score).to.equal(expected);
+      const tx = await engine.finalize(jobId);
+      const receipt = await tx.wait();
+      const finalEvent = receipt!.logs.find(
+        (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+      );
+      const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+      expect(await debugDecryptUint64(scoreHandle)).to.equal(expected);
     });
   }
 
   it("matches a plaintext dot product on the HEPRS 5000-SNP fixture using chunked SNP ingestion and the balanced advisor recommendation", async function () {
+    const [signer] = await ethers.getSigners();
     const { genotypes, betas } = loadHeprsFixture(5000);
     const snps = toBigIntVector(genotypes[0]);
     const recommendation = getHeprsBalancedRecommendation(5000);
     const quantized = quantizeHeprsWeightsWithRecommendation(5000, betas);
-    const chunkLength = 128;
+    // fhEVM constraints: 2048-bit input limit (max 32 euint64s) and per-tx HCU limit.
+    const chunkLength = 10;
 
     expect(snps.length).to.equal(quantized.weights.length);
     expect(snps.length).to.equal(5001);
@@ -122,7 +135,6 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
     const naiveDotProduct = dotProductBigInt(snps, quantized.weights);
     const expected = naiveDotProduct + quantized.scoreOffset - quantized.weightZeroPoint * genoSum;
     const chunked = chunkedDotProductBigInt(snps, quantized.weights, chunkLength);
-    // chunked naive dot product should still match the naive dot product (sanity check)
     expect(chunked).to.equal(naiveDotProduct);
     const expectedFirstChunk = dotProductBigInt(
       snps.slice(0, chunkLength),
@@ -158,23 +170,30 @@ describe("HEPRS fixture integration — mock FHE (Hardhat)", function () {
 
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
     const engine = await Engine.deploy(await marketplace.getAddress());
+    const engineAddr = await engine.getAddress();
     const jobId = await engine.createPRSJob.staticCall(modelId);
     await engine.createPRSJob(modelId);
     for (const chunk of chunkBigIntVector(snps, chunkLength)) {
-      await engine.appendSnpChunk(jobId, chunk);
+      const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
+      await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
     }
     await engine.finalizeSnpUpload(jobId);
 
     await engine.computeChunk(jobId);
-    const partial = await engine.readPartial.staticCall(jobId);
-    expect(partial).to.equal(expectedFirstChunk);
+    const partialHandle = await engine.getPartialSum(jobId);
+    expect(await debugDecryptUint64(partialHandle)).to.equal(expectedFirstChunk);
 
     const totalChunks = Math.ceil(snps.length / chunkLength);
     for (let i = 1; i < totalChunks; i++) {
       await engine.computeChunk(jobId);
     }
 
-    const score = await engine.finalize.staticCall(jobId);
-    expect(score).to.equal(expected);
+    const tx = await engine.finalize(jobId);
+    const receipt = await tx.wait();
+    const finalEvent = receipt!.logs.find(
+      (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+    );
+    const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+    expect(await debugDecryptUint64(scoreHandle)).to.equal(expected);
   });
 });

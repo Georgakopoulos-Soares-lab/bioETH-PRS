@@ -147,4 +147,10 @@ contract BioETHPRS is ZamaEthereumConfig {
         FHE.allow(job.partialSum, msg.sender);
         return job.partialSum;
     }
+
+    /// @notice View getter for the current partial sum handle (for debug/test decrypt).
+    function getPartialSum(uint256 jobId) external view returns (euint64) {
+        require(jobId < jobs.length, "Invalid job");
+        return jobs[jobId].partialSum;
+    }
 }

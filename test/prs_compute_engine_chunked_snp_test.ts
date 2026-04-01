@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { encryptUint64Array, debugDecryptUint64 } from "./utils/fhevm-helpers";
 
 function chunkArray<T>(values: T[], chunkSize: number): T[][] {
   const chunks: T[][] = [];
@@ -107,11 +108,13 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n);
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
     const engine = await Engine.deploy(await marketplace.getAddress());
+    const engineAddr = await engine.getAddress();
 
     const jobId = await engine.createPRSJob.staticCall(modelId);
     await engine.createPRSJob(modelId);
 
-    await expect(engine.appendSnpChunk(jobId, [4n, 5n]))
+    const enc1 = await encryptUint64Array(engineAddr, jobOwner.address, [4n, 5n]);
+    await expect(engine.appendSnpChunk(jobId, enc1.handles, enc1.inputProof))
       .to.emit(engine, "SnpChunkAppended")
       .withArgs(jobId, 0n, 2n);
 
@@ -119,7 +122,8 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     expect(state[5]).to.equal(2n);
     expect(state[6]).to.equal(false);
 
-    await engine.appendSnpChunk(jobId, [6n]);
+    const enc2 = await encryptUint64Array(engineAddr, jobOwner.address, [6n]);
+    await engine.appendSnpChunk(jobId, enc2.handles, enc2.inputProof);
     await expect(engine.finalizeSnpUpload(jobId))
       .to.emit(engine, "SnpUploadFinalized")
       .withArgs(jobId, jobOwner.address);
@@ -130,73 +134,103 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
   });
 
   it("rejects invalid SNP chunk lengths, extra chunks, and non-requester uploads", async function () {
-    const [, stranger] = await ethers.getSigners();
+    const [jobOwner, stranger] = await ethers.getSigners();
     const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n);
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
     const engine = await Engine.deploy(await marketplace.getAddress());
+    const engineAddr = await engine.getAddress();
 
     const jobId = await engine.createPRSJob.staticCall(modelId);
     await engine.createPRSJob(modelId);
 
-    await expect(engine.appendSnpChunk(jobId, [4n]))
+    const encBad = await encryptUint64Array(engineAddr, jobOwner.address, [4n]);
+    await expect(engine.appendSnpChunk(jobId, encBad.handles, encBad.inputProof))
       .to.be.revertedWith("Invalid SNP chunk length");
-    await expect(engine.connect(stranger).appendSnpChunk(jobId, [4n, 5n]))
+
+    const encStranger = await encryptUint64Array(engineAddr, stranger.address, [4n, 5n]);
+    await expect(engine.connect(stranger).appendSnpChunk(jobId, encStranger.handles, encStranger.inputProof))
       .to.be.revertedWith("Not requester");
 
-    await engine.appendSnpChunk(jobId, [4n, 5n]);
-    await engine.appendSnpChunk(jobId, [6n]);
-    await expect(engine.appendSnpChunk(jobId, [7n]))
+    const enc1 = await encryptUint64Array(engineAddr, jobOwner.address, [4n, 5n]);
+    await engine.appendSnpChunk(jobId, enc1.handles, enc1.inputProof);
+
+    const enc2 = await encryptUint64Array(engineAddr, jobOwner.address, [6n]);
+    await engine.appendSnpChunk(jobId, enc2.handles, enc2.inputProof);
+
+    const encExtra = await encryptUint64Array(engineAddr, jobOwner.address, [7n]);
+    await expect(engine.appendSnpChunk(jobId, encExtra.handles, encExtra.inputProof))
       .to.be.revertedWith("All SNP chunks uploaded");
 
     await engine.finalizeSnpUpload(jobId);
-    await expect(engine.appendSnpChunk(jobId, [7n]))
+
+    const encAfter = await encryptUint64Array(engineAddr, jobOwner.address, [7n]);
+    await expect(engine.appendSnpChunk(jobId, encAfter.handles, encAfter.inputProof))
       .to.be.revertedWith("SNP upload finalized");
   });
 
   it("rejects compute before SNP upload is finalized", async function () {
+    const [jobOwner] = await ethers.getSigners();
     const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n);
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
     const engine = await Engine.deploy(await marketplace.getAddress());
+    const engineAddr = await engine.getAddress();
 
     const jobId = await engine.createPRSJob.staticCall(modelId);
     await engine.createPRSJob(modelId);
-    await engine.appendSnpChunk(jobId, [4n, 5n]);
-    await engine.appendSnpChunk(jobId, [6n]);
+
+    const enc1 = await encryptUint64Array(engineAddr, jobOwner.address, [4n, 5n]);
+    await engine.appendSnpChunk(jobId, enc1.handles, enc1.inputProof);
+
+    const enc2 = await encryptUint64Array(engineAddr, jobOwner.address, [6n]);
+    await engine.appendSnpChunk(jobId, enc2.handles, enc2.inputProof);
 
     await expect(engine.computeChunk(jobId))
       .to.be.revertedWith("SNP upload not finalized");
   });
 
   it("computes a public-model dot product and allows permissionless compute relays", async function () {
-    const [, relayer] = await ethers.getSigners();
+    const [jobOwner, relayer] = await ethers.getSigners();
     const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n);
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
     const engine = await Engine.deploy(await marketplace.getAddress());
+    const engineAddr = await engine.getAddress();
 
     const jobId = await engine.createPRSJob.staticCall(modelId);
     await engine.createPRSJob(modelId);
-    await engine.appendSnpChunk(jobId, [4n, 5n]);
-    await engine.appendSnpChunk(jobId, [6n]);
+
+    const enc1 = await encryptUint64Array(engineAddr, jobOwner.address, [4n, 5n]);
+    await engine.appendSnpChunk(jobId, enc1.handles, enc1.inputProof);
+
+    const enc2 = await encryptUint64Array(engineAddr, jobOwner.address, [6n]);
+    await engine.appendSnpChunk(jobId, enc2.handles, enc2.inputProof);
     await engine.finalizeSnpUpload(jobId);
 
     await engine.connect(relayer).computeChunk(jobId);
-    const partial = await engine.readPartial.staticCall(jobId);
-    expect(partial).to.equal(14n);
+    const partialHandle = await engine.getPartialSum(jobId);
+    expect(await debugDecryptUint64(partialHandle)).to.equal(14n);
 
     await engine.connect(relayer).computeChunk(jobId);
-    const score = await engine.finalize.staticCall(jobId);
-    expect(score).to.equal(32n);
+    const tx = await engine.finalize(jobId);
+    const receipt = await tx.wait();
+    const finalEvent = receipt!.logs.find(
+      (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+    );
+    const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+    expect(await debugDecryptUint64(scoreHandle)).to.equal(32n);
   });
 
   it("requires the requester for readPartial and finalize", async function () {
-    const [, stranger] = await ethers.getSigners();
+    const [jobOwner, stranger] = await ethers.getSigners();
     const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n);
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
     const engine = await Engine.deploy(await marketplace.getAddress());
+    const engineAddr = await engine.getAddress();
 
     const jobId = await engine.createPRSJob.staticCall(modelId);
     await engine.createPRSJob(modelId);
-    await engine.appendSnpChunk(jobId, [3n, 4n]);
+
+    const enc = await encryptUint64Array(engineAddr, jobOwner.address, [3n, 4n]);
+    await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
     await engine.finalizeSnpUpload(jobId);
     await engine.computeChunk(jobId);
 
@@ -207,54 +241,53 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
   });
 
   it("requires private-model authorization and computes after authorization", async function () {
+    const [owner] = await ethers.getSigners();
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
-
     const Marketplace = await ethers.getContractFactory("ModelMarketplace");
     const marketplace = await Marketplace.deploy();
     const engine = await Engine.deploy(await marketplace.getAddress());
+    const mpAddr = await marketplace.getAddress();
+    const engineAddr = await engine.getAddress();
 
     const modelId = await marketplace.createModelShell.staticCall(
-      true,
-      3n,
-      2n,
-      "ipfs://private-model",
-      ethers.ZeroHash,
-      ethers.ZeroHash,
-      0n,
-      0n
+      true, 3n, 2n, "ipfs://private-model",
+      ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
     );
     await marketplace.createModelShell(
-      true,
-      3n,
-      2n,
-      "ipfs://private-model",
-      ethers.ZeroHash,
-      ethers.ZeroHash,
-      0n,
-      0n
+      true, 3n, 2n, "ipfs://private-model",
+      ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
     );
-    await marketplace.appendEncryptedModelChunk(modelId, [2n, 3n]);
-    await marketplace.appendEncryptedModelChunk(modelId, [4n]);
+
+    const wEnc1 = await encryptUint64Array(mpAddr, owner.address, [2n, 3n]);
+    await marketplace.appendEncryptedModelChunk(modelId, wEnc1.handles, wEnc1.inputProof);
+
+    const wEnc2 = await encryptUint64Array(mpAddr, owner.address, [4n]);
+    await marketplace.appendEncryptedModelChunk(modelId, wEnc2.handles, wEnc2.inputProof);
     await marketplace.finalizeModel(modelId);
 
     await expect(engine.createPRSJob(modelId))
       .to.be.revertedWith("Engine not authorized");
 
-    await marketplace.setPrivateModelReader(
-      modelId,
-      await engine.getAddress(),
-      true
-    );
+    await marketplace.setPrivateModelReader(modelId, engineAddr, true);
 
     const jobId = await engine.createPRSJob.staticCall(modelId);
     await engine.createPRSJob(modelId);
-    await engine.appendSnpChunk(jobId, [5n, 6n]);
-    await engine.appendSnpChunk(jobId, [7n]);
+
+    const sEnc1 = await encryptUint64Array(engineAddr, owner.address, [5n, 6n]);
+    await engine.appendSnpChunk(jobId, sEnc1.handles, sEnc1.inputProof);
+
+    const sEnc2 = await encryptUint64Array(engineAddr, owner.address, [7n]);
+    await engine.appendSnpChunk(jobId, sEnc2.handles, sEnc2.inputProof);
     await engine.finalizeSnpUpload(jobId);
 
     await engine.computeChunk(jobId);
     await engine.computeChunk(jobId);
-    const score = await engine.finalize.staticCall(jobId);
-    expect(score).to.equal(56n);
+    const tx = await engine.finalize(jobId);
+    const receipt = await tx.wait();
+    const finalEvent = receipt!.logs.find(
+      (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+    );
+    const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+    expect(await debugDecryptUint64(scoreHandle)).to.equal(56n);
   });
 });

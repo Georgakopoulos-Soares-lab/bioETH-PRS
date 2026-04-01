@@ -51,6 +51,11 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         uint256 processedWeights,
         bool complete
     );
+    event JobFinalized(
+        uint256 indexed jobId,
+        address indexed requester,
+        euint64 encodedScore
+    );
 
     constructor(address marketplaceAddress) {
         marketplace = ModelMarketplace(marketplaceAddress);
@@ -223,8 +228,17 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         euint64 withOffset = FHE.add(job.partialSum, FHE.asEuint64(job.scoreOffset));
         euint64 correction = FHE.mul(job.genoSum, FHE.asEuint64(job.weightZeroPoint));
         euint64 encodedScore = FHE.sub(withOffset, correction);
+        FHE.allowThis(encodedScore);
         encodedScore = FHE.allow(encodedScore, msg.sender);
+
+        emit JobFinalized(jobId, msg.sender, encodedScore);
         return encodedScore;
+    }
+
+    /// @notice View getter for the current partial sum handle (for debug/test decrypt).
+    function getPartialSum(uint256 jobId) external view returns (euint64) {
+        require(jobId < jobs.length, "Invalid job");
+        return jobs[jobId].partialSum;
     }
 
     function jobCount() external view returns (uint256) {

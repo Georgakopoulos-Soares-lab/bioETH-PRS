@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {FHE, euint64, euint8, ebool} from "@fhevm/solidity/lib/FHE.sol";
+import {FHE, euint64, euint8, ebool, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @title ResultOracle - Applies DP noise and returns categorical PRS risk.
@@ -19,12 +19,16 @@ contract ResultOracle is ZamaEthereumConfig {
     );
 
     function classify(
-        euint64 encryptedScore,
-        euint64 encryptedNoise,
+        externalEuint64 encryptedScore,
+        externalEuint64 encryptedNoise,
+        bytes calldata inputProof,
         uint64 lowThreshold,
         uint64 highThreshold
     ) external returns (euint8) {
-        euint64 noisy = FHE.add(encryptedScore, encryptedNoise);
+        euint64 score = FHE.fromExternal(encryptedScore, inputProof);
+        euint64 noise = FHE.fromExternal(encryptedNoise, inputProof);
+
+        euint64 noisy = FHE.add(score, noise);
         euint64 lowHandle = FHE.asEuint64(lowThreshold);
         euint64 highHandle = FHE.asEuint64(highThreshold);
 

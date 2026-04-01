@@ -275,6 +275,31 @@ contract ModelMarketplace is ZamaEthereumConfig {
     function getEncryptedWeightChunk(
         uint256 modelId,
         uint256 chunkIndex
+    ) external returns (euint64[] memory) {
+        require(modelId < modelHeaders.length, "Invalid model");
+        ModelHeader storage model = modelHeaders[modelId];
+        require(model.isPrivate, "Model is public");
+        require(chunkIndex < model.chunkCount, "Invalid chunk");
+        require(
+            _canReadPrivateModel(modelId, msg.sender),
+            "Reader not authorized"
+        );
+
+        euint64[] storage chunk = encryptedWeightChunks[modelId][chunkIndex];
+        require(chunk.length > 0, "Chunk not uploaded");
+
+        // Grant FHE ACL to the caller so it can use these handles in FHE ops
+        for (uint256 i = 0; i < chunk.length; i++) {
+            FHE.allow(chunk[i], msg.sender);
+        }
+        return chunk;
+    }
+
+    /// @notice View-only getter for encrypted weight handles (no ACL grant).
+    /// Use for debug/test decrypt only — caller won't have FHE permission on returned handles.
+    function getEncryptedWeightChunkHandles(
+        uint256 modelId,
+        uint256 chunkIndex
     ) external view returns (euint64[] memory) {
         require(modelId < modelHeaders.length, "Invalid model");
         ModelHeader storage model = modelHeaders[modelId];

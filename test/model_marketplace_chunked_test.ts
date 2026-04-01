@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { encryptUint64Array, debugDecryptUint64 } from "./utils/fhevm-helpers";
 
 describe("ModelMarketplace — chunked publication v1", function () {
   async function deployMarketplace() {
@@ -263,17 +264,29 @@ describe("ModelMarketplace — chunked publication v1", function () {
   describe("private chunk publication", function () {
     it("appends encrypted chunks sequentially and stores the encrypted payloads", async function () {
       const { marketplace, modelId } = await createPrivateShell(5n, 2n);
+      const addr = await marketplace.getAddress();
+      const [signer] = await ethers.getSigners();
 
-      await marketplace.appendEncryptedModelChunk(modelId, [7n, 8n]);
-      await marketplace.appendEncryptedModelChunk(modelId, [9n, 10n]);
-      await marketplace.appendEncryptedModelChunk(modelId, [11n]);
+      const enc1 = await encryptUint64Array(addr, signer.address, [7n, 8n]);
+      await marketplace.appendEncryptedModelChunk(modelId, enc1.handles, enc1.inputProof);
 
-      expect(await marketplace.getEncryptedWeightChunk(modelId, 0n))
-        .to.deep.equal([7n, 8n]);
-      expect(await marketplace.getEncryptedWeightChunk(modelId, 1n))
-        .to.deep.equal([9n, 10n]);
-      expect(await marketplace.getEncryptedWeightChunk(modelId, 2n))
-        .to.deep.equal([11n]);
+      const enc2 = await encryptUint64Array(addr, signer.address, [9n, 10n]);
+      await marketplace.appendEncryptedModelChunk(modelId, enc2.handles, enc2.inputProof);
+
+      const enc3 = await encryptUint64Array(addr, signer.address, [11n]);
+      await marketplace.appendEncryptedModelChunk(modelId, enc3.handles, enc3.inputProof);
+
+      // Verify stored encrypted values via debug decrypt
+      const chunk0 = await marketplace.getEncryptedWeightChunkHandles(modelId, 0n);
+      expect(await debugDecryptUint64(chunk0[0])).to.equal(7n);
+      expect(await debugDecryptUint64(chunk0[1])).to.equal(8n);
+
+      const chunk1 = await marketplace.getEncryptedWeightChunkHandles(modelId, 1n);
+      expect(await debugDecryptUint64(chunk1[0])).to.equal(9n);
+      expect(await debugDecryptUint64(chunk1[1])).to.equal(10n);
+
+      const chunk2 = await marketplace.getEncryptedWeightChunkHandles(modelId, 2n);
+      expect(await debugDecryptUint64(chunk2[0])).to.equal(11n);
     });
 
     it("rejects encrypted chunk append by non-owner", async function () {
@@ -291,47 +304,69 @@ describe("ModelMarketplace — chunked publication v1", function () {
         0n
       );
 
+      const enc = await encryptUint64Array(
+        await marketplace.getAddress(), stranger.address, [1n, 2n]
+      );
       await expect(
-        marketplace.connect(stranger).appendEncryptedModelChunk(0n, [1n, 2n])
+        marketplace.connect(stranger).appendEncryptedModelChunk(0n, enc.handles, enc.inputProof)
       ).to.be.revertedWith("Not owner");
     });
 
     it("rejects encrypted chunk append on an invalid model id", async function () {
       const marketplace = await deployMarketplace();
+      const [signer] = await ethers.getSigners();
 
+      const enc = await encryptUint64Array(
+        await marketplace.getAddress(), signer.address, [1n, 2n]
+      );
       await expect(
-        marketplace.appendEncryptedModelChunk(999n, [1n, 2n])
+        marketplace.appendEncryptedModelChunk(999n, enc.handles, enc.inputProof)
       ).to.be.revertedWith("Invalid model");
     });
 
     it("rejects encrypted chunk append to a public model", async function () {
       const { marketplace, modelId } = await createPublicShell(3n, 2n);
+      const [signer] = await ethers.getSigners();
 
+      const enc = await encryptUint64Array(
+        await marketplace.getAddress(), signer.address, [1n, 2n]
+      );
       await expect(
-        marketplace.appendEncryptedModelChunk(modelId, [1n, 2n])
+        marketplace.appendEncryptedModelChunk(modelId, enc.handles, enc.inputProof)
       ).to.be.revertedWith("Model is public");
     });
 
     it("rejects invalid encrypted chunk lengths and extra encrypted appends after completion", async function () {
       const { marketplace, modelId } = await createPrivateShell(3n, 2n);
+      const addr = await marketplace.getAddress();
+      const [signer] = await ethers.getSigners();
 
+      const enc1 = await encryptUint64Array(addr, signer.address, [1n]);
       await expect(
-        marketplace.appendEncryptedModelChunk(modelId, [1n])
+        marketplace.appendEncryptedModelChunk(modelId, enc1.handles, enc1.inputProof)
       ).to.be.revertedWith("Invalid chunk length");
 
-      await marketplace.appendEncryptedModelChunk(modelId, [1n, 2n]);
-      await marketplace.appendEncryptedModelChunk(modelId, [3n]);
+      const enc2 = await encryptUint64Array(addr, signer.address, [1n, 2n]);
+      await marketplace.appendEncryptedModelChunk(modelId, enc2.handles, enc2.inputProof);
 
+      const enc3 = await encryptUint64Array(addr, signer.address, [3n]);
+      await marketplace.appendEncryptedModelChunk(modelId, enc3.handles, enc3.inputProof);
+
+      const enc4 = await encryptUint64Array(addr, signer.address, [4n]);
       await expect(
-        marketplace.appendEncryptedModelChunk(modelId, [4n])
+        marketplace.appendEncryptedModelChunk(modelId, enc4.handles, enc4.inputProof)
       ).to.be.revertedWith("All chunks uploaded");
     });
 
     it("emits EncryptedModelChunkAppended with the derived chunk index", async function () {
       const { marketplace, modelId } = await createPrivateShell(3n, 2n);
+      const [signer] = await ethers.getSigners();
 
+      const enc = await encryptUint64Array(
+        await marketplace.getAddress(), signer.address, [10n, 20n]
+      );
       await expect(
-        marketplace.appendEncryptedModelChunk(modelId, [10n, 20n])
+        marketplace.appendEncryptedModelChunk(modelId, enc.handles, enc.inputProof)
       ).to.emit(marketplace, "EncryptedModelChunkAppended")
         .withArgs(modelId, 0n, 2n);
     });
@@ -493,7 +528,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
       const marketplace = await deployMarketplace();
 
       await expect(
-        marketplace.getEncryptedWeightChunk(999n, 0n)
+        marketplace.getEncryptedWeightChunkHandles(999n, 0n)
       ).to.be.revertedWith("Invalid model");
 
       await marketplace.connect(owner).createModelShell(
@@ -508,26 +543,30 @@ describe("ModelMarketplace — chunked publication v1", function () {
       );
 
       await expect(
-        marketplace.connect(stranger).getEncryptedWeightChunk(0n, 0n)
+        marketplace.connect(stranger).getEncryptedWeightChunkHandles(0n, 0n)
       ).to.be.revertedWith("Reader not authorized");
 
       await expect(
-        marketplace.connect(owner).getEncryptedWeightChunk(0n, 0n)
+        marketplace.connect(owner).getEncryptedWeightChunkHandles(0n, 0n)
       ).to.be.revertedWith("Chunk not uploaded");
 
-      await marketplace.connect(owner).appendEncryptedModelChunk(0n, [7n, 8n]);
+      const enc = await encryptUint64Array(
+        await marketplace.getAddress(), owner.address, [7n, 8n]
+      );
+      await marketplace.connect(owner).appendEncryptedModelChunk(0n, enc.handles, enc.inputProof);
 
       await expect(
-        marketplace.connect(owner).getEncryptedWeightChunk(0n, 9n)
+        marketplace.connect(owner).getEncryptedWeightChunkHandles(0n, 9n)
       ).to.be.revertedWith("Invalid chunk");
 
       await marketplace.connect(owner).setPrivateModelReader(0n, reader.address, true);
-      expect(await marketplace.connect(reader).getEncryptedWeightChunk(0n, 0n))
-        .to.deep.equal([7n, 8n]);
+      const chunk = await marketplace.connect(reader).getEncryptedWeightChunkHandles(0n, 0n);
+      expect(await debugDecryptUint64(chunk[0])).to.equal(7n);
+      expect(await debugDecryptUint64(chunk[1])).to.equal(8n);
 
       const publicShell = await createPublicShell(3n, 2n);
       await expect(
-        publicShell.marketplace.getEncryptedWeightChunk(publicShell.modelId, 0n)
+        publicShell.marketplace.getEncryptedWeightChunkHandles(publicShell.modelId, 0n)
       ).to.be.revertedWith("Model is public");
     });
   });
