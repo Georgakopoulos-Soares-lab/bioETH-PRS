@@ -1,6 +1,9 @@
 # === Dependencies ===
 node_modules/
 
+# === Session context ===
+SESSION_CONTEXT.md
+
 # === Hardhat / Solidity build artifacts ===
 artifacts/
 cache/

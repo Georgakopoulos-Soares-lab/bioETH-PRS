@@ -88,6 +88,21 @@ That means:
 
 `v1` does **not** let the job choose an independent compute chunk size.
 
+**Practical constraint — today's ceiling is `chunkSize = 10`.**  Two protocol
+limits bound what is currently safe:
+
+- **Upload** is constrained by the fhEVM input-proof budget (2048 bits / 64
+  bits per `euint64` = max 32 values per `appendSnpChunk` call).
+- **Compute** is constrained by the mock coprocessor's HCU budget (~30
+  operations per transaction / 3 ops per SNP = max 10 SNPs per
+  `computeChunk` call).
+
+Compute is the binding limit.  Setting `chunkSize > 10` causes the first
+`computeChunk` to revert with `HCUTransactionLimitExceeded`.
+
+See [`snp-ingestion.md § Chunk-size constraints in practice`](snp-ingestion.md)
+for the full breakdown and guidance on choosing `chunkSize` for Sepolia.
+
 ### 2. Uploads are sequential
 
 Both model publication and SNP upload are sequential in `v1`.

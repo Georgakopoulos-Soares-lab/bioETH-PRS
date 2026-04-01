@@ -119,6 +119,71 @@ For `v1`, the simpler choice is better:
 - one chunk count
 - one set of boundaries
 
+## Chunk-size constraints in practice
+
+Two independent hardware/protocol limits bound what `chunkSize` can safely be.
+Understanding both is essential before publishing a model.
+
+### Limit 1 — Input-proof budget (upload): 32 values
+
+Every `appendSnpChunk` call packages the encrypted SNP values into a single
+`fhevmjs` input proof.  That proof has a **2048-bit budget**.  Each `euint64`
+value occupies 64 bits, so a single call can carry at most:
+
+```
+2048 / 64 = 32 encrypted SNP values
+```
+
+Chunks larger than 32 values will be rejected by the fhEVM input-proof
+validation layer before the transaction even reaches contract storage.
+
+### Limit 2 — HCU budget (compute): 10 values
+
+Each SNP processed in `computeChunk` requires **3 FHE operations**:
+
+1. `FHE.asEuint64(weight)` — trivially encrypt the public weight
+2. `FHE.mul(snp, encWeight)` — ciphertext multiplication
+3. `FHE.add(partialSum, product)` — accumulate into the running sum
+
+The mock coprocessor enforces a per-transaction Homomorphic Compute Unit (HCU)
+budget of approximately **30 operations**.  At 3 ops per SNP that gives:
+
+```
+30 HCU / 3 ops per SNP = 10 SNPs per computeChunk call
+```
+
+Exceeding this triggers `HCUTransactionLimitExceeded()` at the first
+`computeChunk` call.  This was confirmed empirically: `chunkSize = 32` triggers
+the error immediately (32 × 3 = 96 ops > 30 HCU budget).
+
+### The binding constraint is compute, not upload
+
+| Phase | Limit | Source |
+|---|---|---|
+| `appendSnpChunk` | 32 values | 2048-bit input-proof budget |
+| `computeChunk` | 10 values | ~30 HCU per transaction |
+
+Upload could handle 32 values per call, but compute can only process 10.
+**`v1` therefore uses `chunkSize = 10` for both** to keep the chunk geometry
+uniform and avoid the model having a different granularity for upload vs compute.
+
+### Real fhEVM (Sepolia) HCU ceiling is unknown
+
+The mock coprocessor's ~30 HCU/tx limit is a local development constraint.
+The Sepolia coprocessor may allow a significantly larger HCU budget.  If it
+supports 300 HCU/tx, `chunkSize` becomes 100, reducing the 5000-SNP transaction
+count from ~1005 to ~155.  This is the most impactful unknown for production
+feasibility and will only be measurable after a Sepolia deployment.
+
+### Practical guidance
+
+When publishing a model today:
+
+- set `chunkSize = 10` for local mock-mode development and testing
+- do not set `chunkSize > 10` — `computeChunk` will revert
+- do not set `chunkSize > 32` — `appendSnpChunk` will reject the input proof
+- re-profile after any Sepolia deployment to determine the real HCU ceiling
+
 ## Detailed flow
 
 ### `createPRSJob(modelId)`

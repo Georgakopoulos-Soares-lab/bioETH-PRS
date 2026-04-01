@@ -11,7 +11,8 @@ Confidential on-chain Polygenic Risk Scoring via fhEVM — encrypted dot-product
 ```sh
 npm run build                    # hardhat compile (Solidity 0.8.24, evmVersion cancun)
 npm run test                     # hardhat test via @fhevm/hardhat-plugin mock coprocessor
-npm run profile:gas              # gas vs SNP-count curve
+npm run profile:heprs            # HEPRS fixture timing + gas (real GWAS data, chunkSize=10)
+npm run profile:gas              # gas vs SNP-count curve (synthetic data)
 npm run advisor:quantization     # float-to-uint64 scaling advisor
 npm run advisor:scale-ceilings   # quick uint64 overflow screen
 ```
@@ -63,4 +64,4 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 | Model marketplace design | [docs/design/v1/model-marketplace.md](docs/design/v1/model-marketplace.md) |
 | Dev workflow commands | [docs/reference/development-workflows.md](docs/reference/development-workflows.md) |
 | HEPRS reference paper | [docs/PIIS2667237525003078.pdf](docs/PIIS2667237525003078.pdf) |
-| Known edge cases & risks | [docs/architecture-roadmap.md § 7](docs/architecture-roadmap.md) |
+| Known implementation gaps & risks | [docs/architecture-roadmap.md § 7](docs/architecture-roadmap.md) |

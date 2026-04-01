@@ -633,7 +633,7 @@ npx hardhat compile
 
 You should see `Compiled N Solidity files successfully` with no errors.
 
-### Step 5: Run the mock tests
+### Step 4: Run the mock tests
 
 Tests run directly — no environment variable or external node required:
 
@@ -656,7 +656,7 @@ test/utils/fhevm.ts                         — fhevmjs helpers (used only for r
 
 For real FHE (Sepolia testnet), see [README.md](README.md).
 
-### Step 6: Set up your editor
+### Step 5: Set up your editor
 
 Install the **Hardhat Solidity** VS Code extension or **Nomic Foundation Solidity** for syntax highlighting and type checking.
 

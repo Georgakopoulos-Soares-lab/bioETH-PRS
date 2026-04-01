@@ -68,6 +68,22 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 * **`@fhevm/hardhat-plugin`** — Hardhat plugin that deploys a mock coprocessor locally (chainid 31337) at the same addresses used on Sepolia. Validates handles, ACL, and input proofs while performing plaintext arithmetic behind the scenes.
 * **`mock-archive/`** — Historical archive of the old transparent plaintext mock files (`FHE.mock.sol`, `TFHE.mock.sol`, `EncryptedTypes.mock.sol`). No longer on any import path — kept for reference only.
 
+**Local vs Sepolia — what is the same and what differs:**
+
+| Aspect | Local Hardhat | Sepolia |
+|--------|--------------|---------|
+| Contract bytecode | Identical | Identical |
+| `@fhevm/solidity` imports | Same library | Same library |
+| FHE operation API | Same (`FHE.mul`, `FHE.add`, …) | Same |
+| Cryptographic backend | Plaintext arithmetic | Real TFHE ciphertext |
+| Input proofs | Validated by mock | Validated by gateway |
+| ACL enforcement | Validated by mock | Validated by gateway |
+| HCU budget per tx | ~30 ops (mock limit) | Higher — TBD on Sepolia |
+| Privacy guarantee | None (plaintext mock) | Full FHE privacy |
+
+The same contract code that passes all 59 local tests is what gets deployed to Sepolia.
+Only the cryptographic backend changes — no contract edits are needed to go from mock to real FHE.
+
 ---
 
 ## 4. Engineering Specifications & Optimizations
@@ -124,7 +140,7 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 1. **Refine Quantization:** Determine the exact Scaling Factor ($10^6$ vs $10^8$) to minimize Mean Squared Error (MSE) vs. Gas Cost. Produce a table of scaling factor × SNP count → MSE.
 2. **Differential Privacy Tuning:** Benchmark the exact amount of noise required to secure weights without destroying clinical accuracy.  Generate ROC / AUC curves at several noise levels.
 3. **Gas Profiling:** Generate data points for the "Gas vs. SNP Count" curve from `scripts/gas_profile.ts` on a live fhEVM node.  Target SNP counts: 100, 300, 600, 1 000, 5 000.
-   * For local mock timing on real HEPRS fixtures, use `npm run profile:heprs` with the default `chunkSize=128`.
+   * For local mock timing on real HEPRS fixtures, use `npm run profile:heprs` (default `chunkSize=10`, constrained by the mock coprocessor's ~30 HCU/tx limit).
 4. **Registry ↔ Engine ACL Wiring:** Make `PRSComputeEngine` verify that the caller has access to the sample in `GenomicRegistry` before a PRS job is allowed to upload SNP data.
 5. **Access-control on `computeChunk`:** Currently any address may call `computeChunk(jobId)`. Decide if this is acceptable (permissionless relay) or restrict to `job.requester` or an allow-list.
 6. **End-to-end Client Flow:** Integrate `fhevmjs` re-encryption, gateway-assisted decryption, and public decryption of the `ResultOracle` category.
@@ -146,7 +162,7 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 
 ---
 
-## 7. Known Edge Cases & Risks
+## 7. Known Implementation Gaps & Risks
 
 ### 7-A. Registry ↔ Compute Engine Disconnect
 

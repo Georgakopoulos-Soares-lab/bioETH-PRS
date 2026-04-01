@@ -55,7 +55,7 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 | Contract | Role |
 |----------|------|
 | **GenomicRegistry** | Stores IPFS/Arweave URIs of encrypted SNP data with per-address access control. |
-| **ModelMarketplace** | Lists GWAS weight vectors — **public** (`uint64[]`, cheaper `mulPlain`) or **private** (`euint64[]`, full FHE `mul`). |
+| **ModelMarketplace** | Lists GWAS weight vectors — **public** (`uint64[]`, cheaper C×P via `FHE.asEuint64`) or **private** (`euint64[]`, full C×C `FHE.mul`). |
 | **PRSComputeEngine** | Creates PRS job shells, ingests SNPs in model-aligned chunks, and computes the encrypted dot product chunk by chunk. |
 | **HEPRS** | Standalone variant that embeds models directly (useful for quick experiments). |
 | **ResultOracle** | Adds encrypted DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
@@ -73,20 +73,19 @@ contracts/
   PRSComputeEngine.sol       Marketplace-aware chunked PRS engine
   HEPRS.sol (contains `BioETHPRS`)   Standalone chunked PRS engine
   ResultOracle.sol           DP noise + categorical classification
-  TFHE.sol                   Thin wrapper forwarding to Zama FHE
-  fhevm/
-    FHE.sol                  Local plaintext mock of FHE for Hardhat
-    EncryptedTypes.sol       UDVTs (ebool, euint8, euint64)
 test/
   bioeth_prs_test.ts         Standalone HEPRS prototype tests
   model_marketplace_chunked_test.ts     Model marketplace unit tests
   prs_compute_engine_chunked_snp_test.ts PRS job-upload unit tests
   registry_marketplace_oracle_test.ts   End-to-end integration test
-  heprs_fixture_test.ts      HEPRS-backed integration tests
-  utils/fhevm.ts             fhevmjs helpers (encrypt64Array, getInstance)
+  heprs_fixture_test.ts      HEPRS fixture integration + overflow tests
+  quantization_advisor_test.ts          Advisor recommendation tests
+  scale_ceiling_reference_test.ts       Overflow-screen reference tests
+  utils/fhevm-helpers.ts     fhevmjs helpers (encryptUint64Array, debugDecrypt)
 scripts/
-  gas_profile.ts             Gas vs. SNP-count profiling script
-  heprs_fixture_profile.ts   HEPRS-backed timing/profile script
+  gas_profile.ts             Gas vs. SNP-count profiling (synthetic data)
+  heprs_fixture_profile.ts   HEPRS fixture timing + gas profiling
+mock-archive/                Archived old transparent mocks (not imported)
 ```
 
 ---
@@ -138,7 +137,7 @@ Expected output: ABI + bytecode in `artifacts/contracts/`.
 
 | Error | Fix |
 |-------|-----|
-| `Source not found: contracts/fhevm/…` | The local mock is missing — ensure `contracts/fhevm/FHE.sol` and `contracts/fhevm/EncryptedTypes.sol` exist. |
+| `Source not found: @fhevm/solidity/…` | Run `npm install` — the `@fhevm/solidity` and `@fhevm/hardhat-plugin` packages must be present in `node_modules/`. |
 | Solidity version mismatch | Ensure `0.8.24` in `hardhat.config.ts` and all `.sol` files. |
 
 ---
@@ -147,7 +146,7 @@ Expected output: ABI + bytecode in `artifacts/contracts/`.
 
 ### Mock FHE — Hardhat in-process (no Docker, no external node)
 
-All tests use a **plaintext FHE mock** (`contracts/fhevm/FHE.sol`) where `euint64` is just `uint64`. There is no `FHEVM=1` guard; tests run directly:
+All tests use the **`@fhevm/hardhat-plugin` mock coprocessor**, which validates handles, ACL, and input proofs while performing plaintext arithmetic. Contracts import from `@fhevm/solidity` (the real Zama library) — the same code deploys to Sepolia for real FHE. Tests run directly:
 
 ```bash
 npm test
@@ -173,25 +172,24 @@ For a fuller command cookbook, including single-file test runs, `--grep` usage, 
 
 ### Real FHE — Sepolia testnet
 
-Zama's local Docker node approach has been discontinued. Real FHE encryption is only available on the **Sepolia testnet** via Zama's `@fhevm/hardhat-plugin` and relayer infrastructure. Migrating to Sepolia requires:
+Zama's local Docker node approach has been discontinued. Real FHE encryption is only available on the **Sepolia testnet**. Contracts already import from `@fhevm/solidity` and inherit `ZamaEthereumConfig`, so the same code runs locally (mock) and on Sepolia (real FHE). Deploying to Sepolia requires:
 
-1. Refactoring contracts to use `@fhevm/solidity` instead of the local mock.
-2. Updating contract imports and config to the current package-based Zama workflow.
-3. Sepolia ETH (free from a faucet) and an Infura/Alchemy RPC key.
-4. Deploying through `@fhevm/hardhat-plugin`.
+1. Sepolia ETH (free from a faucet) and an Infura/Alchemy RPC key.
+2. A network entry in `hardhat.config.ts` pointing to the Sepolia RPC.
+3. Deploying through `npx hardhat test --network sepolia`.
 
-The mock mode covers 100% of contract logic. Real-FHE migration is a separate milestone.
+The mock coprocessor covers 100% of contract logic and protocol-level validation (handles, ACL, input proofs). Real TFHE ciphertext correctness is only confirmable on Sepolia.
 
 ---
 
 ## Gas Profiling
 
-The profiling script deploys `ModelMarketplace` + `PRSComputeEngine` and iterates over several SNP counts measuring gas per phase (model listing, job creation, SNP upload, chunk computation).
+The profiling script deploys `ModelMarketplace` + `PRSComputeEngine` with synthetic data and measures gas per phase (model listing, job creation, SNP upload, chunk computation). Runs as a Hardhat test with the `@fhevm/hardhat-plugin` mock coprocessor.
 
 ```bash
 npm run profile:gas
 # or:
-npx hardhat run scripts/gas_profile.ts
+npx hardhat test scripts/gas_profile.ts
 ```
 
 ### Environment variable overrides
@@ -199,15 +197,16 @@ npx hardhat run scripts/gas_profile.ts
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SNP_COUNTS` | `100,300,600` | Comma-separated SNP vector sizes to profile. |
-| `CHUNK_SIZE` | `100` | Number of SNPs processed per `computeChunk` call. |
+| `CHUNK_SIZE` | `10` | Number of SNPs processed per `computeChunk` call (HCU-constrained). |
 | `GAS_PRICE_GWEI` | `30` | Assumed gas price for ETH cost estimation. |
-| `BLOCK_TIME_SEC` | `12` | Assumed block time for wall-time estimation. |
 
 Example:
 
 ```bash
-SNP_COUNTS=100,500,1000,5000 CHUNK_SIZE=50 npx hardhat run scripts/gas_profile.ts
+SNP_COUNTS=100,500,1000,5000 npx hardhat test scripts/gas_profile.ts
 ```
+
+For gas profiling with **real HEPRS fixture data** (including timing breakdowns), use `npm run profile:heprs` instead.
 
 ---
 
@@ -229,13 +228,13 @@ This script runs the current mock contract flow with the HEPRS fixture data and 
 Default behavior:
 
 * fixtures: `100`, `500`, `1000`, `5000`
-* chunk size: `128`
+* chunk size: `10` (HCU-constrained — see [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md))
 
 Common examples:
 
 ```bash
 npm run profile:heprs -- --fixture 1000
-npm run profile:heprs -- --fixture 5000 --chunk-size 128 --verbose
+npm run profile:heprs -- --fixture 5000 --chunk-size 10 --verbose
 npm run profile:heprs -- --json-out /tmp/heprs-profile.json
 ```
 
@@ -291,7 +290,7 @@ npx hardhat test --network fhevm
 | `out of gas` during `computeChunk` | Model chunk size is too large for the chain's gas limit | Publish the model with a smaller `chunkSize` or increase `blockGasLimit` in `hardhat.config.ts`. |
 | `out of gas` during `appendSnpChunk` | The model-aligned chunk size is too large for SNP upload on the current chain / mock limit | Reduce the published model `chunkSize`, which also reduces SNP upload chunk size. |
 | `typechain-types` out of date | Generated types stale after contract edits | Run `npx hardhat compile` to regenerate. |
-| `Source not found: contracts/fhevm/…` | Local mock missing | Ensure `contracts/fhevm/FHE.sol` and `contracts/fhevm/EncryptedTypes.sol` exist. |
+| `Source not found: @fhevm/solidity/…` | Missing npm packages | Run `npm install` to restore `@fhevm/solidity` and `@fhevm/hardhat-plugin`. |
 
 ---
 

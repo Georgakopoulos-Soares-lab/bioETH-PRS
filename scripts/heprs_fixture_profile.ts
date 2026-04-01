@@ -32,12 +32,23 @@ interface ChunkTimingSummary {
   perChunkMs: number[];
 }
 
+interface GasSummary {
+  publishModel: bigint;
+  createJob: bigint;
+  uploadSnps: bigint;
+  finalizeSnpUpload: bigint;
+  compute: bigint;
+  finalize: bigint;
+  total: bigint;
+}
+
 interface SuccessfulFixtureProfile {
   fixtureSize: HeprsFixtureSize;
   vectorLength: number;
   chunkSize: number;
   recommendation: HeprsAdvisorRecommendation;
   chunkTiming: ChunkTimingSummary;
+  gas: GasSummary;
   status: "full_flow";
   timingsMs: {
     total: number;
@@ -172,6 +183,7 @@ async function profileFixture(
   });
   const marketplace = deployMarketplaceResult.value;
 
+  let publishModelGas = 0n;
   const publishModelResult = await timed(async () => {
     const modelId = await marketplace.createModelShell.staticCall(
       false,
@@ -193,15 +205,15 @@ async function profileFixture(
       quantized.weightZeroPoint,
       quantized.scoreOffset
     );
-    await tx.wait();
+    publishModelGas += (await tx.wait())?.gasUsed ?? 0n;
 
     for (const chunk of chunkBigIntVector(quantized.weights, chunkSize)) {
       const appendTx = await marketplace.appendPublicModelChunk(modelId, chunk);
-      await appendTx.wait();
+      publishModelGas += (await appendTx.wait())?.gasUsed ?? 0n;
     }
 
     const finalizeTx = await marketplace.finalizeModel(modelId);
-    await finalizeTx.wait();
+    publishModelGas += (await finalizeTx.wait())?.gasUsed ?? 0n;
     return modelId;
   });
   const modelId = publishModelResult.value;
@@ -212,31 +224,35 @@ async function profileFixture(
   });
   const engine = deployEngineResult.value;
 
+  let createJobGas = 0n;
   const createJobResult = await timed(async () => {
     const tx = await engine.createPRSJob(modelId);
-    await tx.wait();
+    createJobGas = (await tx.wait())?.gasUsed ?? 0n;
   });
 
   const jobId = await engine.jobCount() - 1n;
   const [signer] = await ethers.getSigners();
   const engineAddr = await engine.getAddress();
 
+  let uploadSnpsGas = 0n;
   const uploadSnpsResult = await timed(async () => {
     for (const chunk of chunkBigIntVector(snps, chunkSize)) {
       const input = fhevm.createEncryptedInput(engineAddr, signer.address);
       for (const v of chunk) input.add64(v);
       const { handles, inputProof } = await input.encrypt();
       const tx = await engine.appendSnpChunk(jobId, handles, inputProof);
-      await tx.wait();
+      uploadSnpsGas += (await tx.wait())?.gasUsed ?? 0n;
     }
   });
 
+  let finalizeSnpUploadGas = 0n;
   const finalizeSnpUploadResult = await timed(async () => {
     const tx = await engine.finalizeSnpUpload(jobId);
-    await tx.wait();
+    finalizeSnpUploadGas = (await tx.wait())?.gasUsed ?? 0n;
   });
 
   const chunkTimes: number[] = [];
+  let computeGas = 0n;
   const totalChunks = Math.ceil(snps.length / chunkSize);
   let readPartialResult:
     | { value: bigint; ms: number }
@@ -248,7 +264,7 @@ async function profileFixture(
   for (let i = 0; i < totalChunks; i++) {
     const chunkResult = await timed(async () => {
       const tx = await engine.computeChunk(jobId);
-      await tx.wait();
+      computeGas += (await tx.wait())?.gasUsed ?? 0n;
     });
     chunkTimes.push(chunkResult.ms);
     if (i === 0) {
@@ -263,9 +279,11 @@ async function profileFixture(
     throw new Error(`Fixture ${fixtureSize} did not record a partial result`);
   }
 
+  let finalizeGas = 0n;
   const finalizeResult = await timed(async () => {
     const tx = await engine.finalize(jobId);
     const receipt = await tx.wait();
+    finalizeGas = receipt?.gasUsed ?? 0n;
     const finalEvent = receipt!.logs.find(
       (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
     );
@@ -281,11 +299,21 @@ async function profileFixture(
   }
 
   const chunkTotal = chunkTimes.reduce((sum, value) => sum + value, 0);
+  const totalGas = publishModelGas + createJobGas + uploadSnpsGas + finalizeSnpUploadGas + computeGas + finalizeGas;
   return {
     fixtureSize,
     vectorLength: snps.length,
     chunkSize,
     recommendation,
+    gas: {
+      publishModel: publishModelGas,
+      createJob: createJobGas,
+      uploadSnps: uploadSnpsGas,
+      finalizeSnpUpload: finalizeSnpUploadGas,
+      compute: computeGas,
+      finalize: finalizeGas,
+      total: totalGas
+    },
     chunkTiming: {
       chunkCount: chunkTimes.length,
       totalMs: chunkTotal,
@@ -328,7 +356,8 @@ function summarizeProfile(profile: FixtureProfile, verbose: boolean): string {
 
   lines.push(
     `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, publishModel=${formatMs(profile.timingsMs.publishModel)}, createJob=${formatMs(profile.timingsMs.createJob)}, uploadSnps=${formatMs(profile.timingsMs.uploadSnps)}, finalizeSnpUpload=${formatMs(profile.timingsMs.finalizeSnpUpload)}, chunkTotal=${formatMs(profile.chunkTiming.totalMs)}, finalize=${formatMs(profile.timingsMs.finalize)}`,
-    `chunks: count=${profile.chunkTiming.chunkCount}, avg=${formatMs(profile.chunkTiming.averageMs)}, min=${formatMs(profile.chunkTiming.minMs)}, max=${formatMs(profile.chunkTiming.maxMs)}`
+    `chunks: count=${profile.chunkTiming.chunkCount}, avg=${formatMs(profile.chunkTiming.averageMs)}, min=${formatMs(profile.chunkTiming.minMs)}, max=${formatMs(profile.chunkTiming.maxMs)}`,
+    `gas: total=${profile.gas.total}, publishModel=${profile.gas.publishModel}, createJob=${profile.gas.createJob}, uploadSnps=${profile.gas.uploadSnps}, finalizeSnpUpload=${profile.gas.finalizeSnpUpload}, compute=${profile.gas.compute}, finalize=${profile.gas.finalize}`
   );
   if (verbose) {
     lines.push(`perChunkMs=${profile.chunkTiming.perChunkMs.map((value) => value.toFixed(2)).join(", ")}`);
@@ -338,7 +367,9 @@ function summarizeProfile(profile: FixtureProfile, verbose: boolean): string {
 }
 
 function stringifyProfiles(profiles: FixtureProfile[]): string {
-  return JSON.stringify(profiles, null, 2);
+  return JSON.stringify(profiles, (_key, value) =>
+    typeof value === "bigint" ? value.toString() : value
+  , 2);
 }
 
 // Run as a Hardhat test so the @fhevm/hardhat-plugin mock coprocessor is
