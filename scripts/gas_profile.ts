@@ -16,8 +16,12 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string) {
   const Marketplace = await ethers.getContractFactory("ModelMarketplace");
   const marketplace = await Marketplace.deploy();
 
+  const Registry = await ethers.getContractFactory("GenomicRegistry");
+  const registry = await Registry.deploy();
+  const sampleId = await registry.registerSample.staticCall(`ipfs://gas-profile/${n}-sample`);
+  await registry.registerSample(`ipfs://gas-profile/${n}-sample`);
   const Engine = await ethers.getContractFactory("PRSComputeEngine");
-  const engine = await Engine.deploy(await marketplace.getAddress());
+  const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
 
   const weights = Array.from({ length: n }, (_, i) => BigInt((i + 1) % 11));
   const snps = Array.from({ length: n }, (_, i) => BigInt((i + 2) % 3));
@@ -52,7 +56,7 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string) {
   const finalizeTx = await marketplace.finalizeModel(modelId);
   publishGas += (await finalizeTx.wait())?.gasUsed ?? 0n;
 
-  const createJobTx = await engine.createPRSJob(modelId);
+  const createJobTx = await engine.createPRSJob(modelId, sampleId);
   const createJobReceipt = await createJobTx.wait();
   const createJobGas = createJobReceipt?.gasUsed ?? 0n;
 

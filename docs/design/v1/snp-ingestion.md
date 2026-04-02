@@ -32,7 +32,7 @@ So `v1` replaces that with a staged job-upload flow.
 
 The PRS job lifecycle is now:
 
-1. `createPRSJob(modelId)`
+1. `createPRSJob(modelId, sampleId)`
 2. `appendSnpChunk(jobId, encryptedSnpsChunk)`
 3. `finalizeSnpUpload(jobId)`
 4. `computeChunk(jobId)` repeated until complete
@@ -186,16 +186,17 @@ When publishing a model today:
 
 ## Detailed flow
 
-### `createPRSJob(modelId)`
+### `createPRSJob(modelId, sampleId)`
 
 This creates a job shell.
 
 It:
 
+- checks that `msg.sender` is the owner or a granted delegate of `sampleId` in `GenomicRegistry` (reverts with `"No registry access"` or `"Invalid sample"` otherwise)
 - reads the finalized model config from `ModelMarketplace`
 - checks that the model is finalized
 - checks private-model engine authorization if needed
-- stores the job metadata
+- stores the job metadata (including `sampleId`)
 - sets `uploadedSnpCount = 0`
 - sets `nextChunkIndex = 0`
 - sets `partialSum = Enc(0)`
@@ -367,7 +368,6 @@ This design solves the large one-shot SNP submission problem, but it does not so
 
 Open issues include:
 
-- `GenomicRegistry` ACL is still not enforced during job creation
 - job cancellation / cleanup is not implemented
 - no expiry semantics exist for incomplete jobs
 - private-model behavior is still being reasoned about under mock-mode assumptions before real fhEVM validation

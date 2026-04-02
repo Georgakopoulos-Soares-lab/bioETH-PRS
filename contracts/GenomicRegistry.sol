@@ -46,6 +46,11 @@ contract GenomicRegistry {
         return (sample.uri, sample.owner);
     }
 
+    function hasAccess(uint256 sampleId, address caller) external view returns (bool) {
+        require(sampleId < samples.length, "Invalid sample");
+        return samples[sampleId].owner == caller || access[sampleId][caller];
+    }
+
     function sampleCount() external view returns (uint256) {
         return samples.length;
     }

@@ -219,14 +219,19 @@ async function profileFixture(
   const modelId = publishModelResult.value;
 
   const deployEngineResult = await timed(async () => {
+    const Registry = await ethers.getContractFactory("GenomicRegistry");
+    const registry = await Registry.deploy();
+    const sid = await registry.registerSample.staticCall("ipfs://heprs-profile-sample");
+    await registry.registerSample("ipfs://heprs-profile-sample");
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
-    return Engine.deploy(await marketplace.getAddress());
+    const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
+    return { engine, sampleId: sid };
   });
-  const engine = deployEngineResult.value;
+  const { engine, sampleId } = deployEngineResult.value;
 
   let createJobGas = 0n;
   const createJobResult = await timed(async () => {
-    const tx = await engine.createPRSJob(modelId);
+    const tx = await engine.createPRSJob(modelId, sampleId);
     createJobGas = (await tx.wait())?.gasUsed ?? 0n;
   });
 

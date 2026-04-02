@@ -11,7 +11,7 @@ The current implemented state is:
 - Contracts import from `@fhevm/solidity` (real Zama library) and inherit `ZamaEthereumConfig`
 - Local testing via `@fhevm/hardhat-plugin` mock coprocessor — validates handles, ACL, and input proofs while performing plaintext arithmetic
 - Same contract bytecode deploys to Sepolia for real FHE — no contract changes needed
-- **59 tests pass** under the mock coprocessor (~21s)
+- **64 tests pass** under the mock coprocessor (~21s)
 - **chunkSize = 10** in all profiling and tests — HCU-constrained (3 ops/SNP × ~30 HCU/tx)
 - HEPRS profiler captures both timing and gas per phase across all 4 fixtures
 - All 50 individuals × 4 fixtures (200 checks) verified safe within `uint64` bounds
@@ -55,7 +55,8 @@ The current implemented state is:
 ### Marketplace and compute refactor (prior work, still current)
 
 - Chunked model publication lifecycle: `createModelShell` → `appendPublicModelChunk` × N → `finalizeModel`
-- Staged SNP ingestion: `createPRSJob` → `appendSnpChunk` × N → `finalizeSnpUpload` → `computeChunk` × N → `finalize`
+- Staged SNP ingestion: `createPRSJob(modelId, sampleId)` → `appendSnpChunk` × N → `finalizeSnpUpload` → `computeChunk` × N → `finalize`
+- Registry ACL wired into job creation: `createPRSJob` calls `GenomicRegistry.hasAccess(sampleId, msg.sender)`; owner, delegate, revoked, and invalid-sample paths all tested
 - V1 quantization correction: `(weighted_sum + scoreOffset) - (weightZeroPoint × genoSum)`
 - `JobFinalized` event emitted by `finalize()` — used by profiler and off-chain indexers
 
@@ -74,15 +75,6 @@ This is the most important next step (flagged by collaborator).
   - `JobFinalized` event + score decryption via re-encryption key
 - Measure real HCU ceiling — determines production chunkSize and transaction count
 - Record mock vs real differences in `docs/architecture-roadmap.md §7-I`
-
-### 2. Wire registry ACL into job creation
-
-The compute engine still accepts arbitrary encrypted SNP chunks from the requester — no check against `GenomicRegistry`.
-
-- Decide whether the PRS job flow should verify `sampleId` ownership before accepting SNPs
-- Enforce `GenomicRegistry` access checks in the compute path if sample-linked execution is the default
-- Add tests for owner access, delegated access, unauthorized rejection
-- Tracked in `docs/architecture-roadmap.md §7-A`
 
 ### 3. Harden the DP / output story
 

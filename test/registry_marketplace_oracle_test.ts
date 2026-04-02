@@ -73,13 +73,18 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       await marketplace.finalizeModel(modelId);
       expect(await marketplace.modelCount()).to.equal(1n);
 
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const sampleId = await registry.registerSample.staticCall("ipfs://sample");
+      await registry.registerSample("ipfs://sample");
+
       const Engine = await ethers.getContractFactory("PRSComputeEngine");
-      const engine = await Engine.deploy(await marketplace.getAddress());
+      const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
       const engineAddr = await engine.getAddress();
 
       const snps = [4n, 5n, 6n];
-      const jobId = await engine.createPRSJob.staticCall(modelId);
-      await engine.createPRSJob(modelId);
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
       for (const chunk of chunkArray(snps, 2)) {
         const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
         await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
@@ -124,15 +129,20 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       const wEnc2 = await encryptUint64Array(mpAddr, signer.address, [4n]);
       await marketplace.appendEncryptedModelChunk(modelId, wEnc2.handles, wEnc2.inputProof);
 
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const sampleId = await registry.registerSample.staticCall("ipfs://sample");
+      await registry.registerSample("ipfs://sample");
+
       const Engine = await ethers.getContractFactory("PRSComputeEngine");
-      const engine = await Engine.deploy(mpAddr);
+      const engine = await Engine.deploy(mpAddr, await registry.getAddress());
       const engineAddr = await engine.getAddress();
       await marketplace.setPrivateModelReader(modelId, engineAddr, true);
       await marketplace.finalizeModel(modelId);
 
       const snps = [5n, 6n, 7n];
-      const jobId = await engine.createPRSJob.staticCall(modelId);
-      await engine.createPRSJob(modelId);
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
       for (const chunk of chunkArray(snps, 2)) {
         const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
         await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);

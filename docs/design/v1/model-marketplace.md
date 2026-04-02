@@ -538,7 +538,7 @@ The table below summarizes the main `v1` controls.
 | Public/private path separation | Public and private append/getter checks | Type confusion between plaintext and encrypted model paths | It does not make public models confidential |
 | Private reader allowlist | `setPrivateModelReader`, `getEncryptedWeightChunk` | Arbitrary reading of private model chunks | It is a simple allowlist, not the final real-fhEVM privacy story |
 | Engine authorization for private compute | `createPRSJob` checks engine authorization | Late failure when a private model has not authorized the engine | It does not validate off-chain encrypted input provenance |
-| Chunk-aligned job geometry | `createPRSJob` copies `weightCount`, `chunkSize`, and `chunkCount` from the model header | Mismatched chunk boundaries between model and compute job | It does not prove the SNP payload came from a registered sample |
+| Chunk-aligned job geometry | `createPRSJob` copies `weightCount`, `chunkSize`, and `chunkCount` from the model header | Mismatched chunk boundaries between model and compute job | It does not prove the ciphertexts match the registered sample's actual data |
 | Requester-only partial/final output access | `readPartial`, `finalize` | Granting decrypt access to arbitrary observers | It does not stop anyone from paying gas to advance `computeChunk` |
 | Event trail for publication lifecycle | model creation/append/finalize/reader-set events | Opaque state changes with poor observability | Events do not prove scientific correctness by themselves |
 | Provenance hashes and metadata pointer | `manifestURI`, `manifestHash`, `sourceModelHash` | Unverifiable metadata drift and unclear model origin | The contract anchors these fields but does not prove they are truthful |
@@ -551,8 +551,7 @@ The `v1` controls are real and useful, but they are not the whole future securit
 
 The most important unresolved items are:
 
-* `GenomicRegistry` is still not wired into `PRSComputeEngine.createPRSJob()` / SNP upload flow
-  * so model execution still accepts arbitrary SNP vectors directly
+* `GenomicRegistry` ACL is now enforced at job creation: `createPRSJob(modelId, sampleId)` requires the caller to be the sample owner or a granted delegate. The remaining limitation is that the contract cannot verify the submitted ciphertexts actually correspond to the registered sample's off-chain data.
 * there is no anti-spam or fee mechanism for model publication
 * there is no on-chain scientific validation of model quality
 * public models are intentionally public

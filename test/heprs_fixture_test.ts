@@ -87,12 +87,16 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
       }
       await marketplace.finalizeModel(modelId);
 
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const sampleId = await registry.registerSample.staticCall(`ipfs://heprs-${fixtureSize}-sample`);
+      await registry.registerSample(`ipfs://heprs-${fixtureSize}-sample`);
       const Engine = await ethers.getContractFactory("PRSComputeEngine");
-      const engine = await Engine.deploy(await marketplace.getAddress());
+      const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
       const engineAddr = await engine.getAddress();
 
-      const jobId = await engine.createPRSJob.staticCall(modelId);
-      await engine.createPRSJob(modelId);
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
       for (const chunk of chunkBigIntVector(snps, firstChunkLength)) {
         const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
         await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
@@ -169,11 +173,15 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
     }
     await marketplace.finalizeModel(modelId);
 
+    const Registry = await ethers.getContractFactory("GenomicRegistry");
+    const registry = await Registry.deploy();
+    const sampleId = await registry.registerSample.staticCall("ipfs://heprs-5000-sample");
+    await registry.registerSample("ipfs://heprs-5000-sample");
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
-    const engine = await Engine.deploy(await marketplace.getAddress());
+    const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
     const engineAddr = await engine.getAddress();
-    const jobId = await engine.createPRSJob.staticCall(modelId);
-    await engine.createPRSJob(modelId);
+    const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+    await engine.createPRSJob(modelId, sampleId);
     for (const chunk of chunkBigIntVector(snps, chunkLength)) {
       const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
       await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);

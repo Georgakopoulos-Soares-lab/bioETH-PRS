@@ -4,11 +4,13 @@ pragma solidity ^0.8.24;
 import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import "./ModelMarketplace.sol";
+import "./GenomicRegistry.sol";
 
 /// @title PRSComputeEngine - Chunked PRS dot-product against chunk-published models.
 contract PRSComputeEngine is ZamaEthereumConfig {
     struct Job {
         uint256 modelId;
+        uint256 sampleId;
         uint256 weightCount;
         uint256 chunkSize;
         uint256 chunkCount;
@@ -26,6 +28,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     }
 
     ModelMarketplace public marketplace;
+    GenomicRegistry public registry;
     Job[] private jobs;
     mapping(uint256 => mapping(uint256 => euint64[])) private snpChunks;
 
@@ -34,7 +37,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         uint256 indexed modelId,
         address indexed requester,
         uint256 weightCount,
-        uint256 chunkSize
+        uint256 chunkSize,
+        uint256 sampleId
     );
     event SnpChunkAppended(
         uint256 indexed jobId,
@@ -57,11 +61,14 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         euint64 encodedScore
     );
 
-    constructor(address marketplaceAddress) {
+    constructor(address marketplaceAddress, address registryAddress) {
         marketplace = ModelMarketplace(marketplaceAddress);
+        registry = GenomicRegistry(registryAddress);
     }
 
-    function createPRSJob(uint256 modelId) external returns (uint256) {
+    function createPRSJob(uint256 modelId, uint256 sampleId) external returns (uint256) {
+        require(registry.hasAccess(sampleId, msg.sender), "No registry access");
+
         (
             bool isPrivate,
             bool finalized,
@@ -85,6 +92,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
 
         Job memory job = Job({
             modelId: modelId,
+            sampleId: sampleId,
             weightCount: weightCount,
             chunkSize: chunkSize,
             chunkCount: chunkCount,
@@ -103,7 +111,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
 
         jobs.push(job);
         uint256 jobId = jobs.length - 1;
-        emit JobCreated(jobId, modelId, msg.sender, weightCount, chunkSize);
+        emit JobCreated(jobId, modelId, msg.sender, weightCount, chunkSize, sampleId);
         return jobId;
     }
 
@@ -261,7 +269,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             uint256 nextChunkIndex,
             uint256 processedWeights,
             bool isPrivate,
-            bool complete
+            bool complete,
+            uint256 sampleId
         )
     {
         require(jobId < jobs.length, "Invalid job");
@@ -277,7 +286,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             job.nextChunkIndex,
             job.processedWeights,
             job.isPrivate,
-            job.complete
+            job.complete,
+            job.sampleId
         );
     }
 

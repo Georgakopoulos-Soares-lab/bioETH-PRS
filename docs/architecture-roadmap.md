@@ -34,7 +34,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 * Stores URI pointers to encrypted user SNP vectors (expected on IPFS / Arweave).
 * Manages per-sample access via an on-chain `mapping(sampleId => mapping(address => bool))` ACL.
 * **Functions:** `registerSample(uri)`, `grantAccess(sampleId, grantee)`, `revokeAccess(sampleId, grantee)`, `getSample(sampleId)`.
-* **Current limitation:** Access checks are purely at the metadata layer. The `PRSComputeEngine` does **not** yet enforce registry ACL before accepting encrypted SNPs (see Edge Cases § 7-A).
+* **Registry ↔ Engine wiring (implemented):** `PRSComputeEngine` now enforces registry ACL at job creation. `createPRSJob(modelId, sampleId)` calls `GenomicRegistry.hasAccess(sampleId, msg.sender)` and reverts if the caller is neither the sample owner nor a granted delegate (see § 7-A).
 
 ### B. Contract 2: Model Marketplace — `ModelMarketplace.sol` (Research Layer)
 
@@ -52,7 +52,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
   * PRS jobs use a shell + chunked SNP upload + finalize-upload lifecycle before compute begins.
   * An on-chain state machine accumulates the encrypted `partialSum` across blocks.
 * Reads only the **next required model chunk** from `ModelMarketplace` and automatically uses either `FHE.mul(weight, snp)` (private, C×C) or `FHE.mul(snp, FHE.asEuint64(weight))` (public, C×P trivial) per model type.
-* **Functions:** `createPRSJob(modelId)`, `appendSnpChunk(jobId, encryptedSnps, inputProof)`, `finalizeSnpUpload(jobId)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
+* **Functions:** `createPRSJob(modelId, sampleId)`, `appendSnpChunk(jobId, encryptedSnps, inputProof)`, `finalizeSnpUpload(jobId)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
 * A standalone variant `HEPRS.sol` (contains the `BioETHPRS` contract) also exists; it embeds models directly instead of referencing the marketplace.
 
 ### D. Contract 4: Result Oracle — `ResultOracle.sol` (Output Layer)
@@ -141,7 +141,7 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 2. **Differential Privacy Tuning:** Benchmark the exact amount of noise required to secure weights without destroying clinical accuracy.  Generate ROC / AUC curves at several noise levels.
 3. **Gas Profiling:** Generate data points for the "Gas vs. SNP Count" curve from `scripts/gas_profile.ts` on a live fhEVM node.  Target SNP counts: 100, 300, 600, 1 000, 5 000.
    * For local mock timing on real HEPRS fixtures, use `npm run profile:heprs` (default `chunkSize=10`, constrained by the mock coprocessor's ~30 HCU/tx limit).
-4. **Registry ↔ Engine ACL Wiring:** Make `PRSComputeEngine` verify that the caller has access to the sample in `GenomicRegistry` before a PRS job is allowed to upload SNP data.
+4. ~~**Registry ↔ Engine ACL Wiring**~~ ✓ Implemented: `createPRSJob(modelId, sampleId)` now calls `GenomicRegistry.hasAccess(sampleId, msg.sender)` and reverts if the caller lacks owner or delegated access.
 5. **Access-control on `computeChunk`:** Currently any address may call `computeChunk(jobId)`. Decide if this is acceptable (permissionless relay) or restrict to `job.requester` or an allow-list.
 6. **End-to-end Client Flow:** Integrate `fhevmjs` re-encryption, gateway-assisted decryption, and public decryption of the `ResultOracle` category.
 
@@ -164,9 +164,11 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 
 ## 7. Known Implementation Gaps & Risks
 
-### 7-A. Registry ↔ Compute Engine Disconnect
+### 7-A. Registry ↔ Compute Engine Disconnect — Resolved
 
-The `PRSComputeEngine` still accepts arbitrary encrypted SNP chunks from the requester. There is no on-chain check that those chunks correspond to a registered sample for which the caller has permission. An attacker could still submit arbitrary ciphertexts to probe the model. **Mitigation:** Wire `GenomicRegistry.getSample()` into the PRS job creation / SNP-upload flow and require the caller to prove ownership or delegated access.
+`createPRSJob(modelId, sampleId)` now calls `GenomicRegistry.hasAccess(sampleId, msg.sender)` before accepting any SNP data. The function reverts with `"No registry access"` if the caller is not the sample owner or a granted delegate, and reverts with `"Invalid sample"` if the `sampleId` does not exist. This closes the authorization gap: only parties registered against a sample may initiate a PRS job over it.
+
+**Remaining scope:** This is an authorization check, not a data-integrity proof. The contract cannot verify that the submitted ciphertexts correspond to the registered sample's off-chain URI — that linkage is the caller's responsibility. Model probing via self-registered arbitrary data remains possible; differential privacy noise (§ 7-D) is the mitigation for that threat.
 
 ### 7-B. Marketplace Trust & Model Integrity
 
