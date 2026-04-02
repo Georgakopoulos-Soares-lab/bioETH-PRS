@@ -3,6 +3,7 @@
 ## Current Snapshot
 
 The repo is at a stable, tested v1 state with real fhEVM library integration.
+Sepolia deployment infrastructure is complete and ready to run.
 
 The current implemented state is:
 
@@ -12,10 +13,13 @@ The current implemented state is:
 - Local testing via `@fhevm/hardhat-plugin` mock coprocessor — validates handles, ACL, and input proofs while performing plaintext arithmetic
 - Same contract bytecode deploys to Sepolia for real FHE — no contract changes needed
 - **64 tests pass** under the mock coprocessor (~21s)
-- **chunkSize = 10** in all profiling and tests — HCU-constrained (3 ops/SNP × ~30 HCU/tx)
+- **chunkSize = 10** default in all profiling and tests; **chunkSize = 20** confirmed safe on mock (systematic HCU probe, 2 Apr 2026)
+- **Mock HCU budget corrected**: ~60–74 ops/tx (not ~30 as previously stated); ceiling is chunkSize=20, not 10
 - HEPRS profiler captures both timing and gas per phase across all 4 fixtures
 - All 50 individuals × 4 fixtures (200 checks) verified safe within `uint64` bounds
 - Design docs include chunk-size constraints, local vs Sepolia comparison, and V1 quantization worked example
+- **Mock validation baseline captured**: `reports/mock-validation-findings.md` — 100-SNP end-to-end PASS, full gas/timing table, HCU probe results
+- **Sepolia tooling complete**: `hardhat.config.ts` has Sepolia network block; `scripts/deploy.ts`, `scripts/sepolia_validation.ts`, `scripts/probe_hcu_ceiling.ts` are ready; `npm run deploy:sepolia`, `validate:sepolia`, `probe:hcu` commands wired
 
 ## Recently Completed
 
@@ -40,17 +44,25 @@ The current implemented state is:
 
 - Added overflow safety test suite: all 50 individuals × 4 fixtures = 200 checks, all within `[0, 2^64)`
 - Test count: 55 → 59 passing
-- Confirmed: `chunkSize = 32` triggers `HCUTransactionLimitExceeded` (96 ops > 30 HCU); `chunkSize = 10` is the empirically confirmed ceiling
+- Confirmed: `chunkSize = 32` and `chunkSize = 25` trigger `HCUTransactionLimitExceeded`; `chunkSize = 20` is the highest confirmed safe value on mock (systematic probe, 2 Apr 2026)
 
 ### Documentation patches
 
-- `docs/design/v1/snp-ingestion.md` — new "Chunk-size constraints in practice" section: HCU math, 10/32 limits, binding constraint, Sepolia guidance
+- `docs/design/v1/snp-ingestion.md` — new "Chunk-size constraints in practice" section: HCU math, 10/32 limits, binding constraint, Sepolia guidance; updated 2 Apr 2026 with correct ceiling (20, not 10)
 - `docs/design/v1/overview.md` — chunk-size ceiling noted under core design decisions; links to snp-ingestion.md
-- `docs/architecture-roadmap.md` — Local vs Sepolia comparison table in §3-E; §7 renamed from "Known Edge Cases" to "Known Implementation Gaps"
+- `docs/architecture-roadmap.md` — Local vs Sepolia comparison table in §3-E; §7 renamed from "Known Edge Cases" to "Known Implementation Gaps"; §7-I updated with measured mock baseline
 - `docs/design/v1/quantization.md` — test count corrected (55 → 59)
 - `README.md` — stale mock file paths removed, chunk size corrected, Running Tests section updated, Real FHE section corrected
 - `docs/onboarding/contributor-onboarding.md` — missing Step 4 fixed
 - `CLAUDE.md` — `profile:heprs` added to Build & Test section
+
+### Mock validation baseline + HCU systematic probe (2 April 2026)
+
+- `npm run validate:mock` — 100-SNP HEPRS fixture end-to-end PASS; score 758,685 matches expected; full gas/timing captured
+- `npm run probe:hcu:mock` — systematic HCU ceiling probe across chunkSizes [10, 15, 20, 25, 32]; ceiling confirmed 20 < C ≤ 25 (corrects prior claim of 10)
+- `reports/mock-validation-findings.md` — new report with full phase gas, per-chunk gas, HCU probe table, and recommended chunkSize guidance
+- `reports/heprs-fixture-findings.md` — HCU ceiling section corrected; chunk-size table updated
+- `docs/design/v1/snp-ingestion.md` — HCU limit section rewritten with probe data; practical guidance updated
 
 ### Marketplace and compute refactor (prior work, still current)
 
@@ -62,19 +74,28 @@ The current implemented state is:
 
 ## Active Priorities
 
-### 1. Sepolia deployment — confirm real FHE path
+### 1. Sepolia deployment — run and record results
 
-This is the most important next step (flagged by collaborator).
+Tooling is complete. Remaining work is execution and recording findings.
 
-- Deploy contracts to Sepolia testnet
-- Run a single 100-SNP HEPRS fixture end-to-end with real TFHE ciphertext
-- Validate:
-  - ciphertext input flow (`externalEuint64` + `inputProof` through gateway)
-  - ACL behavior on real chain
-  - gateway / re-encryption / decryption flow
-  - `JobFinalized` event + score decryption via re-encryption key
-- Measure real HCU ceiling — determines production chunkSize and transaction count
-- Record mock vs real differences in `docs/architecture-roadmap.md §7-I`
+Pre-flight (see `docs/reference/sepolia-deployment.md`):
+
+- Obtain Sepolia ETH (~0.2 ETH covers deploy + validation + HCU probe)
+- `npx hardhat vars set MNEMONIC`
+- `npx hardhat vars set INFURA_API_KEY`
+
+Execution sequence:
+
+- `npm run deploy:sepolia` — deploy all 4 contracts, save to `deployments/sepolia.json`
+- `npm run validate:sepolia` — 100-SNP HEPRS fixture end-to-end with real TFHE ciphertext
+- `npm run probe:hcu` — find real Sepolia HCU ceiling across chunkSizes 10/15/20/25/32
+
+After runs complete:
+
+- Fill in "Sepolia observed" column in `docs/architecture-roadmap.md §7-I`
+- Create `reports/sepolia-validation-findings.md` with timing + gas data
+- Update `docs/design/v1/snp-ingestion.md` "Chunk-size constraints" with real HCU ceiling
+- Move this item to Recently Completed
 
 ### 3. Harden the DP / output story
 

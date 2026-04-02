@@ -137,7 +137,7 @@ value occupies 64 bits, so a single call can carry at most:
 Chunks larger than 32 values will be rejected by the fhEVM input-proof
 validation layer before the transaction even reaches contract storage.
 
-### Limit 2 — HCU budget (compute): 10 values
+### Limit 2 — HCU budget (compute): 20 values (mock)
 
 Each SNP processed in `computeChunk` requires **3 FHE operations**:
 
@@ -146,26 +146,34 @@ Each SNP processed in `computeChunk` requires **3 FHE operations**:
 3. `FHE.add(partialSum, product)` — accumulate into the running sum
 
 The mock coprocessor enforces a per-transaction Homomorphic Compute Unit (HCU)
-budget of approximately **30 operations**.  At 3 ops per SNP that gives:
+budget.  A systematic probe (2 April 2026, `npm run probe:hcu:mock`) tested all
+candidate sizes and found:
 
-```
-30 HCU / 3 ops per SNP = 10 SNPs per computeChunk call
-```
+| chunkSize | 3 ops × chunkSize | Result |
+| ---: | ---: | --- |
+| 10 | 30 | PASS |
+| 15 | 45 | PASS |
+| 20 | 60 | PASS |
+| 25 | 75 | FAIL — `HCUTransactionLimitExceeded` |
+| 32 | 96 | FAIL — `HCUTransactionLimitExceeded` |
 
-Exceeding this triggers `HCUTransactionLimitExceeded()` at the first
-`computeChunk` call.  This was confirmed empirically: `chunkSize = 32` triggers
-the error immediately (32 × 3 = 96 ops > 30 HCU budget).
+**The mock HCU budget is approximately 60–74 ops/tx**, giving a practical compute
+ceiling of **20 SNPs per `computeChunk` call** on the mock coprocessor.
+
+> **Note:** Earlier versions of this document stated the ceiling was 10, inferred
+> from testing only chunkSize=32 (FAIL) against a ~30 HCU/tx assumption.  The
+> systematic probe corrects this.  See `reports/mock-validation-findings.md §2`.
 
 ### The binding constraint is compute, not upload
 
 | Phase | Limit | Source |
 |---|---|---|
 | `appendSnpChunk` | 32 values | 2048-bit input-proof budget |
-| `computeChunk` | 10 values | ~30 HCU per transaction |
+| `computeChunk` | 20 values (mock) | ~60–74 HCU per transaction |
 
-Upload could handle 32 values per call, but compute can only process 10.
-**`v1` therefore uses `chunkSize = 10` for both** to keep the chunk geometry
-uniform and avoid the model having a different granularity for upload vs compute.
+Upload could handle 32 values per call, but compute is the binding constraint.
+**`v1` uses `chunkSize = 10` for both** as a conservative default.  `chunkSize=20`
+is also safe on mock and halves the transaction count for the upload and compute phases.
 
 ### Real fhEVM (Sepolia) HCU ceiling is unknown
 
@@ -179,10 +187,11 @@ feasibility and will only be measurable after a Sepolia deployment.
 
 When publishing a model today:
 
-- set `chunkSize = 10` for local mock-mode development and testing
-- do not set `chunkSize > 10` — `computeChunk` will revert
-- do not set `chunkSize > 32` — `appendSnpChunk` will reject the input proof
-- re-profile after any Sepolia deployment to determine the real HCU ceiling
+- set `chunkSize = 10` for conservative local mock-mode development (matches existing tests)
+- set `chunkSize = 20` for optimal mock throughput — confirmed safe, ~45% fewer transactions
+- do not set `chunkSize > 20` on mock — `computeChunk` will revert with `HCUTransactionLimitExceeded`
+- do not set `chunkSize > 32` on any network — `appendSnpChunk` will reject the input proof
+- start with `chunkSize = 10` on a first Sepolia deployment; run `npm run probe:hcu` to measure the real ceiling
 
 ## Detailed flow
 

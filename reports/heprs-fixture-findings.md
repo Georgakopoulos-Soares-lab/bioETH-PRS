@@ -53,12 +53,12 @@ are 101, 501, 1001, 5001.
 All times are local Hardhat mock-coprocessor wall-clock measurements. They reflect
 relative phase costs and scaling trends, **not** real-chain latencies or gas costs.
 
-| Fixture | Vector len | Chunks | Total | Publish | Upload SNPs | Compute | Finalize |
-|--------:|-----------:|-------:|------:|--------:|------------:|--------:|---------:|
-| 100     | 101        | 11     | 373 ms | 15 ms  | 154 ms      | 61 ms   | 70 ms    |
-| 500     | 501        | 51     | 1593 ms | 53 ms | 644 ms      | 319 ms  | 359 ms   |
-| 1000    | 1001       | 101    | 3063 ms | 98 ms | 1257 ms     | 636 ms  | 672 ms   |
-| 5000    | 5001       | 501    | 15341 ms | 461 ms | 6542 ms   | 3218 ms | 3313 ms  |
+| Fixture | Vector len | Chunks | Total    | Publish | Upload SNPs | Compute  | Finalize |
+| ------: | ---------: | -----: | -------: | ------: | ----------: | -------: | -------: |
+| 100     | 101        | 11     | 373 ms   | 15 ms   | 154 ms      | 61 ms    | 70 ms    |
+| 500     | 501        | 51     | 1593 ms  | 53 ms   | 644 ms      | 319 ms   | 359 ms   |
+| 1000    | 1001       | 101    | 3063 ms  | 98 ms   | 1257 ms     | 636 ms   | 672 ms   |
+| 5000    | 5001       | 501    | 15341 ms | 461 ms  | 6542 ms     | 3218 ms  | 3313 ms  |
 
 **Per-chunk compute averages:** 5.6 ms (100 SNP) to 6.4 ms (5000 SNP) — nearly
 constant, confirming linear scaling.
@@ -66,7 +66,7 @@ constant, confirming linear scaling.
 ### Phase breakdown
 
 | Phase | % of total (5000 SNP) | Notes |
-|---|---:|---|
+| --- | ---: | --- |
 | SNP upload | 43% | Dominated by `fhevm.createEncryptedInput()` proof generation |
 | Compute chunks | 21% | 501 chunks x ~6.4 ms average |
 | Finalize | 22% | Includes mock-coprocessor bookkeeping |
@@ -132,25 +132,36 @@ The `fhevmjs` encrypted-input proof has a 2048-bit budget. Each `euint64` value
 consumes 64 bits, so a single `appendSnpChunk` call can pack at most
 **32 encrypted values**.
 
-### 2. HCU limit (compute): 10 values
+### 2. HCU limit (compute): 20 values (mock)
 
 Each SNP in `computeChunk` requires **3 FHE operations**:
 - `FHE.asEuint64(weight)` — trivial encryption of the public weight
 - `FHE.mul(snp, encWeight)` — ciphertext multiplication
 - `FHE.add(partialSum, product)` — accumulation
 
-The mock coprocessor enforces a per-transaction HCU (Homomorphic Compute Unit)
-budget of approximately 30 operations. At 3 ops per SNP, the maximum is
-**10 SNPs per compute chunk**.
+A systematic probe (`npm run probe:hcu:mock`, 2 April 2026) tested all candidate
+sizes and found the mock HCU budget is approximately **60–74 ops/tx**:
 
-We confirmed this empirically: chunkSize = 32 triggers
-`HCUTransactionLimitExceeded()` at the first `computeChunk` call (32 x 3 = 96 ops).
+| chunkSize | ops (3×) | Result |
+| ---: | ---: | --- |
+| 10 | 30 | PASS |
+| 15 | 45 | PASS |
+| 20 | 60 | PASS |
+| 25 | 75 | FAIL — `HCUTransactionLimitExceeded` |
+| 32 | 96 | FAIL — `HCUTransactionLimitExceeded` |
+
+The maximum safe compute chunk size on mock is **20 SNPs**.
+
+> **Correction:** Earlier versions of this report and `snp-ingestion.md` stated the
+> ceiling was 10, inferred from testing only chunkSize=32 (FAIL) against a ~30 HCU/tx
+> assumption.  The systematic probe corrects this.
 
 ### Binding constraint
 
 The **compute step** is the binding bottleneck. Upload can handle 32 values per
-transaction, but compute can only process 10. The profiler therefore uses
-**chunkSize = 10** for both upload and compute to keep the flow uniform.
+transaction, but compute is capped at 20 on mock. The profiler uses **chunkSize = 10**
+as a conservative default; `chunkSize = 20` is also safe and reduces transaction
+count by ~45%.
 
 ## Mathematical Correctness
 

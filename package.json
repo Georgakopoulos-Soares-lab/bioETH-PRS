@@ -9,7 +9,12 @@
     "build": "hardhat compile",
     "profile:heprs": "hardhat test scripts/heprs_fixture_profile.ts",
     "test": "hardhat test",
-    "profile:gas": "hardhat test scripts/gas_profile.ts"
+    "profile:gas": "hardhat test scripts/gas_profile.ts",
+    "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
+    "validate:sepolia": "hardhat test scripts/sepolia_validation.ts --network sepolia",
+    "validate:mock": "hardhat test scripts/sepolia_validation.ts",
+    "probe:hcu": "hardhat test scripts/probe_hcu_ceiling.ts --network sepolia",
+    "probe:hcu:mock": "hardhat test scripts/probe_hcu_ceiling.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",

@@ -71,7 +71,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 **Local vs Sepolia — what is the same and what differs:**
 
 | Aspect | Local Hardhat | Sepolia |
-|--------|--------------|---------|
+| --- | --- | --- |
 | Contract bytecode | Identical | Identical |
 | `@fhevm/solidity` imports | Same library | Same library |
 | FHE operation API | Same (`FHE.mul`, `FHE.add`, …) | Same |
@@ -118,7 +118,7 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 **Codebase:**
 
 | File | Purpose |
-|------|---------|
+| --- | --- |
 | `contracts/HEPRS.sol` (contains `BioETHPRS`) | Standalone chunked dot-product contract (`uploadModel`, `startPRS`, `computeChunk`, `finalize`). Inherits `ZamaEthereumConfig`. |
 | `contracts/GenomicRegistry.sol` | URI-based SNP sample registry with per-address ACL. |
 | `contracts/ModelMarketplace.sol` | Public and private GWAS model listing. Inherits `ZamaEthereumConfig`. |
@@ -203,3 +203,28 @@ The `computeChunk` function mutates storage (`nextChunkIndex`, `processedWeights
 ### 7-I. Mock vs. Real FHE Divergence
 
 The `@fhevm/hardhat-plugin` mock coprocessor validates handles, ACL, and input proofs but still performs plaintext arithmetic. Tests that pass in mock mode may still fail on a real fhEVM deployment due to: differing gas costs, ciphertext expansion, or gateway decryption flow.  **Mitigation:** Confirm results on the Sepolia testnet (real FHE) before claiming a feature is production-ready. There is no local Docker node option — Zama deprecated it.
+
+**Deployment infrastructure (implemented):**
+
+The Sepolia deployment path is now fully instrumented:
+
+* `hardhat.config.ts` — `sepolia` network block added; credentials via `npx hardhat vars set MNEMONIC` + `INFURA_API_KEY`.  `ZamaEthereumConfig` auto-configures the fhEVM coprocessor, KMS, and gateway contracts by detecting `chainId 11155111` at runtime — no manual gateway addresses needed.
+* `scripts/deploy.ts` — Deploys all four contracts in dependency order (`GenomicRegistry` → `ModelMarketplace` → `PRSComputeEngine` → `ResultOracle`), saves addresses to `deployments/sepolia.json`.
+* `scripts/sepolia_validation.ts` — End-to-end 100-SNP HEPRS fixture validation.  Uses `fhevm.userDecryptEuint` on Sepolia and `fhevm.debugger.decryptEuint` on mock, guarded by `fhevm.isMock`.  Run with `npm run validate:sepolia`.
+* `scripts/probe_hcu_ceiling.ts` — Probes candidate chunkSizes `[10, 15, 20, 25, 32]` to find the real Sepolia HCU ceiling.  Run with `npm run probe:hcu`.
+
+**Mock baseline (measured 2 April 2026 — `npm run validate:mock` + `npm run probe:hcu:mock`):**
+
+| Validation point | Mock baseline | Sepolia observed |
+| --- | --- | --- |
+| Ciphertext input flow (`externalEuint64` + `inputProof`) | ✓ Accepted | TBD |
+| ACL enforcement at `createPRSJob` | ✓ Registry check passes | TBD |
+| Score decryption path | `debugger.decryptEuint` — 124 ms | `userDecryptEuint` (KMS re-encryption) — TBD |
+| `JobFinalized` event received | ✓ in receipt | TBD |
+| Correct score value | ✓ 758,685 = expected | TBD |
+| Max safe `chunkSize` for `computeChunk` | **20** (60–74 HCU/tx mock budget; corrects prior claim of 10) | TBD — run `npm run probe:hcu` |
+| Gas: `publishModel` (100 SNPs, chunkSize=10) | 1,675,915 | TBD |
+| Gas: `computeChunk` per call (full chunk) | 622,748 | TBD |
+| Total gas: 100-SNP end-to-end | 18,620,079 | TBD |
+
+See `reports/mock-validation-findings.md` for full breakdown.  Once Sepolia results are available, fill in the "Sepolia observed" column and create `reports/sepolia-validation-findings.md`.

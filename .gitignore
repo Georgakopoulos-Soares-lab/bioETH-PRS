@@ -49,6 +49,11 @@ docker-compose.override.yml
 gas-report.txt
 gas-report.json
 
+# === Deployments — network-specific address files ===
+# The deployments/ directory is tracked; individual JSON files are not because
+# they contain chain-specific addresses and results that change per deployment.
+deployments/*.json
+
 # === Misc ===
 *.tgz
 .eslintcache
