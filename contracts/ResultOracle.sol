@@ -4,7 +4,18 @@ pragma solidity ^0.8.24;
 import {FHE, euint64, euint8, ebool, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
-/// @title ResultOracle - Applies DP noise and returns categorical PRS risk.
+/// @title ResultOracle - Applies on-chain DP noise and returns categorical PRS risk.
+///
+/// @notice Noise is generated entirely on-chain via FHE.randEuint64(noiseUpperBound).
+///         The caller supplies the encrypted score but has no influence over the noise
+///         value — eliminating the zero-noise bypass present in previous designs where
+///         the caller provided both score and noise ciphertexts.
+///
+/// @dev    noiseUpperBound is set at construction and is immutable.  It defines the
+///         exclusive upper bound for the uniform random noise: noise ∈ [0, noiseUpperBound).
+///         Callers choose a bound appropriate for their model's score range to preserve
+///         clinical utility while preventing weight extraction via repeated queries.
+///         A bound of zero is rejected at construction time.
 contract ResultOracle is ZamaEthereumConfig {
     enum RiskCategory {
         Low,
@@ -12,33 +23,64 @@ contract ResultOracle is ZamaEthereumConfig {
         High
     }
 
+    /// @notice Upper bound (exclusive) for the on-chain DP noise applied to every
+    ///         classify() call.  Noise is drawn from [0, noiseUpperBound) uniformly.
+    uint64 public immutable noiseUpperBound;
+
     event ResultClassified(
         address indexed requester,
         euint64 noisyScore,
         euint8 category
     );
 
+    /// @param _noiseUpperBound Exclusive upper bound for uniform DP noise.
+    ///                         Must be a positive power of two — required by the
+    ///                         fhEVM coprocessor's randBounded precompile.
+    ///                         Examples: 128 (2^7), 1048576 (2^20), 4294967296 (2^32).
+    constructor(uint64 _noiseUpperBound) {
+        require(
+            _noiseUpperBound > 0 && (_noiseUpperBound & (_noiseUpperBound - 1)) == 0,
+            "Noise bound must be a positive power of two"
+        );
+        noiseUpperBound = _noiseUpperBound;
+    }
+
+    /// @notice Adds on-chain random noise to the encrypted score and classifies the
+    ///         result into Low / Medium / High risk.
+    ///
+    /// @param encryptedScore  Caller's encrypted PRS score (externalEuint64 handle).
+    /// @param inputProof      fhevmjs input proof covering encryptedScore.
+    /// @param lowThreshold    Scores below this (after noise) map to Low.
+    /// @param highThreshold   Scores at or above this (after noise) map to High.
+    ///
+    /// @return category  Encrypted risk category (euint8: 0=Low, 1=Medium, 2=High).
+    ///                   Made publicly decryptable via FHE.makePubliclyDecryptable.
     function classify(
         externalEuint64 encryptedScore,
-        externalEuint64 encryptedNoise,
         bytes calldata inputProof,
         uint64 lowThreshold,
         uint64 highThreshold
     ) external returns (euint8) {
         euint64 score = FHE.fromExternal(encryptedScore, inputProof);
-        euint64 noise = FHE.fromExternal(encryptedNoise, inputProof);
+        FHE.allowThis(score);
+
+        // Generate noise entirely on-chain — caller cannot control or predict this value.
+        euint64 noise = FHE.randEuint64(noiseUpperBound);
+        FHE.allowThis(noise);
 
         euint64 noisy = FHE.add(score, noise);
-        euint64 lowHandle = FHE.asEuint64(lowThreshold);
+        FHE.allowThis(noisy);
+
+        euint64 lowHandle  = FHE.asEuint64(lowThreshold);
         euint64 highHandle = FHE.asEuint64(highThreshold);
 
-        ebool isLow = FHE.lt(noisy, lowHandle);
+        ebool isLow    = FHE.lt(noisy, lowHandle);
         ebool belowHigh = FHE.lt(noisy, highHandle);
-        ebool isMedium = FHE.and(FHE.not(isLow), belowHigh);
+        ebool isMedium  = FHE.and(FHE.not(isLow), belowHigh);
 
-        euint8 lowCat = FHE.asEuint8(uint8(RiskCategory.Low));
+        euint8 lowCat    = FHE.asEuint8(uint8(RiskCategory.Low));
         euint8 mediumCat = FHE.asEuint8(uint8(RiskCategory.Medium));
-        euint8 highCat = FHE.asEuint8(uint8(RiskCategory.High));
+        euint8 highCat   = FHE.asEuint8(uint8(RiskCategory.High));
 
         euint8 category = FHE.select(
             isLow,

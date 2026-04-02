@@ -165,25 +165,30 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
   });
 
   describe("ResultOracle classification", function () {
-    async function deployOracle() {
+    // noiseUpperBound = 128 (2^7): noise ∈ [0, 128).
+    // FHE.randEuint64(bound) requires bound to be a power of two.
+    // All threshold tests use margins wider than 128 so the on-chain random noise
+    // cannot shift a score across a boundary — the classification is deterministic
+    // regardless of the noise value drawn.
+    const NOISE_BOUND = 128n; // 2^7
+
+    async function deployOracle(bound: bigint = NOISE_BOUND) {
       const Oracle = await ethers.getContractFactory("ResultOracle");
-      return Oracle.deploy();
+      return Oracle.deploy(bound);
     }
 
-    async function classifyWithEncryption(
+    async function classifyScore(
       oracle: Awaited<ReturnType<typeof deployOracle>>,
       score: bigint,
-      noise: bigint,
       lowThreshold: bigint,
       highThreshold: bigint
     ) {
       const [signer] = await ethers.getSigners();
       const oracleAddr = await oracle.getAddress();
 
-      // Encrypt score and noise in one batch
-      const enc = await encryptUint64Array(oracleAddr, signer.address, [score, noise]);
+      const enc = await encryptUint64Array(oracleAddr, signer.address, [score]);
       const tx = await oracle.classify(
-        enc.handles[0], enc.handles[1], enc.inputProof, lowThreshold, highThreshold
+        enc.handles[0], enc.inputProof, lowThreshold, highThreshold
       );
       const receipt = await tx.wait();
       const event = receipt!.logs.find(
@@ -193,30 +198,65 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       return debugDecryptUint8(categoryHandle);
     }
 
-    // low=10, high=20, noise=0 for all cases
-    it("classifies score below low threshold as Low (0)", async function () {
+    // Thresholds: low=1000, high=2000.  Margin on each side > NOISE_BOUND (100)
+    // so no random draw can flip the category.
+    it("classifies score well below low threshold as Low (0)", async function () {
       const oracle = await deployOracle();
-      const category = await classifyWithEncryption(oracle, 5n, 0n, 10n, 20n);
+      // score=500, noise∈[0,100) → noisy∈[500,600) — safely below 1000
+      const category = await classifyScore(oracle, 500n, 1000n, 2000n);
       expect(category).to.equal(0n); // Low
     });
 
-    it("classifies score between thresholds as Medium (1)", async function () {
+    it("classifies score well within medium band as Medium (1)", async function () {
       const oracle = await deployOracle();
-      const category = await classifyWithEncryption(oracle, 15n, 0n, 10n, 20n);
+      // score=1400, noise∈[0,100) → noisy∈[1400,1500) — safely in [1000,2000)
+      const category = await classifyScore(oracle, 1400n, 1000n, 2000n);
       expect(category).to.equal(1n); // Medium
     });
 
-    it("classifies score above high threshold as High (2)", async function () {
+    it("classifies score well above high threshold as High (2)", async function () {
       const oracle = await deployOracle();
-      const category = await classifyWithEncryption(oracle, 32n, 0n, 10n, 20n);
+      // score=2500, noise∈[0,100) → noisy∈[2500,2600) — safely above 2000
+      const category = await classifyScore(oracle, 2500n, 1000n, 2000n);
       expect(category).to.equal(2n); // High
     });
 
-    it("noise shifts score into next bucket", async function () {
+    it("noiseUpperBound is stored and readable", async function () {
+      const oracle = await deployOracle(512n); // 2^9
+      expect(await oracle.noiseUpperBound()).to.equal(512n);
+    });
+
+    it("rejects deployment with noiseUpperBound = 0", async function () {
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      await expect(Oracle.deploy(0n)).to.be.revertedWith("Noise bound must be a positive power of two");
+    });
+
+    it("rejects deployment with non-power-of-two noiseUpperBound", async function () {
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      await expect(Oracle.deploy(100n)).to.be.revertedWith("Noise bound must be a positive power of two");
+      await expect(Oracle.deploy(1000n)).to.be.revertedWith("Noise bound must be a positive power of two");
+    });
+
+    it("noise is added — noisy score exceeds raw score", async function () {
+      // Verify on-chain noise contributes: classify a score that sits in Low but
+      // check that the emitted noisyScore handle decrypts to a value >= raw score.
+      // Uses euint64 debug decrypt on the noisyScore field of the event.
       const oracle = await deployOracle();
-      // score=8 + noise=5 = 13, which is between 10 and 20 → Medium
-      const category = await classifyWithEncryption(oracle, 8n, 5n, 10n, 20n);
-      expect(category).to.equal(1n); // Medium
+      const [signer] = await ethers.getSigners();
+      const oracleAddr = await oracle.getAddress();
+      const rawScore = 300n;
+
+      const enc = await encryptUint64Array(oracleAddr, signer.address, [rawScore]);
+      const tx = await oracle.classify(enc.handles[0], enc.inputProof, 1000n, 2000n);
+      const receipt = await tx.wait();
+      const event = receipt!.logs.find(
+        (log: any) => oracle.interface.parseLog(log)?.name === "ResultClassified"
+      );
+      const parsed = oracle.interface.parseLog(event as any)!;
+      const noisyHandle = parsed.args.noisyScore;
+      const noisyValue = await debugDecryptUint64(noisyHandle);
+      // On-chain noise ∈ [0, 128) → noisy ∈ [300, 428) ≥ rawScore
+      expect(noisyValue).to.be.greaterThanOrEqual(rawScore);
     });
   });
 });

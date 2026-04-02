@@ -51,7 +51,7 @@ publishes it here.  The model goes through a **chunked lifecycle** rather than
 uploading all at once, because a 5000-weight array will not fit in a single
 transaction:
 
-```
+```text
 createModelShell(...)  →  appendPublicModelChunk() × N  →  finalizeModel()
 ```
 
@@ -82,7 +82,7 @@ These are the two correction constants that make V1 quantization work correctly
 This is the core contract.  It runs an encrypted dot product across multiple
 transactions using a state machine.  Each job goes through five phases:
 
-```
+```text
 createPRSJob(modelId, sampleId)
         ↓
 appendSnpChunk(jobId, encryptedSnps, inputProof)  × N
@@ -146,9 +146,26 @@ noise, and maps it to a risk category (`euint8` — low / medium / high).  This 
 only place a value becomes "publicly decryptable" — and only the category, never the
 raw score.
 
-**Known gap:** DP noise is currently caller-supplied.  A caller passing zero noise
-breaks the differential privacy guarantee.  On-chain noise generation is a tracked
-future item.
+**Noise is generated entirely on-chain.**  The constructor takes a `uint64 noiseUpperBound`
+(immutable; must be a positive power of two — required by the fhEVM coprocessor).  Every
+`classify()` call draws `noise = FHE.randEuint64(noiseUpperBound)`, which is uniform over
+`[0, noiseUpperBound)` and unknowable to the caller before the transaction is mined.
+
+```solidity
+euint64 noise = FHE.randEuint64(noiseUpperBound);
+FHE.allowThis(noise);
+euint64 noisy = FHE.add(score, noise);
+```
+
+The caller provides the encrypted score and thresholds but has zero influence over the
+noise value.  This closes the previous loophole where passing `encrypt(0)` as noise
+would silently defeat DP.
+
+**Why uniform noise, not Laplacian:** Formal DP requires Laplacian-calibrated noise.
+Generating it inside FHE requires an inverse-CDF approximation circuit — significant
+gate/HCU cost.  Uniform noise via `FHE.randEuint64` is a single precompile call,
+prevents the trivially-zero probe attack, and is honest about its weaker guarantee.
+Laplacian calibration is deferred to the research phase.
 
 ---
 
@@ -191,7 +208,7 @@ in three steps.
 
 Pick a scale (e.g. 3,000,000).  Multiply each float:
 
-```
+```text
 -0.31 → round(-0.31 × 3,000,000) = -930,000
 +0.08 → round(+0.08 × 3,000,000) = +240,000
 ```
@@ -202,7 +219,7 @@ Now you have signed integers `q_i`.
 
 Find the most negative weight and use it as the zero-point:
 
-```
+```text
 weightZeroPoint = -min(q_i)
 u_i = q_i + weightZeroPoint          (all u_i are now ≥ 0)
 ```
@@ -218,7 +235,7 @@ engine accumulates in parallel during `computeChunk`.
 The corrected score `raw_score_q = partialSum − weightZeroPoint × genoSum` can still
 be negative for a low-risk patient.  Compute the worst-case score:
 
-```
+```text
 raw_min = Σ(2 × min(q_i, 0))         (all dosages = 2, all weights negative)
 scoreOffset = −raw_min
 encodedScore = raw_score_q + scoreOffset    (always ≥ 0)
@@ -286,7 +303,7 @@ The probe tested five candidate chunk sizes systematically and found:
 | 25 | 75 | FAIL — `HCUTransactionLimitExceeded` |
 | 32 | 96 | FAIL — `HCUTransactionLimitExceeded` |
 
-**The mock HCU budget is ~60–74 ops/tx — not ~30 as previously documented.**  The
+**The mock HCU budget is ~60-74 ops/tx — not ~30 as previously documented.**  The
 prior claim was inferred by testing only chunkSize=32 (fail at 96 ops) against an
 assumed 30-op budget.  Nobody had tested the intermediate sizes.
 
@@ -312,7 +329,7 @@ the numbers used in gas and timing measurements are not those of real TFHE:
   mock's 6 ms per chunk will become minutes on Sepolia.
 - **Real precompile gas costs**: Zama's fhEVM precompiles have a different gas
   schedule than the mock.  Compute gas in particular will change significantly.
-- **Sepolia HCU ceiling**: the mock's ~60–74 ops/tx is a local development constant.
+- **Sepolia HCU ceiling**: the mock's ~60-74 ops/tx is a local development constant.
   The real Sepolia coprocessor may allow 300 or 1000 ops/tx.  At 300 ops, chunkSize
   could reach 100, dropping a 5000-SNP job from ~1000 transactions to ~100.  This is
   measured by `npm run probe:hcu` on Sepolia.

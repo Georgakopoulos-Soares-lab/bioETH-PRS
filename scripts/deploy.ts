@@ -54,10 +54,15 @@ async function main(): Promise<void> {
   const engineAddress = await engine.getAddress();
   console.log(engineAddress);
 
-  // 4. ResultOracle — inherits ZamaEthereumConfig, no other dependencies
+  // 4. ResultOracle — noiseUpperBound sets the DP noise scale.
+  //    Noise drawn on-chain from [0, noiseUpperBound) per classify() call.
+  //    Must be a power of two (fhEVM randBounded requirement).
+  //    2^20 = 1_048_576 ≈ 0.35 on the decoded float scale at scale=3,000,000 (100-SNP models).
+  //    Adjust per model after measuring real score distributions.
+  const NOISE_UPPER_BOUND: bigint = 1_048_576n; // 2^20
   process.stdout.write("Deploying ResultOracle      ... ");
   const Oracle = await ethers.getContractFactory("ResultOracle");
-  const oracle = await Oracle.deploy();
+  const oracle = await Oracle.deploy(NOISE_UPPER_BOUND);
   await oracle.waitForDeployment();
   const oracleAddress = await oracle.getAddress();
   console.log(oracleAddress);

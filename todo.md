@@ -12,7 +12,7 @@ The current implemented state is:
 - Contracts import from `@fhevm/solidity` (real Zama library) and inherit `ZamaEthereumConfig`
 - Local testing via `@fhevm/hardhat-plugin` mock coprocessor — validates handles, ACL, and input proofs while performing plaintext arithmetic
 - Same contract bytecode deploys to Sepolia for real FHE — no contract changes needed
-- **64 tests pass** under the mock coprocessor (~21s)
+- **67 tests pass** under the mock coprocessor (~20s)
 - **chunkSize = 10** default in all profiling and tests; **chunkSize = 20** confirmed safe on mock (systematic HCU probe, 2 Apr 2026)
 - **Mock HCU budget corrected**: ~60–74 ops/tx (not ~30 as previously stated); ceiling is chunkSize=20, not 10
 - HEPRS profiler captures both timing and gas per phase across all 4 fixtures
@@ -56,6 +56,17 @@ The current implemented state is:
 - `docs/onboarding/contributor-onboarding.md` — missing Step 4 fixed
 - `CLAUDE.md` — `profile:heprs` added to Build & Test section
 
+### ResultOracle DP hardening — on-chain noise (2 April 2026)
+
+- Removed caller-supplied `encryptedNoise` + `inputProof` from `classify()` — zero-noise loophole closed
+- `ResultOracle` constructor now takes `uint64 noiseUpperBound` (immutable); noise drawn via `FHE.randEuint64(noiseUpperBound)` per call
+- Caller retains control over noise *scale* (via `noiseUpperBound`) but has no control over the noise *value*
+- 5 new tests: wide-margin Low/Medium/High classification, `noiseUpperBound` readable, zero bound reverts, noisy ≥ raw score verified
+- `deploy.ts` updated: default `noiseUpperBound = 1_000_000` (~0.33 on decoded float scale at scale=3,000,000)
+- `docs/architecture-roadmap.md §7-D` updated: gap resolved, design rationale documented (uniform vs Laplacian, why no VRF/commitment)
+- `docs/design/v1/system-explainer.md` updated: ResultOracle section corrected
+- **Test count: 64 → 67 passing**
+
 ### Mock validation baseline + HCU systematic probe (2 April 2026)
 
 - `npm run validate:mock` — 100-SNP HEPRS fixture end-to-end PASS; score 758,685 matches expected; full gas/timing captured
@@ -97,23 +108,14 @@ After runs complete:
 - Update `docs/design/v1/snp-ingestion.md` "Chunk-size constraints" with real HCU ceiling
 - Move this item to Recently Completed
 
-### 3. Harden the DP / output story
+### 2. Decouple upload and compute chunk sizes
 
-The oracle still trusts caller-supplied noise.
-
-- Decide near-term DP posture: caller-supplied with guardrails / commitment-based / on-chain generated
-- Decide user-facing output policy: encrypted raw score (requester-only) vs risk category (public)
-- Zero-noise loophole must be addressed before making model-extraction claims
-- Tracked in `docs/architecture-roadmap.md §7-D`
-
-### 4. Decouple upload and compute chunk sizes
-
-Currently both use `chunkSize = 10` for uniformity.
+Blocked on Priority 1 (need real Sepolia HCU ceiling first).
 
 - Upload can safely handle up to 32 values per proof (2048-bit budget)
-- Compute is bound to 10 on the mock; real HCU ceiling on Sepolia is unknown
+- Compute ceiling on Sepolia is unknown — mock ceiling is 20
 - Decoupling reduces upload transactions by ~3× at no contract cost
-- Should be done after measuring real Sepolia HCU ceiling (Priority 1)
+- Do after `npm run probe:hcu` reveals the real compute ceiling
 
 ## Secondary Engineering Work
 
@@ -150,6 +152,12 @@ Currently both use `chunkSize = 10` for uniformity.
 - Quantify MSE, rank correlation, AUC or equivalent clinical utility measures
 - Cross-check formula against HEPRS paper Python reference with same betas / genotypes
 
+### DP calibration
+
+- Calibrate `noiseUpperBound` against real score distributions — what ratio of noise-to-range preserves clinical utility while resisting query-based reconstruction?
+- Formal DP analysis: uniform vs Laplacian noise, query budget, epsilon calibration
+- Noise bound is currently a deployer choice (`1_048_576` default in `deploy.ts`); needs empirical backing before model-extraction claims can be made
+
 ### Security analysis
 
 - Formalize threat model: model extraction, repeated query attacks, noisy categorical release, sample access abuse
@@ -169,6 +177,8 @@ Previously open questions that now have an implemented and tested answer:
 - Full profiling with timing + gas now exists in `reports/heprs-fixture-findings.md`
 - Chunk-size constraints (10 for compute, 32 for upload) are empirically confirmed and documented
 - Mock vs real fhEVM distinction is clearly documented and the contracts are ready for Sepolia without code changes
+- ResultOracle zero-noise loophole closed: noise is now generated on-chain via `FHE.randEuint64(noiseUpperBound)`; caller has no influence over the noise value
+- Output policy decided: `euint8` risk category is `makePubliclyDecryptable`; raw `euint64` scores remain requester-only (ACL-gated via `FHE.allow`)
 
 ## Keep This File Useful
 
