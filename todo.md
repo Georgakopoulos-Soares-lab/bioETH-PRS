@@ -12,7 +12,7 @@ The current implemented state is:
 - Contracts import from `@fhevm/solidity` (real Zama library) and inherit `ZamaEthereumConfig`
 - Local testing via `@fhevm/hardhat-plugin` mock coprocessor — validates handles, ACL, and input proofs while performing plaintext arithmetic
 - Same contract bytecode deploys to Sepolia for real FHE — no contract changes needed
-- **67 tests pass** under the mock coprocessor (~20s)
+- **69 tests pass** under the mock coprocessor (~20s)
 - **chunkSize = 10** default in all profiling and tests; **chunkSize = 20** confirmed safe on mock (systematic HCU probe, 2 Apr 2026)
 - **Mock HCU budget corrected**: ~60–74 ops/tx (not ~30 as previously stated); ceiling is chunkSize=20, not 10
 - HEPRS profiler captures both timing and gas per phase across all 4 fixtures

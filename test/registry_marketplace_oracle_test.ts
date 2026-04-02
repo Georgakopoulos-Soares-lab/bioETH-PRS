@@ -259,4 +259,154 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       expect(noisyValue).to.be.greaterThanOrEqual(rawScore);
     });
   });
+
+  describe("PRSComputeEngine → ResultOracle end-to-end", function () {
+    // This describe block tests the full pipeline: an encrypted score produced by
+    // the compute engine is re-encrypted for the oracle and classified.
+    //
+    // On mock, re-encryption is done by decrypting the engine output (debug-only)
+    // and re-encrypting it targeting the oracle address.  On Sepolia the patient
+    // would perform this step using their re-encryption key via fhevm.userDecryptEuint
+    // and then fhevm.createEncryptedInput targeting the oracle.
+    //
+    // noiseUpperBound = 128 (2^7).  Thresholds use margins ≥ 200 so the noise
+    // cannot flip the category regardless of which value in [0, 128) is drawn.
+
+    it("classifies an engine-produced score correctly (full pipeline)", async function () {
+      const [signer] = await ethers.getSigners();
+
+      // --- 1. Publish a simple public model ---
+      // weights = [1, 2, 3], weightZeroPoint = 0, scoreOffset = 0
+      // dot product with snps [4, 5, 6] = 4 + 10 + 18 = 32
+      const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+      const marketplace = await Marketplace.deploy();
+      const modelId = await marketplace.createModelShell.staticCall(
+        false, 3n, 2n, "ipfs://oracle-e2e",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.createModelShell(
+        false, 3n, 2n, "ipfs://oracle-e2e",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
+      await marketplace.appendPublicModelChunk(modelId, [3n]);
+      await marketplace.finalizeModel(modelId);
+
+      // --- 2. Register sample and run the PRS job ---
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const sampleId = await registry.registerSample.staticCall("ipfs://e2e-sample");
+      await registry.registerSample("ipfs://e2e-sample");
+
+      const Engine = await ethers.getContractFactory("PRSComputeEngine");
+      const engine = await Engine.deploy(
+        await marketplace.getAddress(), await registry.getAddress()
+      );
+      const engineAddr = await engine.getAddress();
+
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+
+      // Upload SNPs [4, 5, 6] in chunks of 2 (matching the model's chunkSize)
+      const snps = [4n, 5n, 6n];
+      for (const chunk of chunkArray(snps, 2)) {
+        const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
+        await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+      }
+      await engine.finalizeSnpUpload(jobId);
+      await engine.computeChunk(jobId); // chunk 0: 4×1 + 5×2 = 14
+      await engine.computeChunk(jobId); // chunk 1: 6×3 = 18 → total 32
+
+      // --- 3. Finalize and capture the encrypted score handle ---
+      const engineTx = await engine.finalize(jobId);
+      const engineReceipt = await engineTx.wait();
+      const finalEvent = engineReceipt!.logs.find(
+        (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+      );
+      const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+
+      // --- 4. Mock-only: debug-decrypt, then re-encrypt targeting the oracle ---
+      // On Sepolia this step uses fhevm.userDecryptEuint (KMS re-encryption).
+      const plainScore = await debugDecryptUint64(scoreHandle);
+      expect(plainScore).to.equal(32n); // sanity-check the engine output
+
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      const oracle = await Oracle.deploy(128n); // 2^7 noise bound
+      const oracleAddr = await oracle.getAddress();
+
+      const oracleEnc = await encryptUint64Array(oracleAddr, signer.address, [plainScore]);
+
+      // --- 5. Classify: score=32, noise ∈ [0,128) → noisy ∈ [32,160) ---
+      // Thresholds: low=200, high=400 → noisy < 200 → always Low
+      const oracleTx = await oracle.classify(
+        oracleEnc.handles[0], oracleEnc.inputProof, 200n, 400n
+      );
+      const oracleReceipt = await oracleTx.wait();
+      const classifyEvent = oracleReceipt!.logs.find(
+        (log: any) => oracle.interface.parseLog(log)?.name === "ResultClassified"
+      );
+      const categoryHandle = oracle.interface.parseLog(classifyEvent as any)!.args.category;
+      expect(await debugDecryptUint8(categoryHandle)).to.equal(0n); // Low
+    });
+
+    it("classifies a high-risk engine score as High", async function () {
+      const [signer] = await ethers.getSigners();
+
+      // weights = [100, 100], snps = [2, 2] → score = 400
+      // weightZeroPoint = 0, scoreOffset = 0
+      const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+      const marketplace = await Marketplace.deploy();
+      const modelId = await marketplace.createModelShell.staticCall(
+        false, 2n, 2n, "ipfs://high-risk", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.createModelShell(
+        false, 2n, 2n, "ipfs://high-risk", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.appendPublicModelChunk(modelId, [100n, 100n]);
+      await marketplace.finalizeModel(modelId);
+
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const sampleId = await registry.registerSample.staticCall("ipfs://high-risk-sample");
+      await registry.registerSample("ipfs://high-risk-sample");
+
+      const Engine = await ethers.getContractFactory("PRSComputeEngine");
+      const engine = await Engine.deploy(
+        await marketplace.getAddress(), await registry.getAddress()
+      );
+      const engineAddr = await engine.getAddress();
+
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+      const enc = await encryptUint64Array(engineAddr, signer.address, [2n, 2n]);
+      await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+      await engine.finalizeSnpUpload(jobId);
+      await engine.computeChunk(jobId);
+
+      const tx = await engine.finalize(jobId);
+      const receipt = await tx.wait();
+      const finalEvent = receipt!.logs.find(
+        (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+      );
+      const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+      const plainScore = await debugDecryptUint64(scoreHandle);
+      expect(plainScore).to.equal(400n);
+
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      const oracle = await Oracle.deploy(128n);
+      const oracleAddr = await oracle.getAddress();
+      const oracleEnc = await encryptUint64Array(oracleAddr, signer.address, [plainScore]);
+
+      // score=400, noise ∈ [0,128) → noisy ∈ [400,528) — safely above highThreshold=300
+      const oracleTx = await oracle.classify(
+        oracleEnc.handles[0], oracleEnc.inputProof, 100n, 300n
+      );
+      const oracleReceipt = await oracleTx.wait();
+      const classifyEvent = oracleReceipt!.logs.find(
+        (log: any) => oracle.interface.parseLog(log)?.name === "ResultClassified"
+      );
+      const categoryHandle = oracle.interface.parseLog(classifyEvent as any)!.args.category;
+      expect(await debugDecryptUint8(categoryHandle)).to.equal(2n); // High
+    });
+  });
 });
