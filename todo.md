@@ -17,7 +17,7 @@ Implemented and tested:
 - Upload and compute chunk sizes decoupled: `uploadChunkSize=32`, `computeChunkSize=20`
 - Flat weight and SNP storage; `getPublicWeightChunk` slices by `computeChunkSize`
 - Registry ACL enforced at `createPRSJob`; permissionless `computeChunk` relay documented
-- Mock HCU ceiling confirmed at 20 SNPs/tx (60–74 ops/tx budget); real Sepolia ceiling TBD
+- Mock HCU ceiling confirmed at 20 SNPs/tx (60-74 ops/tx budget); real Sepolia ceiling TBD
 - `reports/mock-validation-findings.md` — 100-SNP end-to-end PASS, gas/timing baseline
 - Sepolia tooling complete: `deploy.ts`, `sepolia_validation.ts`, `probe_hcu_ceiling.ts`
 
@@ -104,4 +104,3 @@ are in hand, or when the paper needs evidence for a specific claim.
 - Formalize threat model: model extraction, repeated queries, noisy categorical release,
   sample access abuse
 - Document which protections are implemented, which are assumed, and which are future work
-
