@@ -15,6 +15,7 @@ This directory is organized by purpose so collaborators can find the right level
 - [`onboarding/concepts-cheatsheet.md`](onboarding/concepts-cheatsheet.md): quick concept reference
 - [`onboarding/e2e-walkthrough-short.md`](onboarding/e2e-walkthrough-short.md): short end-to-end scenario
 - [`onboarding/e2e-walkthrough-long.md`](onboarding/e2e-walkthrough-long.md): detailed end-to-end walkthrough
+- [`onboarding/e2e-walkthrough-contract-grounded.md`](onboarding/e2e-walkthrough-contract-grounded.md): full contract-grounded end-to-end example with real `v1` state, permissions, quantization, and oracle handoff
 
 ## Design
 

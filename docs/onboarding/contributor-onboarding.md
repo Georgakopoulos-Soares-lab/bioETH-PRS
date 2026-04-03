@@ -183,7 +183,7 @@ This is called a **Model Extraction Attack**.  DP noise thwarts it by making the
 
 The noise the paper uses is **Gaussian** (bell-curve shaped).  The amount of noise needed to achieve a given privacy guarantee $\varepsilon$ (epsilon — smaller = more private but less accurate) is called the **sensitivity** of the query.
 
-> **Important caveat in the current code:** The `ResultOracle.classify()` function *accepts* the noise ciphertext as a caller-supplied parameter.  A honest caller should generate proper Gaussian noise off-chain using `fhevmjs` and encrypt it; a malicious caller could pass zero noise.  On-chain noise generation using `FHE.randEuint64()` is on the roadmap.
+> **Current code status:** The old caller-supplied-noise design has been removed.  `ResultOracle` now generates bounded uniform noise on-chain via `FHE.randEuint64(noiseUpperBound)`, so the caller no longer controls the sampled noise value.  The remaining practical limitation is the engine-to-oracle handoff: the user still has to obtain the engine score through the authorized decrypt / re-encrypt path and then submit a fresh encrypted input to the oracle.
 
 ---
 
@@ -296,10 +296,10 @@ The layer separation matters because:
  7. Client calls finalize                         PRSComputeEngine.finalize(jobId)
     → receives euint64 handle                     → FHE.allow(partialSum, client)
 
- 8. Client passes handle to ResultOracle          ResultOracle.classify(
-    (with noise ciphertext)                         encryptedScore, encryptedNoise,
-                                                    lowThreshold, highThreshold)
-    → receives euint8 category handle             → FHE.makePubliclyDecryptable(category)
+ 8. Client re-encrypts score for oracle          ResultOracle.classify(
+    (fresh oracle input + proof)                   encryptedScore, inputProof,
+                                                   lowThreshold, highThreshold)
+    → receives euint8 category handle            → FHE.makePubliclyDecryptable(category)
 
  9. Client calls gateway                          Gateway decrypts category
     (via fhevmjs re-encryption)                   → returns uint8 (0=Low,1=Med,2=High)
@@ -445,8 +445,8 @@ For new feature work, **prefer `PRSComputeEngine`** as it integrates with the fu
 
 ```solidity
 function classify(
-    euint64 encryptedScore,    // output of finalize()
-    euint64 encryptedNoise,    // caller-supplied DP noise
+    externalEuint64 encryptedScore, // user-supplied encrypted oracle input
+    bytes inputProof,               // fhEVM proof for encryptedScore
     uint64 lowThreshold,       // plaintext threshold (quantized)
     uint64 highThreshold       // plaintext threshold (quantized)
 ) external returns (euint8)
@@ -454,10 +454,12 @@ function classify(
 
 **What happens inside:**
 
-1. `noisy = FHE.add(encryptedScore, encryptedNoise)`
-2. `isLow = FHE.lt(noisy, lowThreshold)` — encrypted boolean
-3. `isMedium = FHE.and(FHE.not(isLow), FHE.lt(noisy, highThreshold))`
-4. `category = FHE.select(isLow, 0, FHE.select(isMedium, 1, 2))`
+1. `score = FHE.fromExternal(encryptedScore, inputProof)` imports the encrypted score
+2. `noise = FHE.randEuint64(noiseUpperBound)` samples on-chain random noise
+3. `noisy = FHE.add(score, noise)`
+4. `isLow = FHE.lt(noisy, lowThreshold)` — encrypted boolean
+5. `isMedium = FHE.and(FHE.not(isLow), FHE.lt(noisy, highThreshold))`
+6. `category = FHE.select(isLow, 0, FHE.select(isMedium, 1, 2))`
 5. `FHE.makePubliclyDecryptable(category)` — publishes decrypt permission
 
 All comparisons and selections happen inside the FHE domain — no plaintext score is ever revealed.

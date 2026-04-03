@@ -147,7 +147,7 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 
 ### 6-B. Medium-term
 
-1. **On-chain Noise Generation:** Explore using fhEVM's `FHE.randEuint64()` (or a VRF-seeded encrypted random) to generate DP noise trustlessly, rather than accepting it from the caller.
+1. ~~**On-chain Noise Generation**~~ ✓ Implemented: `ResultOracle` now samples bounded noise internally with `FHE.randEuint64(noiseUpperBound)`. The remaining follow-on work is calibration and formal analysis, not basic caller-controlled-noise removal.
 2. **Bit-Depth Optimization:** Implement `euint16` intermediate accumulators with widening adds to reduce per-`fheMul` gas.
 3. **SIMD / Slot Packing:** Batch multiple SNPs per ciphertext to amortize FHE overhead.
 4. **Marketplace Enhancements:** Add model pricing/fees (ERC-20 or native), model update/deprecation, and versioning.

@@ -142,8 +142,8 @@ Use the more specific docs for details:
 
 Important unresolved items remain outside this target:
 
-- `GenomicRegistry` ACL is not yet enforced inside job creation
-- DP noise is still caller-supplied in `ResultOracle`
+- `GenomicRegistry` ACL is now enforced at job creation, but the contract still does not verify that submitted SNP ciphertexts match the registered sample URI
+- `ResultOracle` now generates noise on-chain, but the engine-to-oracle handoff still relies on the user's decrypt / re-encrypt path
 - no pricing / fee layer exists
 - no model deprecation / versioning semantics exist yet
 - mock-mode behavior still needs real fhEVM / Sepolia validation

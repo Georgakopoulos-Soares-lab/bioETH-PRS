@@ -172,7 +172,9 @@ noise, and classifies into Low / Medium / High — all without decrypting.
 **What to trace in `classify`:**
 
 ```
-noisy = FHE.add(encryptedScore, encryptedNoise)     ← DP noise injection
+score = FHE.fromExternal(encryptedScore, inputProof)
+noise = FHE.randEuint64(noiseUpperBound)            ← on-chain DP noise
+noisy = FHE.add(score, noise)
 isLow    = FHE.lt(noisy, lowThreshold)
 belowHigh = FHE.lt(noisy, highThreshold)
 isMedium = FHE.and(FHE.not(isLow), belowHigh)

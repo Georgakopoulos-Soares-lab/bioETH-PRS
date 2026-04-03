@@ -210,7 +210,10 @@ But the value 13 is still hidden.
 
 ## Step 9: Alice sends score to ResultOracle
 
-Alice calls: `classify(encryptedScore, encryptedNoise, lowThreshold, highThreshold)`
+Alice first obtains the engine score through the authorized decrypt / re-encrypt
+path, then calls:
+
+`classify(encryptedScore, inputProof, lowThreshold, highThreshold)`
 
 Example thresholds:
 
