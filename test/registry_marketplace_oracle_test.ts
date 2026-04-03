@@ -58,14 +58,14 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       const Marketplace = await ethers.getContractFactory("ModelMarketplace");
       const marketplace = await Marketplace.deploy();
 
-      // weights = [1, 2, 3], snps = [4, 5, 6], chunkSize = 2
+      // weights = [1, 2, 3], snps = [4, 5, 6], uploadChunkSize=2, computeChunkSize=2
       // expected: 4*1 + 5*2 + 6*3 = 4 + 10 + 18 = 32
       const modelId = await marketplace.createModelShell.staticCall(
-        false, 3n, 2n, "ipfs://manifest",
+        false, 3n, 2n, 2n, "ipfs://manifest",
         ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
       await marketplace.createModelShell(
-        false, 3n, 2n, "ipfs://manifest",
+        false, 3n, 2n, 2n, "ipfs://manifest",
         ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
       await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
@@ -115,11 +115,11 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       const mpAddr = await marketplace.getAddress();
 
       const modelId = await marketplace.createModelShell.staticCall(
-        true, 3n, 2n, "ipfs://private-manifest",
+        true, 3n, 2n, 2n, "ipfs://private-manifest",
         ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
       await marketplace.createModelShell(
-        true, 3n, 2n, "ipfs://private-manifest",
+        true, 3n, 2n, 2n, "ipfs://private-manifest",
         ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
 
@@ -281,11 +281,11 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       const Marketplace = await ethers.getContractFactory("ModelMarketplace");
       const marketplace = await Marketplace.deploy();
       const modelId = await marketplace.createModelShell.staticCall(
-        false, 3n, 2n, "ipfs://oracle-e2e",
+        false, 3n, 2n, 2n, "ipfs://oracle-e2e",
         ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
       await marketplace.createModelShell(
-        false, 3n, 2n, "ipfs://oracle-e2e",
+        false, 3n, 2n, 2n, "ipfs://oracle-e2e",
         ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
       await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
@@ -357,10 +357,10 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       const Marketplace = await ethers.getContractFactory("ModelMarketplace");
       const marketplace = await Marketplace.deploy();
       const modelId = await marketplace.createModelShell.staticCall(
-        false, 2n, 2n, "ipfs://high-risk", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+        false, 2n, 2n, 2n, "ipfs://high-risk", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
       await marketplace.createModelShell(
-        false, 2n, 2n, "ipfs://high-risk", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+        false, 2n, 2n, 2n, "ipfs://high-risk", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
       await marketplace.appendPublicModelChunk(modelId, [100n, 100n]);
       await marketplace.finalizeModel(modelId);

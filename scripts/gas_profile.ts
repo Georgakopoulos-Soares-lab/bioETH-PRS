@@ -1,7 +1,11 @@
 import { ethers, fhevm } from "hardhat";
 
 const DEFAULT_SNP_COUNTS = [100, 300, 600];
-const DEFAULT_CHUNK_SIZE = 10;
+// Decoupled chunk sizes:
+//   uploadChunkSize=32 — 2048-bit input-proof budget (max 32 euint64s per call)
+//   computeChunkSize=10 — HCU-safe on mock; Sepolia ceiling TBD (run probe:hcu)
+const DEFAULT_UPLOAD_CHUNK_SIZE = 32;
+const DEFAULT_COMPUTE_CHUNK_SIZE = 10;
 const DEFAULT_GAS_PRICE_GWEI = "30";
 
 const chunkArray = <T>(values: T[], chunkSize: number): T[][] => {
@@ -12,7 +16,7 @@ const chunkArray = <T>(values: T[], chunkSize: number): T[][] => {
   return chunks;
 };
 
-async function profile(n: number, chunkSize: number, gasPriceGwei: string) {
+async function profile(n: number, uploadChunkSize: number, computeChunkSize: number, gasPriceGwei: string) {
   const Marketplace = await ethers.getContractFactory("ModelMarketplace");
   const marketplace = await Marketplace.deploy();
 
@@ -29,7 +33,8 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string) {
   const modelId = await marketplace.createModelShell.staticCall(
     false,
     BigInt(weights.length),
-    BigInt(chunkSize),
+    BigInt(uploadChunkSize),
+    BigInt(computeChunkSize),
     `ipfs://gas-profile/${n}`,
     ethers.ZeroHash,
     ethers.ZeroHash,
@@ -39,7 +44,8 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string) {
   const shellTx = await marketplace.createModelShell(
     false,
     BigInt(weights.length),
-    BigInt(chunkSize),
+    BigInt(uploadChunkSize),
+    BigInt(computeChunkSize),
     `ipfs://gas-profile/${n}`,
     ethers.ZeroHash,
     ethers.ZeroHash,
@@ -48,7 +54,7 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string) {
   );
   let publishGas = (await shellTx.wait())?.gasUsed ?? 0n;
 
-  for (const chunk of chunkArray(weights, chunkSize)) {
+  for (const chunk of chunkArray(weights, uploadChunkSize)) {
     const tx = await marketplace.appendPublicModelChunk(modelId, chunk);
     publishGas += (await tx.wait())?.gasUsed ?? 0n;
   }
@@ -65,7 +71,7 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string) {
   const engineAddr = await engine.getAddress();
 
   let snpUploadGas = 0n;
-  for (const chunk of chunkArray(snps, chunkSize)) {
+  for (const chunk of chunkArray(snps, uploadChunkSize)) {
     const input = fhevm.createEncryptedInput(engineAddr, signer.address);
     for (const v of chunk) input.add64(v);
     const { handles, inputProof } = await input.encrypt();
@@ -77,7 +83,7 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string) {
   snpUploadGas += (await finalizeSnpTx.wait())?.gasUsed ?? 0n;
 
   let computeGas = 0n;
-  const chunks = Math.ceil(n / chunkSize);
+  const chunks = Math.ceil(n / computeChunkSize);
   for (let i = 0; i < chunks; i++) {
     const tx = await engine.computeChunk(jobId);
     computeGas += (await tx.wait())?.gasUsed ?? 0n;
@@ -89,7 +95,8 @@ async function profile(n: number, chunkSize: number, gasPriceGwei: string) {
 
   return {
     n,
-    chunkSize,
+    uploadChunkSize,
+    computeChunkSize,
     chunks,
     publishGas,
     createJobGas,
@@ -108,18 +115,20 @@ describe("Gas profile — synthetic SNP counts", function () {
     const counts = process.env.SNP_COUNTS
       ? process.env.SNP_COUNTS.split(",").map((value) => Number(value.trim()))
       : DEFAULT_SNP_COUNTS;
-    const chunkSize = process.env.CHUNK_SIZE ? Number(process.env.CHUNK_SIZE) : DEFAULT_CHUNK_SIZE;
+    const uploadChunkSize = process.env.UPLOAD_CHUNK_SIZE ? Number(process.env.UPLOAD_CHUNK_SIZE) : DEFAULT_UPLOAD_CHUNK_SIZE;
+    const computeChunkSize = process.env.COMPUTE_CHUNK_SIZE ? Number(process.env.COMPUTE_CHUNK_SIZE) : DEFAULT_COMPUTE_CHUNK_SIZE;
     const gasPriceGwei = process.env.GAS_PRICE_GWEI ?? DEFAULT_GAS_PRICE_GWEI;
 
     const results = [];
     for (const count of counts) {
-      results.push(await profile(count, chunkSize, gasPriceGwei));
+      results.push(await profile(count, uploadChunkSize, computeChunkSize, gasPriceGwei));
     }
 
     for (const result of results) {
       console.log("\n=== Gas Profile ===");
       console.log(`SNPs: ${result.n}`);
-      console.log(`Chunk size: ${result.chunkSize}`);
+      console.log(`Upload chunk size: ${result.uploadChunkSize}`);
+      console.log(`Compute chunk size: ${result.computeChunkSize}`);
       console.log(`Chunks: ${result.chunks}`);
       console.log(`Model publish gas: ${result.publishGas}`);
       console.log(`Job create gas: ${result.createJobGas}`);

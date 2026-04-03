@@ -5,14 +5,26 @@ import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @title ModelMarketplace - Chunked GWAS model publication for public and private weights.
+///
+/// Chunk sizes are decoupled:
+///   uploadChunkSize  — maximum weights per appendPublicModelChunk / appendEncryptedModelChunk call.
+///                      For public models this is unconstrained; for private models it is limited
+///                      by the fhEVM 2048-bit input-proof budget (max 32 euint64s per call).
+///   computeChunkSize — weights per getPublicWeightChunk / getEncryptedWeightChunk call, which maps
+///                      1:1 to the PRSComputeEngine computeChunk HCU budget.
+///                      Mock ceiling: 20. Sepolia ceiling: TBD (run `npm run probe:hcu`).
+///
+/// Weights are stored flat (one contiguous array per model) and sliced by computeChunkSize on read.
+/// This lets model publishers use large upload batches while compute remains within HCU limits.
 contract ModelMarketplace is ZamaEthereumConfig {
     struct ModelHeader {
         address owner;
         bool isPrivate;
         bool finalized;
         uint256 weightCount;
-        uint256 chunkSize;
-        uint256 chunkCount;
+        uint256 uploadChunkSize;   // batch size for weight publication
+        uint256 computeChunkSize;  // slice size for weight retrieval during compute
+        uint256 chunkCount;        // = ceil(weightCount / computeChunkSize)
         uint256 uploadedWeightCount;
         string manifestURI;
         bytes32 manifestHash;
@@ -22,9 +34,9 @@ contract ModelMarketplace is ZamaEthereumConfig {
     }
 
     ModelHeader[] private modelHeaders;
-    mapping(uint256 => mapping(uint256 => uint64[])) private publicWeightChunks;
-    mapping(uint256 => mapping(uint256 => euint64[]))
-        private encryptedWeightChunks;
+    // Flat per-model weight storage — indexed by absolute weight position.
+    mapping(uint256 => uint64[]) private publicWeightData;
+    mapping(uint256 => euint64[]) private encryptedWeightData;
     mapping(uint256 => mapping(address => bool)) private privateChunkReaders;
 
     event ModelShellCreated(
@@ -32,7 +44,8 @@ contract ModelMarketplace is ZamaEthereumConfig {
         address indexed owner,
         bool isPrivate,
         uint256 weightCount,
-        uint256 chunkSize
+        uint256 uploadChunkSize,
+        uint256 computeChunkSize
     );
     event PublicModelChunkAppended(
         uint256 indexed modelId,
@@ -54,7 +67,8 @@ contract ModelMarketplace is ZamaEthereumConfig {
     function createModelShell(
         bool isPrivate,
         uint256 weightCount,
-        uint256 chunkSize,
+        uint256 uploadChunkSize,
+        uint256 computeChunkSize,
         string calldata manifestURI,
         bytes32 manifestHash,
         bytes32 sourceModelHash,
@@ -62,16 +76,18 @@ contract ModelMarketplace is ZamaEthereumConfig {
         uint64 scoreOffset
     ) external returns (uint256) {
         require(weightCount > 0, "Weight count must be > 0");
-        require(chunkSize > 0, "Chunk size must be > 0");
+        require(uploadChunkSize > 0, "Upload chunk size must be > 0");
+        require(computeChunkSize > 0, "Compute chunk size must be > 0");
 
-        uint256 chunkCount = (weightCount + chunkSize - 1) / chunkSize;
+        uint256 chunkCount = (weightCount + computeChunkSize - 1) / computeChunkSize;
         modelHeaders.push(
             ModelHeader({
                 owner: msg.sender,
                 isPrivate: isPrivate,
                 finalized: false,
                 weightCount: weightCount,
-                chunkSize: chunkSize,
+                uploadChunkSize: uploadChunkSize,
+                computeChunkSize: computeChunkSize,
                 chunkCount: chunkCount,
                 uploadedWeightCount: 0,
                 manifestURI: manifestURI,
@@ -92,7 +108,8 @@ contract ModelMarketplace is ZamaEthereumConfig {
             msg.sender,
             isPrivate,
             weightCount,
-            chunkSize
+            uploadChunkSize,
+            computeChunkSize
         );
         return modelId;
     }
@@ -104,15 +121,15 @@ contract ModelMarketplace is ZamaEthereumConfig {
         ModelHeader storage model = _requireOwnedDraftModel(modelId);
         require(!model.isPrivate, "Model is private");
 
-        uint256 chunkIndex = _nextChunkIndex(model);
-        uint256 expectedLength = _expectedNextChunkLength(model);
+        uint256 chunkIndex = _nextUploadChunkIndex(model);
+        uint256 expectedLength = _expectedNextUploadChunkLength(model);
         require(expectedLength > 0, "All chunks uploaded");
         require(weights.length == expectedLength, "Invalid chunk length");
 
-        uint64[] storage chunk = publicWeightChunks[modelId][chunkIndex];
-        require(chunk.length == 0, "Chunk already uploaded");
+        uint64[] storage store = publicWeightData[modelId];
+        require(store.length == chunkIndex * model.uploadChunkSize, "Chunk already uploaded");
         for (uint256 i = 0; i < weights.length; i++) {
-            chunk.push(weights[i]);
+            store.push(weights[i]);
         }
 
         model.uploadedWeightCount += weights.length;
@@ -127,20 +144,20 @@ contract ModelMarketplace is ZamaEthereumConfig {
         ModelHeader storage model = _requireOwnedDraftModel(modelId);
         require(model.isPrivate, "Model is public");
 
-        uint256 chunkIndex = _nextChunkIndex(model);
-        uint256 expectedLength = _expectedNextChunkLength(model);
+        uint256 chunkIndex = _nextUploadChunkIndex(model);
+        uint256 expectedLength = _expectedNextUploadChunkLength(model);
         require(expectedLength > 0, "All chunks uploaded");
         require(
             encryptedWeights.length == expectedLength,
             "Invalid chunk length"
         );
 
-        euint64[] storage chunk = encryptedWeightChunks[modelId][chunkIndex];
-        require(chunk.length == 0, "Chunk already uploaded");
+        euint64[] storage store = encryptedWeightData[modelId];
+        require(store.length == chunkIndex * model.uploadChunkSize, "Chunk already uploaded");
         for (uint256 i = 0; i < encryptedWeights.length; i++) {
             euint64 w = FHE.fromExternal(encryptedWeights[i], inputProof);
             FHE.allowThis(w);
-            chunk.push(w);
+            store.push(w);
         }
 
         model.uploadedWeightCount += encryptedWeights.length;
@@ -201,7 +218,8 @@ contract ModelMarketplace is ZamaEthereumConfig {
             bool isPrivate,
             bool finalized,
             uint256 weightCount,
-            uint256 chunkSize,
+            uint256 uploadChunkSize,
+            uint256 computeChunkSize,
             uint256 chunkCount,
             uint64 weightZeroPoint,
             uint64 scoreOffset
@@ -213,7 +231,8 @@ contract ModelMarketplace is ZamaEthereumConfig {
             model.isPrivate,
             model.finalized,
             model.weightCount,
-            model.chunkSize,
+            model.uploadChunkSize,
+            model.computeChunkSize,
             model.chunkCount,
             model.weightZeroPoint,
             model.scoreOffset
@@ -230,7 +249,8 @@ contract ModelMarketplace is ZamaEthereumConfig {
             bool isPrivate,
             bool finalized,
             uint256 weightCount,
-            uint256 chunkSize,
+            uint256 uploadChunkSize,
+            uint256 computeChunkSize,
             uint256 chunkCount,
             uint256 uploadedWeightCount,
             string memory manifestURI,
@@ -247,7 +267,8 @@ contract ModelMarketplace is ZamaEthereumConfig {
             model.isPrivate,
             model.finalized,
             model.weightCount,
-            model.chunkSize,
+            model.uploadChunkSize,
+            model.computeChunkSize,
             model.chunkCount,
             model.uploadedWeightCount,
             model.manifestURI,
@@ -258,61 +279,97 @@ contract ModelMarketplace is ZamaEthereumConfig {
         );
     }
 
+    /// @notice Returns a compute-chunk-sized slice of public weights at the given compute chunk index.
     function getPublicWeightChunk(
         uint256 modelId,
-        uint256 chunkIndex
+        uint256 computeChunkIndex
     ) external view returns (uint64[] memory) {
         require(modelId < modelHeaders.length, "Invalid model");
         ModelHeader storage model = modelHeaders[modelId];
         require(!model.isPrivate, "Model is private");
-        require(chunkIndex < model.chunkCount, "Invalid chunk");
+        require(computeChunkIndex < model.chunkCount, "Invalid chunk");
 
-        uint64[] storage chunk = publicWeightChunks[modelId][chunkIndex];
-        require(chunk.length > 0, "Chunk not uploaded");
-        return chunk;
+        uint256 start = computeChunkIndex * model.computeChunkSize;
+        uint256 chunkLen = _computeChunkLength(
+            model.weightCount,
+            model.computeChunkSize,
+            computeChunkIndex
+        );
+        require(
+            publicWeightData[modelId].length >= start + chunkLen,
+            "Chunk not uploaded"
+        );
+
+        uint64[] memory result = new uint64[](chunkLen);
+        for (uint256 i = 0; i < chunkLen; i++) {
+            result[i] = publicWeightData[modelId][start + i];
+        }
+        return result;
     }
 
     function getEncryptedWeightChunk(
         uint256 modelId,
-        uint256 chunkIndex
+        uint256 computeChunkIndex
     ) external returns (euint64[] memory) {
         require(modelId < modelHeaders.length, "Invalid model");
         ModelHeader storage model = modelHeaders[modelId];
         require(model.isPrivate, "Model is public");
-        require(chunkIndex < model.chunkCount, "Invalid chunk");
+        require(computeChunkIndex < model.chunkCount, "Invalid chunk");
         require(
             _canReadPrivateModel(modelId, msg.sender),
             "Reader not authorized"
         );
 
-        euint64[] storage chunk = encryptedWeightChunks[modelId][chunkIndex];
-        require(chunk.length > 0, "Chunk not uploaded");
+        uint256 start = computeChunkIndex * model.computeChunkSize;
+        uint256 chunkLen = _computeChunkLength(
+            model.weightCount,
+            model.computeChunkSize,
+            computeChunkIndex
+        );
+        require(
+            encryptedWeightData[modelId].length >= start + chunkLen,
+            "Chunk not uploaded"
+        );
 
-        // Grant FHE ACL to the caller so it can use these handles in FHE ops
-        for (uint256 i = 0; i < chunk.length; i++) {
-            FHE.allow(chunk[i], msg.sender);
+        euint64[] memory result = new euint64[](chunkLen);
+        for (uint256 i = 0; i < chunkLen; i++) {
+            result[i] = encryptedWeightData[modelId][start + i];
+            FHE.allow(result[i], msg.sender);
         }
-        return chunk;
+        return result;
     }
 
     /// @notice View-only getter for encrypted weight handles (no ACL grant).
     /// Use for debug/test decrypt only — caller won't have FHE permission on returned handles.
     function getEncryptedWeightChunkHandles(
         uint256 modelId,
-        uint256 chunkIndex
+        uint256 computeChunkIndex
     ) external view returns (euint64[] memory) {
         require(modelId < modelHeaders.length, "Invalid model");
         ModelHeader storage model = modelHeaders[modelId];
         require(model.isPrivate, "Model is public");
-        require(chunkIndex < model.chunkCount, "Invalid chunk");
+        require(computeChunkIndex < model.chunkCount, "Invalid chunk");
         require(
             _canReadPrivateModel(modelId, msg.sender),
             "Reader not authorized"
         );
 
-        euint64[] storage chunk = encryptedWeightChunks[modelId][chunkIndex];
-        require(chunk.length > 0, "Chunk not uploaded");
-        return chunk;
+        uint256 start = computeChunkIndex * model.computeChunkSize;
+        uint256 chunkLen = _computeChunkLength(
+            model.weightCount,
+            model.computeChunkSize,
+            computeChunkIndex
+        );
+        require(
+            encryptedWeightData[modelId].length >= start + chunkLen,
+            "Chunk not uploaded"
+        );
+
+        euint64[] memory result = new euint64[](chunkLen);
+        for (uint256 i = 0; i < chunkLen; i++) {
+            result[i] = encryptedWeightData[modelId][start + i];
+        }
+        return result;
     }
 
     function modelCount() external view returns (uint256) {
@@ -328,21 +385,31 @@ contract ModelMarketplace is ZamaEthereumConfig {
         require(!model.finalized, "Model already finalized");
     }
 
-    function _nextChunkIndex(
+    function _nextUploadChunkIndex(
         ModelHeader storage model
     ) internal view returns (uint256) {
-        return model.uploadedWeightCount / model.chunkSize;
+        return model.uploadedWeightCount / model.uploadChunkSize;
     }
 
-    function _expectedNextChunkLength(
+    function _expectedNextUploadChunkLength(
         ModelHeader storage model
     ) internal view returns (uint256) {
         if (model.uploadedWeightCount >= model.weightCount) {
             return 0;
         }
-
         uint256 remaining = model.weightCount - model.uploadedWeightCount;
-        return remaining > model.chunkSize ? model.chunkSize : remaining;
+        return remaining > model.uploadChunkSize ? model.uploadChunkSize : remaining;
+    }
+
+    /// @dev Returns the number of weights in a given compute chunk.
+    function _computeChunkLength(
+        uint256 weightCount,
+        uint256 computeChunkSize,
+        uint256 computeChunkIndex
+    ) internal pure returns (uint256) {
+        uint256 start = computeChunkIndex * computeChunkSize;
+        uint256 remaining = weightCount - start;
+        return remaining > computeChunkSize ? computeChunkSize : remaining;
     }
 
     function _canReadPrivateModel(

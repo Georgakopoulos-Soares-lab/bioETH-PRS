@@ -13,14 +13,16 @@ function chunkArray<T>(values: T[], chunkSize: number): T[][] {
 describe("PRSComputeEngine — chunked SNP ingestion", function () {
   async function deployPublicModel(
     weights: bigint[],
-    chunkSize: bigint
+    uploadChunkSize: bigint,
+    computeChunkSize: bigint
   ) {
     const Marketplace = await ethers.getContractFactory("ModelMarketplace");
     const marketplace = await Marketplace.deploy();
     const modelId = await marketplace.createModelShell.staticCall(
       false,
       BigInt(weights.length),
-      chunkSize,
+      uploadChunkSize,
+      computeChunkSize,
       "ipfs://public-model",
       ethers.ZeroHash,
       ethers.ZeroHash,
@@ -30,14 +32,16 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     await marketplace.createModelShell(
       false,
       BigInt(weights.length),
-      chunkSize,
+      uploadChunkSize,
+      computeChunkSize,
       "ipfs://public-model",
       ethers.ZeroHash,
       ethers.ZeroHash,
       0n,
       0n
     );
-    for (const chunk of chunkArray(weights, Number(chunkSize))) {
+    // Publish weights in uploadChunkSize batches
+    for (const chunk of chunkArray(weights, Number(uploadChunkSize))) {
       await marketplace.appendPublicModelChunk(modelId, chunk);
     }
     await marketplace.finalizeModel(modelId);
@@ -56,7 +60,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
 
   it("creates a job shell using finalized model geometry", async function () {
     const [jobOwner] = await ethers.getSigners();
-    const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n);
+    const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n, 2n);
     const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), jobOwner.address);
 
     const expectedJobId = await engine.createPRSJob.staticCall(modelId, sampleId);
@@ -68,7 +72,8 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       storedModelId,
       requester,
       weightCount,
-      chunkSize,
+      uploadChunkSize,
+      computeChunkSize,
       chunkCount,
       uploadedSnpCount,
       snpsFinalized,
@@ -82,7 +87,8 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     expect(storedModelId).to.equal(modelId);
     expect(requester).to.equal(jobOwner.address);
     expect(weightCount).to.equal(3n);
-    expect(chunkSize).to.equal(2n);
+    expect(uploadChunkSize).to.equal(2n);
+    expect(computeChunkSize).to.equal(2n);
     expect(chunkCount).to.equal(2n);
     expect(uploadedSnpCount).to.equal(0n);
     expect(snpsFinalized).to.equal(false);
@@ -98,14 +104,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     const Marketplace = await ethers.getContractFactory("ModelMarketplace");
     const marketplace = await Marketplace.deploy();
     await marketplace.createModelShell(
-      false,
-      3n,
-      2n,
-      "ipfs://draft-model",
-      ethers.ZeroHash,
-      ethers.ZeroHash,
-      0n,
-      0n
+      false, 3n, 2n, 2n, "ipfs://draft-model", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
     );
 
     const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), owner.address);
@@ -116,7 +115,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
 
   it("appends SNP chunks sequentially and finalizes upload", async function () {
     const [jobOwner] = await ethers.getSigners();
-    const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n);
+    const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n, 2n);
     const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), jobOwner.address);
     const engineAddr = await engine.getAddress();
 
@@ -129,8 +128,8 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       .withArgs(jobId, 0n, 2n);
 
     let state = await engine.getJobState(jobId);
-    expect(state[5]).to.equal(2n);
-    expect(state[6]).to.equal(false);
+    expect(state[6]).to.equal(2n);  // uploadedSnpCount
+    expect(state[7]).to.equal(false); // snpsFinalized
 
     const enc2 = await encryptUint64Array(engineAddr, jobOwner.address, [6n]);
     await engine.appendSnpChunk(jobId, enc2.handles, enc2.inputProof);
@@ -139,13 +138,13 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       .withArgs(jobId, jobOwner.address);
 
     state = await engine.getJobState(jobId);
-    expect(state[5]).to.equal(3n);
-    expect(state[6]).to.equal(true);
+    expect(state[6]).to.equal(3n);  // uploadedSnpCount
+    expect(state[7]).to.equal(true); // snpsFinalized
   });
 
   it("rejects invalid SNP chunk lengths, extra chunks, and non-requester uploads", async function () {
     const [jobOwner, stranger] = await ethers.getSigners();
-    const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n);
+    const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n, 2n);
     const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), jobOwner.address);
     const engineAddr = await engine.getAddress();
 
@@ -179,7 +178,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
 
   it("rejects compute before SNP upload is finalized", async function () {
     const [jobOwner] = await ethers.getSigners();
-    const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n);
+    const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n, 2n);
     const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), jobOwner.address);
     const engineAddr = await engine.getAddress();
 
@@ -198,7 +197,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
 
   it("computes a public-model dot product and allows permissionless compute relays", async function () {
     const [jobOwner, relayer] = await ethers.getSigners();
-    const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n);
+    const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n, 2n);
     const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), jobOwner.address);
     const engineAddr = await engine.getAddress();
 
@@ -226,9 +225,41 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     expect(await debugDecryptUint64(scoreHandle)).to.equal(32n);
   });
 
+  it("decoupled: upload SNPs in large batches, compute in smaller HCU-safe chunks", async function () {
+    // Model: weights [1,2,3,4,5,6], uploadChunkSize=6 (upload all at once), computeChunkSize=2
+    // SNPs: [1,1,1,1,1,1]
+    // Expected dot product: 1+2+3+4+5+6 = 21 (no zero-point correction)
+    const [jobOwner] = await ethers.getSigners();
+    const weights = [1n, 2n, 3n, 4n, 5n, 6n];
+    const { marketplace, modelId } = await deployPublicModel(weights, 6n, 2n);
+    const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), jobOwner.address);
+    const engineAddr = await engine.getAddress();
+
+    const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+    await engine.createPRSJob(modelId, sampleId);
+
+    // Upload all 6 SNPs in a single transaction (uploadChunkSize=6)
+    const enc = await encryptUint64Array(engineAddr, jobOwner.address, [1n, 1n, 1n, 1n, 1n, 1n]);
+    await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+    await engine.finalizeSnpUpload(jobId);
+
+    // Compute in 3 chunks of 2 (computeChunkSize=2)
+    await engine.computeChunk(jobId); // weights [1,2] × snps [1,1] = 3
+    await engine.computeChunk(jobId); // weights [3,4] × snps [1,1] = 7
+    await engine.computeChunk(jobId); // weights [5,6] × snps [1,1] = 11
+
+    const tx = await engine.finalize(jobId);
+    const receipt = await tx.wait();
+    const finalEvent = receipt!.logs.find(
+      (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+    );
+    const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+    expect(await debugDecryptUint64(scoreHandle)).to.equal(21n);
+  });
+
   it("requires the requester for readPartial and finalize", async function () {
     const [jobOwner, stranger] = await ethers.getSigners();
-    const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n);
+    const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
     const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), jobOwner.address);
     const engineAddr = await engine.getAddress();
 
@@ -260,11 +291,11 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     const engineAddr = await engine.getAddress();
 
     const modelId = await marketplace.createModelShell.staticCall(
-      true, 3n, 2n, "ipfs://private-model",
+      true, 3n, 2n, 2n, "ipfs://private-model",
       ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
     );
     await marketplace.createModelShell(
-      true, 3n, 2n, "ipfs://private-model",
+      true, 3n, 2n, 2n, "ipfs://private-model",
       ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
     );
 
@@ -304,7 +335,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
   describe("Registry ACL enforcement", function () {
     it("owner can create a job for their own sample", async function () {
       const [owner] = await ethers.getSigners();
-      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n);
+      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
       const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), owner.address);
 
       await expect(engine.createPRSJob(modelId, sampleId)).to.not.be.reverted;
@@ -312,7 +343,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
 
     it("delegate with grantAccess can create a job", async function () {
       const [owner, researcher] = await ethers.getSigners();
-      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n);
+      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
       const { engine, registry, sampleId } = await deployEngine(await marketplace.getAddress(), owner.address);
 
       await registry.grantAccess(sampleId, researcher.address);
@@ -321,7 +352,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
 
     it("stranger without access is rejected", async function () {
       const [owner, stranger] = await ethers.getSigners();
-      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n);
+      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
       const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), owner.address);
 
       await expect(engine.connect(stranger).createPRSJob(modelId, sampleId))
@@ -330,7 +361,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
 
     it("revoked grantee is rejected", async function () {
       const [owner, researcher] = await ethers.getSigners();
-      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n);
+      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
       const { engine, registry, sampleId } = await deployEngine(await marketplace.getAddress(), owner.address);
 
       await registry.grantAccess(sampleId, researcher.address);
@@ -341,7 +372,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
 
     it("rejects an unregistered sampleId", async function () {
       const [owner] = await ethers.getSigners();
-      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n);
+      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
       const { engine } = await deployEngine(await marketplace.getAddress(), owner.address);
 
       await expect(engine.createPRSJob(modelId, 999n))

@@ -43,17 +43,19 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
         fixtureSize,
         betas
       );
-      // fhEVM constraints: 2048-bit input limit (max 32 euint64s) and per-tx HCU limit.
-      // Each element requires mul + 2×add = ~3 FHE ops; chunk size 10 stays within limits.
-      const chunkSize = 10n;
-      const firstChunkLength = Number(chunkSize);
+      // Decoupled chunk sizes:
+      //   uploadChunkSize=32 — 2048-bit input-proof budget (max 32 euint64s per call)
+      //   computeChunkSize=10 — HCU-safe on mock; Sepolia ceiling TBD (run probe:hcu)
+      const uploadChunkSize = 32;
+      const computeChunkSize = 10;
+
       // V1 corrected encoded score: (weighted_sum + scoreOffset) - weightZeroPoint * genoSum
       const genoSum = snps.reduce((a, b) => a + b, 0n);
       const naiveDotProduct = dotProductBigInt(snps, quantized.weights);
       const expected = naiveDotProduct + quantized.scoreOffset - quantized.weightZeroPoint * genoSum;
       const expectedFirstChunk = dotProductBigInt(
-        snps.slice(0, firstChunkLength),
-        quantized.weights.slice(0, firstChunkLength)
+        snps.slice(0, computeChunkSize),
+        quantized.weights.slice(0, computeChunkSize)
       );
 
       expect(snps.length).to.equal(quantized.weights.length);
@@ -65,7 +67,8 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
       const modelId = await marketplace.createModelShell.staticCall(
         false,
         BigInt(quantized.weights.length),
-        chunkSize,
+        BigInt(uploadChunkSize),
+        BigInt(computeChunkSize),
         `ipfs://heprs-${fixtureSize}`,
         ethers.ZeroHash,
         ethers.ZeroHash,
@@ -75,14 +78,16 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
       await marketplace.createModelShell(
         false,
         BigInt(quantized.weights.length),
-        chunkSize,
+        BigInt(uploadChunkSize),
+        BigInt(computeChunkSize),
         `ipfs://heprs-${fixtureSize}`,
         ethers.ZeroHash,
         ethers.ZeroHash,
         quantized.weightZeroPoint,
         quantized.scoreOffset
       );
-      for (const chunk of chunkBigIntVector(quantized.weights, firstChunkLength)) {
+      // Publish weights in uploadChunkSize batches (no proof limit for public weights)
+      for (const chunk of chunkBigIntVector(quantized.weights, uploadChunkSize)) {
         await marketplace.appendPublicModelChunk(modelId, chunk);
       }
       await marketplace.finalizeModel(modelId);
@@ -97,7 +102,8 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
 
       const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
       await engine.createPRSJob(modelId, sampleId);
-      for (const chunk of chunkBigIntVector(snps, firstChunkLength)) {
+      // Upload SNPs in uploadChunkSize batches (limited by fhEVM input-proof budget)
+      for (const chunk of chunkBigIntVector(snps, uploadChunkSize)) {
         const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
         await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
       }
@@ -107,8 +113,8 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
       const partialHandle = await engine.getPartialSum(jobId);
       expect(await debugDecryptUint64(partialHandle)).to.equal(expectedFirstChunk);
 
-      const totalChunks = Math.ceil(snps.length / firstChunkLength);
-      for (let i = 1; i < totalChunks; i++) {
+      const totalComputeChunks = Math.ceil(snps.length / computeChunkSize);
+      for (let i = 1; i < totalComputeChunks; i++) {
         await engine.computeChunk(jobId);
       }
 
@@ -128,8 +134,9 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
     const snps = toBigIntVector(genotypes[0]);
     const recommendation = getHeprsBalancedRecommendation(5000);
     const quantized = quantizeHeprsWeightsWithRecommendation(5000, betas);
-    // fhEVM constraints: 2048-bit input limit (max 32 euint64s) and per-tx HCU limit.
-    const chunkLength = 10;
+    // Decoupled chunk sizes
+    const uploadChunkSize = 32;
+    const computeChunkSize = 10;
 
     expect(snps.length).to.equal(quantized.weights.length);
     expect(snps.length).to.equal(5001);
@@ -139,11 +146,11 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
     const genoSum = snps.reduce((a, b) => a + b, 0n);
     const naiveDotProduct = dotProductBigInt(snps, quantized.weights);
     const expected = naiveDotProduct + quantized.scoreOffset - quantized.weightZeroPoint * genoSum;
-    const chunked = chunkedDotProductBigInt(snps, quantized.weights, chunkLength);
+    const chunked = chunkedDotProductBigInt(snps, quantized.weights, computeChunkSize);
     expect(chunked).to.equal(naiveDotProduct);
     const expectedFirstChunk = dotProductBigInt(
-      snps.slice(0, chunkLength),
-      quantized.weights.slice(0, chunkLength)
+      snps.slice(0, computeChunkSize),
+      quantized.weights.slice(0, computeChunkSize)
     );
 
     const Marketplace = await ethers.getContractFactory("ModelMarketplace");
@@ -151,7 +158,8 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
     const modelId = await marketplace.createModelShell.staticCall(
       false,
       BigInt(quantized.weights.length),
-      BigInt(chunkLength),
+      BigInt(uploadChunkSize),
+      BigInt(computeChunkSize),
       "ipfs://heprs-5000",
       ethers.ZeroHash,
       ethers.ZeroHash,
@@ -161,14 +169,15 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
     await marketplace.createModelShell(
       false,
       BigInt(quantized.weights.length),
-      BigInt(chunkLength),
+      BigInt(uploadChunkSize),
+      BigInt(computeChunkSize),
       "ipfs://heprs-5000",
       ethers.ZeroHash,
       ethers.ZeroHash,
       quantized.weightZeroPoint,
       quantized.scoreOffset
     );
-    for (const chunk of chunkBigIntVector(quantized.weights, chunkLength)) {
+    for (const chunk of chunkBigIntVector(quantized.weights, uploadChunkSize)) {
       await marketplace.appendPublicModelChunk(modelId, chunk);
     }
     await marketplace.finalizeModel(modelId);
@@ -182,7 +191,7 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
     const engineAddr = await engine.getAddress();
     const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
     await engine.createPRSJob(modelId, sampleId);
-    for (const chunk of chunkBigIntVector(snps, chunkLength)) {
+    for (const chunk of chunkBigIntVector(snps, uploadChunkSize)) {
       const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
       await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
     }
@@ -192,8 +201,8 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
     const partialHandle = await engine.getPartialSum(jobId);
     expect(await debugDecryptUint64(partialHandle)).to.equal(expectedFirstChunk);
 
-    const totalChunks = Math.ceil(snps.length / chunkLength);
-    for (let i = 1; i < totalChunks; i++) {
+    const totalComputeChunks = Math.ceil(snps.length / computeChunkSize);
+    for (let i = 1; i < totalComputeChunks; i++) {
       await engine.computeChunk(jobId);
     }
 

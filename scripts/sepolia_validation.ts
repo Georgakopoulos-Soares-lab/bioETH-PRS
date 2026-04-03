@@ -45,7 +45,11 @@ import {
 } from "../test/utils/heprs";
 
 const FIXTURE_SIZE = 100 as const;
-const CHUNK_SIZE = 10; // confirmed safe on mock; starting point for Sepolia
+// Decoupled chunk sizes:
+//   UPLOAD_CHUNK_SIZE=32 — 2048-bit input-proof budget (max 32 euint64s per call)
+//   COMPUTE_CHUNK_SIZE=10 — conservative starting point; run probe:hcu to find Sepolia ceiling
+const UPLOAD_CHUNK_SIZE = 32;
+const COMPUTE_CHUNK_SIZE = 10;
 
 interface SavedDeployment {
   contracts: {
@@ -76,7 +80,7 @@ describe("Sepolia 100-SNP validation", function () {
 
     console.log(`\nNetwork  : ${network.name} (chainId=${chainId})`);
     console.log(`FHE mode : ${isMock ? "mock — plaintext arithmetic" : "REAL TFHE ciphertext"}`);
-    console.log(`Fixture  : ${FIXTURE_SIZE} SNPs, chunkSize=${CHUNK_SIZE}\n`);
+    console.log(`Fixture  : ${FIXTURE_SIZE} SNPs, uploadChunkSize=${UPLOAD_CHUNK_SIZE}, computeChunkSize=${COMPUTE_CHUNK_SIZE}\n`);
 
     const [signer] = await ethers.getSigners();
 
@@ -153,7 +157,8 @@ describe("Sepolia 100-SNP validation", function () {
     const modelId = await marketplace.createModelShell.staticCall(
       false,
       BigInt(quantized.weights.length),
-      BigInt(CHUNK_SIZE),
+      BigInt(UPLOAD_CHUNK_SIZE),
+      BigInt(COMPUTE_CHUNK_SIZE),
       `ipfs://heprs/100`,
       ethers.ZeroHash,
       ethers.ZeroHash,
@@ -163,7 +168,8 @@ describe("Sepolia 100-SNP validation", function () {
     let tx = await marketplace.createModelShell(
       false,
       BigInt(quantized.weights.length),
-      BigInt(CHUNK_SIZE),
+      BigInt(UPLOAD_CHUNK_SIZE),
+      BigInt(COMPUTE_CHUNK_SIZE),
       `ipfs://heprs/100`,
       ethers.ZeroHash,
       ethers.ZeroHash,
@@ -172,7 +178,7 @@ describe("Sepolia 100-SNP validation", function () {
     );
     publishGas += (await tx.wait())!.gasUsed;
 
-    for (const chunk of chunkBigIntVector(quantized.weights, CHUNK_SIZE)) {
+    for (const chunk of chunkBigIntVector(quantized.weights, UPLOAD_CHUNK_SIZE)) {
       tx = await marketplace.appendPublicModelChunk(modelId, chunk);
       publishGas += (await tx.wait())!.gasUsed;
     }
@@ -190,12 +196,13 @@ describe("Sepolia 100-SNP validation", function () {
     console.log(`  Job ${jobId} in ${Date.now() - t_job}ms  gas=${createJobGas}\n`);
 
     // ── 5. Upload SNP chunks ─────────────────────────────────────────────────
-    const totalChunks = Math.ceil(snps.length / CHUNK_SIZE);
-    console.log(`Uploading ${totalChunks} SNP chunks (${CHUNK_SIZE} SNPs each)...`);
+    const totalUploadChunks = Math.ceil(snps.length / UPLOAD_CHUNK_SIZE);
+    const totalComputeChunks = Math.ceil(snps.length / COMPUTE_CHUNK_SIZE);
+    console.log(`Uploading ${totalUploadChunks} SNP chunks (${UPLOAD_CHUNK_SIZE} SNPs each)...`);
     const t_upload = Date.now();
     let uploadGas = 0n;
 
-    for (const chunk of chunkBigIntVector(snps, CHUNK_SIZE)) {
+    for (const chunk of chunkBigIntVector(snps, UPLOAD_CHUNK_SIZE)) {
       const input = fhevm.createEncryptedInput(engineAddress, signer.address);
       for (const v of chunk) input.add64(v);
       const { handles, inputProof } = await input.encrypt();
@@ -209,12 +216,12 @@ describe("Sepolia 100-SNP validation", function () {
     console.log(`  finalizeSnpUpload gas=${finalizeUploadGas}\n`);
 
     // ── 6. Compute chunks ────────────────────────────────────────────────────
-    console.log(`Computing ${totalChunks} chunks...`);
+    console.log(`Computing ${totalComputeChunks} chunks (${COMPUTE_CHUNK_SIZE} SNPs each)...`);
     const chunkTimesMs: number[] = [];
     const chunkGasPerCall: string[] = [];
     let computeGas = 0n;
 
-    for (let i = 0; i < totalChunks; i++) {
+    for (let i = 0; i < totalComputeChunks; i++) {
       const t_chunk = Date.now();
       tx = await engine.computeChunk(jobId);
       const receipt = await tx.wait();
@@ -222,7 +229,7 @@ describe("Sepolia 100-SNP validation", function () {
       computeGas += receipt!.gasUsed;
       chunkTimesMs.push(elapsed);
       chunkGasPerCall.push(receipt!.gasUsed.toString());
-      console.log(`  chunk ${String(i + 1).padStart(2)}/${totalChunks}  ${elapsed}ms  gas=${receipt!.gasUsed}`);
+      console.log(`  chunk ${String(i + 1).padStart(2)}/${totalComputeChunks}  ${elapsed}ms  gas=${receipt!.gasUsed}`);
     }
     console.log(`  Compute total gas=${computeGas}\n`);
 
@@ -282,7 +289,8 @@ describe("Sepolia 100-SNP validation", function () {
       fheMode: isMock ? "mock" : "real",
       timestamp: new Date().toISOString(),
       fixtureSize: FIXTURE_SIZE,
-      chunkSize: CHUNK_SIZE,
+      uploadChunkSize: UPLOAD_CHUNK_SIZE,
+      computeChunkSize: COMPUTE_CHUNK_SIZE,
       scale: recommendation.scale,
       passed: true,
       gas: {
@@ -320,7 +328,8 @@ describe("Sepolia 100-SNP validation", function () {
     console.log(`Report saved to ${outPath}`);
     console.log("\n=== Summary ===");
     console.log(`Network    : ${networkKey} (${isMock ? "mock" : "REAL FHE"})`);
-    console.log(`Chunks     : ${totalChunks} × chunkSize=${CHUNK_SIZE}`);
+    console.log(`Upload     : ${totalUploadChunks} × uploadChunkSize=${UPLOAD_CHUNK_SIZE}`);
+    console.log(`Compute    : ${totalComputeChunks} × computeChunkSize=${COMPUTE_CHUNK_SIZE}`);
     console.log(`Total gas  : ${totalGas}`);
     console.log(`Avg chunk  : ${avgChunkMs.toFixed(1)}ms`);
     console.log(`Decrypt    : ${decryptMs}ms`);

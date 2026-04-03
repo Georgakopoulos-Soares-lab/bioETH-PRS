@@ -47,7 +47,9 @@ interface ProbeResult {
 
 async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
   const [signer] = await ethers.getSigners();
-  const weightCount = chunkSize * 2; // two full chunks
+  const weightCount = chunkSize * 2; // two full compute chunks
+  // Upload chunk size is always 32 (input-proof budget) so SNP upload is never the bottleneck.
+  const uploadChunkSize = Math.min(32, weightCount);
 
   // Deploy a fresh contract set for this probe — avoids cross-contamination
   const Registry = await ethers.getContractFactory("GenomicRegistry");
@@ -73,7 +75,8 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
   const modelId = await marketplace.createModelShell.staticCall(
     false,
     BigInt(weightCount),
-    BigInt(chunkSize),
+    BigInt(uploadChunkSize),
+    BigInt(chunkSize), // computeChunkSize — this is what we're probing
     "ipfs://hcu-probe-model",
     ethers.ZeroHash,
     ethers.ZeroHash,
@@ -84,6 +87,7 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
     await marketplace.createModelShell(
       false,
       BigInt(weightCount),
+      BigInt(uploadChunkSize),
       BigInt(chunkSize),
       "ipfs://hcu-probe-model",
       ethers.ZeroHash,
@@ -93,9 +97,9 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
     )
   ).wait();
 
-  // Append 2 weight chunks (chunkSize values each)
-  for (let ci = 0; ci < 2; ci++) {
-    const slice = weights.slice(ci * chunkSize, (ci + 1) * chunkSize);
+  // Append weight chunks using uploadChunkSize batches
+  for (let start = 0; start < weightCount; start += uploadChunkSize) {
+    const slice = weights.slice(start, start + uploadChunkSize);
     await (await marketplace.appendPublicModelChunk(modelId, slice)).wait();
   }
   await (await marketplace.finalizeModel(modelId)).wait();
@@ -104,10 +108,10 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
   await (await engine.createPRSJob(modelId, sampleId)).wait();
   const jobId = await engine.jobCount() - 1n;
 
-  // Upload SNP chunks — all SNP values = 1n (synthetic)
+  // Upload SNP chunks using uploadChunkSize batches — all SNP values = 1n (synthetic)
   const snps = Array(weightCount).fill(1n);
-  for (let ci = 0; ci < 2; ci++) {
-    const slice = snps.slice(ci * chunkSize, (ci + 1) * chunkSize);
+  for (let start = 0; start < weightCount; start += uploadChunkSize) {
+    const slice = snps.slice(start, start + uploadChunkSize);
     const input = fhevm.createEncryptedInput(engineAddress, signer.address);
     for (const v of slice) input.add64(v);
     const { handles, inputProof } = await input.encrypt();

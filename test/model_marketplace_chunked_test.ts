@@ -10,14 +10,16 @@ describe("ModelMarketplace — chunked publication v1", function () {
 
   async function createPublicShell(
     weightCount = 5n,
-    chunkSize = 2n,
+    uploadChunkSize = 2n,
+    computeChunkSize = 2n,
     manifestURI = "ipfs://public-manifest"
   ) {
     const marketplace = await deployMarketplace();
     const modelId = await marketplace.createModelShell.staticCall(
       false,
       weightCount,
-      chunkSize,
+      uploadChunkSize,
+      computeChunkSize,
       manifestURI,
       ethers.ZeroHash,
       ethers.keccak256(ethers.toUtf8Bytes("public-source")),
@@ -27,7 +29,8 @@ describe("ModelMarketplace — chunked publication v1", function () {
     await marketplace.createModelShell(
       false,
       weightCount,
-      chunkSize,
+      uploadChunkSize,
+      computeChunkSize,
       manifestURI,
       ethers.ZeroHash,
       ethers.keccak256(ethers.toUtf8Bytes("public-source")),
@@ -40,14 +43,16 @@ describe("ModelMarketplace — chunked publication v1", function () {
 
   async function createPrivateShell(
     weightCount = 5n,
-    chunkSize = 2n,
+    uploadChunkSize = 2n,
+    computeChunkSize = 2n,
     manifestURI = "ipfs://private-manifest"
   ) {
     const marketplace = await deployMarketplace();
     const modelId = await marketplace.createModelShell.staticCall(
       true,
       weightCount,
-      chunkSize,
+      uploadChunkSize,
+      computeChunkSize,
       manifestURI,
       ethers.ZeroHash,
       ethers.keccak256(ethers.toUtf8Bytes("private-source")),
@@ -57,7 +62,8 @@ describe("ModelMarketplace — chunked publication v1", function () {
     await marketplace.createModelShell(
       true,
       weightCount,
-      chunkSize,
+      uploadChunkSize,
+      computeChunkSize,
       manifestURI,
       ethers.ZeroHash,
       ethers.keccak256(ethers.toUtf8Bytes("private-source")),
@@ -70,7 +76,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
 
   describe("shell creation", function () {
     it("creates a public shell with the expected geometry and metadata", async function () {
-      const { marketplace, modelId } = await createPublicShell(5n, 2n, "ipfs://manifest");
+      const { marketplace, modelId } = await createPublicShell(5n, 2n, 2n, "ipfs://manifest");
 
       expect(modelId).to.equal(0n);
       expect(await marketplace.modelCount()).to.equal(1n);
@@ -80,7 +86,8 @@ describe("ModelMarketplace — chunked publication v1", function () {
         isPrivate,
         finalized,
         weightCount,
-        chunkSize,
+        uploadChunkSize,
+        computeChunkSize,
         chunkCount,
         uploadedWeightCount,
         manifestURI,
@@ -92,7 +99,8 @@ describe("ModelMarketplace — chunked publication v1", function () {
       expect(isPrivate).to.equal(false);
       expect(finalized).to.equal(false);
       expect(weightCount).to.equal(5n);
-      expect(chunkSize).to.equal(2n);
+      expect(uploadChunkSize).to.equal(2n);
+      expect(computeChunkSize).to.equal(2n);
       expect(chunkCount).to.equal(3n);
       expect(uploadedWeightCount).to.equal(0n);
       expect(manifestURI).to.equal("ipfs://manifest");
@@ -101,92 +109,97 @@ describe("ModelMarketplace — chunked publication v1", function () {
         ethers.keccak256(ethers.toUtf8Bytes("public-source"))
       );
 
-      const [configIsPrivate, configFinalized, configWeightCount, configChunkSize, configChunkCount] =
-        await marketplace.getModelConfig(modelId);
+      const [
+        configIsPrivate,
+        configFinalized,
+        configWeightCount,
+        configUploadChunkSize,
+        configComputeChunkSize,
+        configChunkCount
+      ] = await marketplace.getModelConfig(modelId);
       expect(configIsPrivate).to.equal(false);
       expect(configFinalized).to.equal(false);
       expect(configWeightCount).to.equal(5n);
-      expect(configChunkSize).to.equal(2n);
+      expect(configUploadChunkSize).to.equal(2n);
+      expect(configComputeChunkSize).to.equal(2n);
       expect(configChunkCount).to.equal(3n);
       expect(await marketplace.canReadPrivateModel(modelId, owner)).to.equal(false);
     });
 
     it("creates a private shell and auto-authorizes the owner as a private reader", async function () {
       const [owner, stranger] = await ethers.getSigners();
-      const { marketplace, modelId } = await createPrivateShell(4n, 3n);
+      const { marketplace, modelId } = await createPrivateShell(4n, 3n, 3n);
 
       expect(await marketplace.canReadPrivateModel(modelId, owner.address)).to.equal(true);
       expect(await marketplace.canReadPrivateModel(modelId, stranger.address)).to.equal(false);
     });
 
-    it("rejects zero weightCount and zero chunkSize", async function () {
+    it("rejects zero weightCount, zero uploadChunkSize, and zero computeChunkSize", async function () {
       const marketplace = await deployMarketplace();
 
       await expect(
-        marketplace.createModelShell(
-          false,
-          0n,
-          2n,
-          "ipfs://manifest",
-          ethers.ZeroHash,
-          ethers.ZeroHash,
-          0n,
-          0n
-        )
+        marketplace.createModelShell(false, 0n, 2n, 2n, "ipfs://manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n)
       ).to.be.revertedWith("Weight count must be > 0");
 
       await expect(
-        marketplace.createModelShell(
-          false,
-          1n,
-          0n,
-          "ipfs://manifest",
-          ethers.ZeroHash,
-          ethers.ZeroHash,
-          0n,
-          0n
-        )
-      ).to.be.revertedWith("Chunk size must be > 0");
+        marketplace.createModelShell(false, 1n, 0n, 2n, "ipfs://manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n)
+      ).to.be.revertedWith("Upload chunk size must be > 0");
+
+      await expect(
+        marketplace.createModelShell(false, 1n, 2n, 0n, "ipfs://manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n)
+      ).to.be.revertedWith("Compute chunk size must be > 0");
     });
 
-    it("emits ModelShellCreated with the published geometry", async function () {
+    it("chunkCount is based on computeChunkSize, not uploadChunkSize", async function () {
+      // uploadChunkSize=4, computeChunkSize=2: 5 weights → chunkCount=3 (ceil(5/2))
+      const { marketplace, modelId } = await createPublicShell(5n, 4n, 2n);
+      const [,,, , , computeChunkSize, chunkCount] = await marketplace.getModelHeader(modelId);
+      expect(computeChunkSize).to.equal(2n);
+      expect(chunkCount).to.equal(3n); // ceil(5/2), not ceil(5/4)=2
+    });
+
+    it("emits ModelShellCreated with both chunk sizes", async function () {
       const marketplace = await deployMarketplace();
       const [owner] = await ethers.getSigners();
 
       await expect(
-        marketplace.createModelShell(
-          false,
-          5n,
-          2n,
-          "ipfs://manifest",
-          ethers.ZeroHash,
-          ethers.ZeroHash,
-          0n,
-          0n
-        )
+        marketplace.createModelShell(false, 5n, 4n, 2n, "ipfs://manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n)
       ).to.emit(marketplace, "ModelShellCreated")
-        .withArgs(0n, owner.address, false, 5n, 2n);
+        .withArgs(0n, owner.address, false, 5n, 4n, 2n);
     });
   });
 
   describe("public chunk publication", function () {
     it("appends public chunks sequentially, updates progress, and stores chunk payloads", async function () {
-      const { marketplace, modelId } = await createPublicShell(5n, 2n);
+      const { marketplace, modelId } = await createPublicShell(5n, 2n, 2n);
 
       await marketplace.appendPublicModelChunk(modelId, [10n, 20n]);
-      expect((await marketplace.getModelHeader(modelId))[6]).to.equal(2n);
+      expect((await marketplace.getModelHeader(modelId))[7]).to.equal(2n); // uploadedWeightCount at index 7
       expect(await marketplace.getPublicWeightChunk(modelId, 0n))
         .to.deep.equal([10n, 20n]);
 
       await marketplace.appendPublicModelChunk(modelId, [30n, 40n]);
-      expect((await marketplace.getModelHeader(modelId))[6]).to.equal(4n);
+      expect((await marketplace.getModelHeader(modelId))[7]).to.equal(4n);
       expect(await marketplace.getPublicWeightChunk(modelId, 1n))
         .to.deep.equal([30n, 40n]);
 
       await marketplace.appendPublicModelChunk(modelId, [50n]);
-      expect((await marketplace.getModelHeader(modelId))[6]).to.equal(5n);
+      expect((await marketplace.getModelHeader(modelId))[7]).to.equal(5n);
       expect(await marketplace.getPublicWeightChunk(modelId, 2n))
         .to.deep.equal([50n]);
+    });
+
+    it("decoupled: upload in large batches, retrieve in compute-chunk slices", async function () {
+      // uploadChunkSize=4, computeChunkSize=2: upload [10,20,30,40] then [50]
+      // compute chunks: [0]=[10,20], [1]=[30,40], [2]=[50]
+      const { marketplace, modelId } = await createPublicShell(5n, 4n, 2n);
+
+      await marketplace.appendPublicModelChunk(modelId, [10n, 20n, 30n, 40n]);
+      await marketplace.appendPublicModelChunk(modelId, [50n]);
+
+      expect(await marketplace.getPublicWeightChunk(modelId, 0n)).to.deep.equal([10n, 20n]);
+      expect(await marketplace.getPublicWeightChunk(modelId, 1n)).to.deep.equal([30n, 40n]);
+      expect(await marketplace.getPublicWeightChunk(modelId, 2n)).to.deep.equal([50n]);
     });
 
     it("rejects public chunk append by non-owner", async function () {
@@ -194,14 +207,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
       const marketplace = await deployMarketplace();
 
       await marketplace.connect(owner).createModelShell(
-        false,
-        5n,
-        2n,
-        "ipfs://manifest",
-        ethers.ZeroHash,
-        ethers.ZeroHash,
-        0n,
-        0n
+        false, 5n, 2n, 2n, "ipfs://manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
 
       await expect(
@@ -218,7 +224,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
     });
 
     it("rejects public chunk append to a private model", async function () {
-      const { marketplace, modelId } = await createPrivateShell(3n, 2n);
+      const { marketplace, modelId } = await createPrivateShell(3n, 2n, 2n);
 
       await expect(
         marketplace.appendPublicModelChunk(modelId, [1n, 2n])
@@ -226,7 +232,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
     });
 
     it("rejects invalid public chunk lengths for intermediate and final chunks", async function () {
-      const { marketplace, modelId } = await createPublicShell(5n, 2n);
+      const { marketplace, modelId } = await createPublicShell(5n, 2n, 2n);
 
       await expect(
         marketplace.appendPublicModelChunk(modelId, [1n])
@@ -241,7 +247,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
     });
 
     it("rejects appends once all public chunks are uploaded but before finalize", async function () {
-      const { marketplace, modelId } = await createPublicShell(3n, 2n);
+      const { marketplace, modelId } = await createPublicShell(3n, 2n, 2n);
 
       await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
       await marketplace.appendPublicModelChunk(modelId, [3n]);
@@ -252,7 +258,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
     });
 
     it("emits PublicModelChunkAppended with the derived chunk index", async function () {
-      const { marketplace, modelId } = await createPublicShell(3n, 2n);
+      const { marketplace, modelId } = await createPublicShell(3n, 2n, 2n);
 
       await expect(
         marketplace.appendPublicModelChunk(modelId, [10n, 20n])
@@ -263,7 +269,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
 
   describe("private chunk publication", function () {
     it("appends encrypted chunks sequentially and stores the encrypted payloads", async function () {
-      const { marketplace, modelId } = await createPrivateShell(5n, 2n);
+      const { marketplace, modelId } = await createPrivateShell(5n, 2n, 2n);
       const addr = await marketplace.getAddress();
       const [signer] = await ethers.getSigners();
 
@@ -294,14 +300,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
       const marketplace = await deployMarketplace();
 
       await marketplace.connect(owner).createModelShell(
-        true,
-        5n,
-        2n,
-        "ipfs://manifest",
-        ethers.ZeroHash,
-        ethers.ZeroHash,
-        0n,
-        0n
+        true, 5n, 2n, 2n, "ipfs://manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
 
       const enc = await encryptUint64Array(
@@ -325,7 +324,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
     });
 
     it("rejects encrypted chunk append to a public model", async function () {
-      const { marketplace, modelId } = await createPublicShell(3n, 2n);
+      const { marketplace, modelId } = await createPublicShell(3n, 2n, 2n);
       const [signer] = await ethers.getSigners();
 
       const enc = await encryptUint64Array(
@@ -337,7 +336,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
     });
 
     it("rejects invalid encrypted chunk lengths and extra encrypted appends after completion", async function () {
-      const { marketplace, modelId } = await createPrivateShell(3n, 2n);
+      const { marketplace, modelId } = await createPrivateShell(3n, 2n, 2n);
       const addr = await marketplace.getAddress();
       const [signer] = await ethers.getSigners();
 
@@ -359,7 +358,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
     });
 
     it("emits EncryptedModelChunkAppended with the derived chunk index", async function () {
-      const { marketplace, modelId } = await createPrivateShell(3n, 2n);
+      const { marketplace, modelId } = await createPrivateShell(3n, 2n, 2n);
       const [signer] = await ethers.getSigners();
 
       const enc = await encryptUint64Array(
@@ -374,7 +373,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
 
   describe("finalization", function () {
     it("finalizes a complete public model and blocks further mutation", async function () {
-      const { marketplace, modelId } = await createPublicShell(3n, 2n);
+      const { marketplace, modelId } = await createPublicShell(3n, 2n, 2n);
 
       await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
       await marketplace.appendPublicModelChunk(modelId, [3n]);
@@ -402,14 +401,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
         .to.be.revertedWith("Invalid model");
 
       await marketplace.connect(owner).createModelShell(
-        false,
-        3n,
-        2n,
-        "ipfs://manifest",
-        ethers.ZeroHash,
-        ethers.ZeroHash,
-        0n,
-        0n
+        false, 3n, 2n, 2n, "ipfs://manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
 
       await expect(marketplace.connect(stranger).finalizeModel(0n))
@@ -426,14 +418,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
       const marketplace = await deployMarketplace();
 
       await marketplace.connect(owner).createModelShell(
-        true,
-        3n,
-        2n,
-        "ipfs://private-manifest",
-        ethers.ZeroHash,
-        ethers.ZeroHash,
-        0n,
-        0n
+        true, 3n, 2n, 2n, "ipfs://private-manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
 
       expect(await marketplace.canReadPrivateModel(0n, reader.address)).to.equal(false);
@@ -458,14 +443,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
       ).to.be.revertedWith("Invalid model");
 
       await marketplace.connect(owner).createModelShell(
-        false,
-        3n,
-        2n,
-        "ipfs://public-manifest",
-        ethers.ZeroHash,
-        ethers.ZeroHash,
-        0n,
-        0n
+        false, 3n, 2n, 2n, "ipfs://public-manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
 
       await expect(
@@ -473,24 +451,10 @@ describe("ModelMarketplace — chunked publication v1", function () {
       ).to.be.revertedWith("Model is public");
 
       const privateModelId = await marketplace.createModelShell.staticCall(
-        true,
-        3n,
-        2n,
-        "ipfs://private-manifest",
-        ethers.ZeroHash,
-        ethers.ZeroHash,
-        0n,
-        0n
+        true, 3n, 2n, 2n, "ipfs://private-manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
       await marketplace.connect(owner).createModelShell(
-        true,
-        3n,
-        2n,
-        "ipfs://private-manifest",
-        ethers.ZeroHash,
-        ethers.ZeroHash,
-        0n,
-        0n
+        true, 3n, 2n, 2n, "ipfs://private-manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
 
       await expect(
@@ -501,7 +465,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
 
   describe("getters and read-path guards", function () {
     it("rejects invalid or missing public chunk reads and private-model public reads", async function () {
-      const { marketplace, modelId } = await createPublicShell(5n, 2n);
+      const { marketplace, modelId } = await createPublicShell(5n, 2n, 2n);
 
       await expect(
         marketplace.getPublicWeightChunk(999n, 0n)
@@ -517,7 +481,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
         marketplace.getPublicWeightChunk(modelId, 9n)
       ).to.be.revertedWith("Invalid chunk");
 
-      const privateShell = await createPrivateShell(3n, 2n);
+      const privateShell = await createPrivateShell(3n, 2n, 2n);
       await expect(
         privateShell.marketplace.getPublicWeightChunk(privateShell.modelId, 0n)
       ).to.be.revertedWith("Model is private");
@@ -532,14 +496,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
       ).to.be.revertedWith("Invalid model");
 
       await marketplace.connect(owner).createModelShell(
-        true,
-        3n,
-        2n,
-        "ipfs://private-manifest",
-        ethers.ZeroHash,
-        ethers.ZeroHash,
-        0n,
-        0n
+        true, 3n, 2n, 2n, "ipfs://private-manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
       );
 
       await expect(
@@ -564,7 +521,7 @@ describe("ModelMarketplace — chunked publication v1", function () {
       expect(await debugDecryptUint64(chunk[0])).to.equal(7n);
       expect(await debugDecryptUint64(chunk[1])).to.equal(8n);
 
-      const publicShell = await createPublicShell(3n, 2n);
+      const publicShell = await createPublicShell(3n, 2n, 2n);
       await expect(
         publicShell.marketplace.getEncryptedWeightChunkHandles(publicShell.modelId, 0n)
       ).to.be.revertedWith("Model is public");

@@ -7,12 +7,22 @@ import "./ModelMarketplace.sol";
 import "./GenomicRegistry.sol";
 
 /// @title PRSComputeEngine - Chunked PRS dot-product against chunk-published models.
+///
+/// SNP upload and compute chunk sizes are independent:
+///   uploadChunkSize  — inherited from the model; governs how many encrypted SNPs are
+///                      accepted per appendSnpChunk call (≤ 32 for fhEVM input-proof budget).
+///   computeChunkSize — inherited from the model; governs how many SNP×weight pairs are
+///                      processed per computeChunk call (HCU-constrained).
+///                      Mock ceiling: 20. Sepolia ceiling: TBD (run `npm run probe:hcu`).
+///
+/// SNPs are stored flat (one contiguous array per job) and sliced by computeChunkSize during compute.
 contract PRSComputeEngine is ZamaEthereumConfig {
     struct Job {
         uint256 modelId;
         uint256 sampleId;
         uint256 weightCount;
-        uint256 chunkSize;
+        uint256 uploadChunkSize;   // for SNP upload validation
+        uint256 computeChunkSize;  // for compute slicing (HCU-constrained)
         uint256 chunkCount;
         uint256 uploadedSnpCount;
         uint256 nextChunkIndex;
@@ -30,14 +40,15 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     ModelMarketplace public marketplace;
     GenomicRegistry public registry;
     Job[] private jobs;
-    mapping(uint256 => mapping(uint256 => euint64[])) private snpChunks;
+    // Flat per-job SNP storage — indexed by absolute SNP position.
+    mapping(uint256 => euint64[]) private snpData;
 
     event JobCreated(
         uint256 indexed jobId,
         uint256 indexed modelId,
         address indexed requester,
         uint256 weightCount,
-        uint256 chunkSize,
+        uint256 computeChunkSize,
         uint256 sampleId
     );
     event SnpChunkAppended(
@@ -73,7 +84,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             bool isPrivate,
             bool finalized,
             uint256 weightCount,
-            uint256 chunkSize,
+            uint256 uploadChunkSize,
+            uint256 computeChunkSize,
             uint256 chunkCount,
             uint64 weightZeroPoint,
             uint64 scoreOffset
@@ -94,7 +106,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             modelId: modelId,
             sampleId: sampleId,
             weightCount: weightCount,
-            chunkSize: chunkSize,
+            uploadChunkSize: uploadChunkSize,
+            computeChunkSize: computeChunkSize,
             chunkCount: chunkCount,
             uploadedSnpCount: 0,
             nextChunkIndex: 0,
@@ -111,7 +124,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
 
         jobs.push(job);
         uint256 jobId = jobs.length - 1;
-        emit JobCreated(jobId, modelId, msg.sender, weightCount, chunkSize, sampleId);
+        emit JobCreated(jobId, modelId, msg.sender, weightCount, computeChunkSize, sampleId);
         return jobId;
     }
 
@@ -122,20 +135,19 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     ) external {
         Job storage job = _requireOwnedPendingUploadJob(jobId);
 
-        uint256 chunkIndex = _nextSnpChunkIndex(job);
-        uint256 expectedLength = _expectedNextSnpChunkLength(job);
+        uint256 chunkIndex = _nextSnpUploadChunkIndex(job);
+        uint256 expectedLength = _expectedNextSnpUploadChunkLength(job);
         require(expectedLength > 0, "All SNP chunks uploaded");
         require(
             encryptedSnps.length == expectedLength,
             "Invalid SNP chunk length"
         );
 
-        euint64[] storage chunk = snpChunks[jobId][chunkIndex];
-        require(chunk.length == 0, "SNP chunk already uploaded");
+        euint64[] storage store = snpData[jobId];
         for (uint256 i = 0; i < encryptedSnps.length; i++) {
             euint64 snp = FHE.fromExternal(encryptedSnps[i], inputProof);
             FHE.allowThis(snp);
-            chunk.push(snp);
+            store.push(snp);
         }
 
         job.uploadedSnpCount += encryptedSnps.length;
@@ -159,13 +171,18 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         uint256 chunkIndex = job.nextChunkIndex;
         require(chunkIndex < job.chunkCount, "Invalid chunk");
 
-        uint256 expectedLength = _expectedChunkLength(
+        uint256 chunkLen = _computeChunkLength(
             job.weightCount,
-            job.chunkSize,
+            job.computeChunkSize,
             chunkIndex
         );
-        euint64[] storage snps = snpChunks[jobId][chunkIndex];
-        require(snps.length == expectedLength, "Invalid SNP chunk");
+
+        // Load SNP slice from flat storage into memory for FHE ops
+        uint256 start = chunkIndex * job.computeChunkSize;
+        euint64[] memory snps = new euint64[](chunkLen);
+        for (uint256 i = 0; i < chunkLen; i++) {
+            snps[i] = snpData[jobId][start + i];
+        }
 
         euint64 acc = job.partialSum;
         euint64 genoAcc = job.genoSum;
@@ -173,7 +190,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             euint64[] memory encryptedWeights = marketplace
                 .getEncryptedWeightChunk(job.modelId, chunkIndex);
             require(
-                encryptedWeights.length == expectedLength,
+                encryptedWeights.length == chunkLen,
                 "Invalid model chunk"
             );
             for (uint256 i = 0; i < encryptedWeights.length; i++) {
@@ -186,7 +203,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
                 chunkIndex
             );
             require(
-                publicWeights.length == expectedLength,
+                publicWeights.length == chunkLen,
                 "Invalid model chunk"
             );
             for (uint256 i = 0; i < publicWeights.length; i++) {
@@ -198,7 +215,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         FHE.allowThis(acc);
         FHE.allowThis(genoAcc);
 
-        uint256 processedWeights = job.processedWeights + expectedLength;
+        uint256 processedWeights = job.processedWeights + chunkLen;
         job.partialSum = acc;
         job.genoSum = genoAcc;
         job.processedWeights = processedWeights;
@@ -262,7 +279,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             uint256 modelId,
             address requester,
             uint256 weightCount,
-            uint256 chunkSize,
+            uint256 uploadChunkSize,
+            uint256 computeChunkSize,
             uint256 chunkCount,
             uint256 uploadedSnpCount,
             bool snpsFinalized,
@@ -279,7 +297,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             job.modelId,
             job.requester,
             job.weightCount,
-            job.chunkSize,
+            job.uploadChunkSize,
+            job.computeChunkSize,
             job.chunkCount,
             job.uploadedSnpCount,
             job.snpsFinalized,
@@ -300,26 +319,26 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         require(!job.snpsFinalized, "SNP upload finalized");
     }
 
-    function _nextSnpChunkIndex(
+    function _nextSnpUploadChunkIndex(
         Job storage job
     ) internal view returns (uint256) {
-        return job.uploadedSnpCount / job.chunkSize;
+        return job.uploadedSnpCount / job.uploadChunkSize;
     }
 
-    function _expectedNextSnpChunkLength(
+    function _expectedNextSnpUploadChunkLength(
         Job storage job
     ) internal view returns (uint256) {
         uint256 remaining = job.weightCount - job.uploadedSnpCount;
-        return remaining > job.chunkSize ? job.chunkSize : remaining;
+        return remaining > job.uploadChunkSize ? job.uploadChunkSize : remaining;
     }
 
-    function _expectedChunkLength(
+    function _computeChunkLength(
         uint256 weightCount,
-        uint256 chunkSize,
+        uint256 computeChunkSize,
         uint256 chunkIndex
     ) internal pure returns (uint256) {
-        uint256 start = chunkIndex * chunkSize;
+        uint256 start = chunkIndex * computeChunkSize;
         uint256 remaining = weightCount - start;
-        return remaining > chunkSize ? chunkSize : remaining;
+        return remaining > computeChunkSize ? computeChunkSize : remaining;
     }
 }

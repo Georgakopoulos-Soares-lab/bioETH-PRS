@@ -18,7 +18,8 @@ import {
 
 interface CliOptions {
   fixtureSizes: HeprsFixtureSize[];
-  chunkSize: number;
+  uploadChunkSize: number;
+  computeChunkSize: number;
   verbose: boolean;
   jsonOutPath?: string;
 }
@@ -45,7 +46,8 @@ interface GasSummary {
 interface SuccessfulFixtureProfile {
   fixtureSize: HeprsFixtureSize;
   vectorLength: number;
-  chunkSize: number;
+  uploadChunkSize: number;
+  computeChunkSize: number;
   recommendation: HeprsAdvisorRecommendation;
   chunkTiming: ChunkTimingSummary;
   gas: GasSummary;
@@ -92,7 +94,11 @@ function parseFixtureSize(value: string): HeprsFixtureSize {
 
 function parseCliArgs(argv: string[]): CliOptions {
   const fixtureSizes: HeprsFixtureSize[] = [];
-  let chunkSize = 10;
+  // Decoupled defaults:
+  //   uploadChunkSize=32 — 2048-bit input-proof budget (max 32 euint64s per call)
+  //   computeChunkSize=10 — HCU-safe on mock; Sepolia ceiling TBD (run probe:hcu)
+  let uploadChunkSize = 32;
+  let computeChunkSize = 10;
   let verbose = false;
   let jsonOutPath: string | undefined;
 
@@ -109,12 +115,22 @@ function parseCliArgs(argv: string[]): CliOptions {
       continue;
     }
 
-    if (arg === "--chunk-size") {
+    if (arg === "--upload-chunk-size") {
       const value = Number(argv[i + 1]);
       if (!Number.isInteger(value) || value <= 0) {
-        throw new Error("Chunk size must be a positive integer");
+        throw new Error("Upload chunk size must be a positive integer");
       }
-      chunkSize = value;
+      uploadChunkSize = value;
+      i += 1;
+      continue;
+    }
+
+    if (arg === "--compute-chunk-size") {
+      const value = Number(argv[i + 1]);
+      if (!Number.isInteger(value) || value <= 0) {
+        throw new Error("Compute chunk size must be a positive integer");
+      }
+      computeChunkSize = value;
       i += 1;
       continue;
     }
@@ -144,7 +160,8 @@ function parseCliArgs(argv: string[]): CliOptions {
 
   return {
     fixtureSizes: fixtureSizes.length > 0 ? fixtureSizes : [...HEPRS_FIXTURE_SIZES],
-    chunkSize,
+    uploadChunkSize,
+    computeChunkSize,
     verbose,
     jsonOutPath
   };
