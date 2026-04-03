@@ -130,7 +130,7 @@ The script prints the assumptions and the markdown-ready table.
 
 This reference complements:
 
-* `docs/design/v1/quantization.md`
+* `docs/design/quantization.md`
   * the production-oriented encoding design
 * `docs/reference/quantization-advisor.md`
   * the standalone capability for model publishers

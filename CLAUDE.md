@@ -59,9 +59,9 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 | Question | Go to |
 |---|---|
 | Architecture & threat model | [docs/architecture-roadmap.md](docs/architecture-roadmap.md) |
-| Quantization math & overflow | [docs/design/v1/quantization.md](docs/design/v1/quantization.md) |
-| SNP ingestion lifecycle | [docs/design/v1/snp-ingestion.md](docs/design/v1/snp-ingestion.md) |
-| Model marketplace design | [docs/design/v1/model-marketplace.md](docs/design/v1/model-marketplace.md) |
+| Quantization math & overflow | [docs/design/quantization.md](docs/design/quantization.md) |
+| SNP ingestion lifecycle | [docs/design/snp-ingestion.md](docs/design/snp-ingestion.md) |
+| Model marketplace design | [docs/design/model-marketplace.md](docs/design/model-marketplace.md) |
 | Dev workflow commands | [docs/reference/development-workflows.md](docs/reference/development-workflows.md) |
 | HEPRS reference paper | [docs/PIIS2667237525003078.pdf](docs/PIIS2667237525003078.pdf) |
 | Known implementation gaps & risks | [docs/architecture-roadmap.md § 7](docs/architecture-roadmap.md) |

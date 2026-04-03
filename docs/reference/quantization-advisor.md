@@ -233,7 +233,7 @@ That is a healthier split of responsibility.
 
 This capability complements:
 
-* `docs/design/v1/quantization.md`
+* `docs/design/quantization.md`
   * explains the encoding design itself
 * HEPRS-based fixtures in `test/fixtures/heprs/`
   * give us real reference weights and genotype rows

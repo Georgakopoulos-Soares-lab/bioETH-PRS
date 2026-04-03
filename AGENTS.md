@@ -47,10 +47,10 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 |---|---|
 | `docs/README.md` | Documentation map and reading entrypoints |
 | `docs/architecture-roadmap.md` | Architecture, roadmap, known edge cases, and threat model |
-| `docs/design/v1/overview.md` | Current `v1` system target across publication, SNP upload, and compute |
-| `docs/design/v1/model-marketplace.md` | Detailed model publication lifecycle, provenance, and marketplace controls |
-| `docs/design/v1/snp-ingestion.md` | Detailed PRS job shell, SNP upload, and compute lifecycle |
-| `docs/design/v1/quantization.md` | Signed-weight quantization and overflow-safe encoding design |
+| `docs/design/overview.md` | Current `v1` system target across publication, SNP upload, and compute |
+| `docs/design/model-marketplace.md` | Detailed model publication lifecycle, provenance, and marketplace controls |
+| `docs/design/snp-ingestion.md` | Detailed PRS job shell, SNP upload, and compute lifecycle |
+| `docs/design/quantization.md` | Signed-weight quantization and overflow-safe encoding design |
 | `docs/onboarding/contributor-onboarding.md` | Full educational guide — bio, crypto, systems background |
 | `docs/onboarding/concepts-cheatsheet.md` | Quick concept reference |
 | `docs/onboarding/e2e-walkthrough-short.md` | End-to-end scenario walkthrough |

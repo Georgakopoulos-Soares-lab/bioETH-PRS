@@ -78,30 +78,23 @@ It also aligns with common large-artifact engineering patterns:
 
 ### 1. Model chunk size is canonical
 
-The model's published `chunkSize` is the authoritative geometry for `v1`.
+The model carries two independent chunk-size parameters:
 
-That means:
+- `uploadChunkSize` — how many values per upload call (capped at 32 by the
+  fhEVM input-proof budget for encrypted SNPs)
+- `computeChunkSize` — how many SNP×weight pairs per `computeChunk` call
+  (bounded by the HCU budget)
 
-- the model chooses the chunk boundaries
-- SNP upload follows those same boundaries
-- compute processes one of those chunks at a time
+**Recommended values: `uploadChunkSize=32`, `computeChunkSize=20` (mock).**
+SNPs are stored flat and sliced by `computeChunkSize` during compute, so the
+two parameters are fully independent.  Setting `uploadChunkSize=32` cuts SNP
+upload transactions by ~3× versus the old coupled default of 10.
 
-`v1` does **not** let the job choose an independent compute chunk size.
-
-**Practical constraint — today's ceiling is `chunkSize = 10`.**  Two protocol
-limits bound what is currently safe:
-
-- **Upload** is constrained by the fhEVM input-proof budget (2048 bits / 64
-  bits per `euint64` = max 32 values per `appendSnpChunk` call).
-- **Compute** is constrained by the mock coprocessor's HCU budget (~30
-  operations per transaction / 3 ops per SNP = max 10 SNPs per
-  `computeChunk` call).
-
-Compute is the binding limit.  Setting `chunkSize > 10` causes the first
-`computeChunk` to revert with `HCUTransactionLimitExceeded`.
+The Sepolia `computeChunkSize` ceiling is unknown — run `npm run probe:hcu`
+after a Sepolia deployment to measure it.
 
 See [`snp-ingestion.md § Chunk-size constraints in practice`](snp-ingestion.md)
-for the full breakdown and guidance on choosing `chunkSize` for Sepolia.
+for the full breakdown.
 
 ### 2. Uploads are sequential
 

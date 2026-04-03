@@ -88,10 +88,10 @@ Only the cryptographic backend changes — no contract edits are needed to go fr
 
 ## 4. Engineering Specifications & Optimizations
 
-See also `docs/design/v1/overview.md` for the current `v1` system target across publication, SNP upload, and compute.
-See also `docs/design/v1/quantization.md` for the dedicated production-oriented design of quantization, signed-weight handling, offsets, and overflow-safe score encoding.
-See also `docs/design/v1/model-marketplace.md` for the current chunked publication, metadata, permissions, and chunk-oriented compute design of `ModelMarketplace`.
-See also `docs/design/v1/snp-ingestion.md` for the current chunked PRS job upload and compute lifecycle.
+See also `docs/design/overview.md` for the current `v1` system target across publication, SNP upload, and compute.
+See also `docs/design/quantization.md` for the dedicated production-oriented design of quantization, signed-weight handling, offsets, and overflow-safe score encoding.
+See also `docs/design/model-marketplace.md` for the current chunked publication, metadata, permissions, and chunk-oriented compute design of `ModelMarketplace`.
+See also `docs/design/snp-ingestion.md` for the current chunked PRS job upload and compute lifecycle.
 See also `docs/reference/quantization-advisor.md` for the standalone advisor capability that helps model publishers choose candidate scales before upload.
 See also `docs/reference/scaling-ceilings.md` for the simple scale-vs-SNP quick-screen reference under `uint64`.
 See also `reports/scaling-ceiling-findings.md` for the collaborator-facing explanation of the generated ceiling results.

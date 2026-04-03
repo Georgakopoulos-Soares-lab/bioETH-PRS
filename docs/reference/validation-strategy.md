@@ -178,7 +178,7 @@ Once the Sepolia run completes, these paper claims become available:
 These results also feed back into:
 - `docs/architecture-roadmap.md §7-I` — "Sepolia observed" column
 - `reports/sepolia-validation-findings.md` — timing and gas report
-- `docs/design/v1/snp-ingestion.md` — real HCU ceiling
+- `docs/design/snp-ingestion.md` — real HCU ceiling
 - `todo.md` Priority 2 — decouple upload/compute chunk sizes now that the real compute ceiling is known
 
 ---

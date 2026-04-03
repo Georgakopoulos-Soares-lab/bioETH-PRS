@@ -159,7 +159,7 @@ Once the Sepolia run completes, fill in the following and commit:
    template below) with the full timing and gas data from the JSON reports.
 3. **`todo.md`** — move "Sepolia deployment — confirm real FHE path" from
    Active Priorities to Recently Completed.
-4. **`docs/design/v1/snp-ingestion.md`** — update the "Chunk-size constraints
+4. **`docs/design/snp-ingestion.md`** — update the "Chunk-size constraints
    in practice" section with the real Sepolia HCU ceiling.
 
 ### Report template

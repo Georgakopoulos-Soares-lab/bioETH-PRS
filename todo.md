@@ -7,17 +7,17 @@ Sepolia deployment infrastructure is complete and ready to run.
 
 The current implemented state is:
 
-- `ModelMarketplace v1` is implemented with chunked publication lifecycle
+- `ModelMarketplace` is implemented with chunked publication lifecycle
 - `PRSComputeEngine` implements staged SNP ingestion, chunked compute, and the V1 quantization correction
+- **Upload and compute chunk sizes are decoupled**: `uploadChunkSize=32` (input-proof budget), `computeChunkSize=20` (mock HCU ceiling); weights and SNPs stored flat and sliced independently
 - Contracts import from `@fhevm/solidity` (real Zama library) and inherit `ZamaEthereumConfig`
 - Local testing via `@fhevm/hardhat-plugin` mock coprocessor — validates handles, ACL, and input proofs while performing plaintext arithmetic
 - Same contract bytecode deploys to Sepolia for real FHE — no contract changes needed
-- **69 tests pass** under the mock coprocessor (~20s)
-- **chunkSize = 10** default in all profiling and tests; **chunkSize = 20** confirmed safe on mock (systematic HCU probe, 2 Apr 2026)
-- **Mock HCU budget corrected**: ~60–74 ops/tx (not ~30 as previously stated); ceiling is chunkSize=20, not 10
+- **72 tests pass** under the mock coprocessor (~20s)
+- **Mock HCU budget**: ~60–74 ops/tx; compute ceiling is `computeChunkSize=20`
 - HEPRS profiler captures both timing and gas per phase across all 4 fixtures
 - All 50 individuals × 4 fixtures (200 checks) verified safe within `uint64` bounds
-- Design docs include chunk-size constraints, local vs Sepolia comparison, and V1 quantization worked example
+- Design docs in `docs/design/` (formerly `docs/design/v1/`) reflect decoupled chunk sizes
 - **Mock validation baseline captured**: `reports/mock-validation-findings.md` — 100-SNP end-to-end PASS, full gas/timing table, HCU probe results
 - **Sepolia tooling complete**: `hardhat.config.ts` has Sepolia network block; `scripts/deploy.ts`, `scripts/sepolia_validation.ts`, `scripts/probe_hcu_ceiling.ts` are ready; `npm run deploy:sepolia`, `validate:sepolia`, `probe:hcu` commands wired
 
@@ -48,10 +48,10 @@ The current implemented state is:
 
 ### Documentation patches
 
-- `docs/design/v1/snp-ingestion.md` — new "Chunk-size constraints in practice" section: HCU math, 10/32 limits, binding constraint, Sepolia guidance; updated 2 Apr 2026 with correct ceiling (20, not 10)
-- `docs/design/v1/overview.md` — chunk-size ceiling noted under core design decisions; links to snp-ingestion.md
+- `docs/design/snp-ingestion.md` — new "Chunk-size constraints in practice" section: HCU math, 10/32 limits, binding constraint, Sepolia guidance; updated 2 Apr 2026 with correct ceiling (20, not 10)
+- `docs/design/overview.md` — chunk-size ceiling noted under core design decisions; links to snp-ingestion.md
 - `docs/architecture-roadmap.md` — Local vs Sepolia comparison table in §3-E; §7 renamed from "Known Edge Cases" to "Known Implementation Gaps"; §7-I updated with measured mock baseline
-- `docs/design/v1/quantization.md` — test count corrected (55 → 59)
+- `docs/design/quantization.md` — test count corrected (55 → 59)
 - `README.md` — stale mock file paths removed, chunk size corrected, Running Tests section updated, Real FHE section corrected
 - `docs/onboarding/contributor-onboarding.md` — missing Step 4 fixed
 - `CLAUDE.md` — `profile:heprs` added to Build & Test section
@@ -64,7 +64,7 @@ The current implemented state is:
 - 5 new tests: wide-margin Low/Medium/High classification, `noiseUpperBound` readable, zero bound reverts, noisy ≥ raw score verified
 - `deploy.ts` updated: default `noiseUpperBound = 1_000_000` (~0.33 on decoded float scale at scale=3,000,000)
 - `docs/architecture-roadmap.md §7-D` updated: gap resolved, design rationale documented (uniform vs Laplacian, why no VRF/commitment)
-- `docs/design/v1/system-explainer.md` updated: ResultOracle section corrected
+- `docs/design/system-explainer.md` updated: ResultOracle section corrected
 - **Test count: 64 → 67 passing**
 
 ### Mock validation baseline + HCU systematic probe (2 April 2026)
@@ -73,7 +73,7 @@ The current implemented state is:
 - `npm run probe:hcu:mock` — systematic HCU ceiling probe across chunkSizes [10, 15, 20, 25, 32]; ceiling confirmed 20 < C ≤ 25 (corrects prior claim of 10)
 - `reports/mock-validation-findings.md` — new report with full phase gas, per-chunk gas, HCU probe table, and recommended chunkSize guidance
 - `reports/heprs-fixture-findings.md` — HCU ceiling section corrected; chunk-size table updated
-- `docs/design/v1/snp-ingestion.md` — HCU limit section rewritten with probe data; practical guidance updated
+- `docs/design/snp-ingestion.md` — HCU limit section rewritten with probe data; practical guidance updated
 
 ### Marketplace and compute refactor (prior work, still current)
 
@@ -105,17 +105,17 @@ After runs complete:
 
 - Fill in "Sepolia observed" column in `docs/architecture-roadmap.md §7-I`
 - Create `reports/sepolia-validation-findings.md` with timing + gas data
-- Update `docs/design/v1/snp-ingestion.md` "Chunk-size constraints" with real HCU ceiling
+- Update `docs/design/snp-ingestion.md` "Chunk-size constraints" with real HCU ceiling
 - Move this item to Recently Completed
 
-### 2. Decouple upload and compute chunk sizes
+### 2. Decouple upload and compute chunk sizes ✅ DONE
 
-Blocked on Priority 1 (need real Sepolia HCU ceiling first).
-
-- Upload can safely handle up to 32 values per proof (2048-bit budget)
-- Compute ceiling on Sepolia is unknown — mock ceiling is 20
-- Decoupling reduces upload transactions by ~3× at no contract cost
-- Do after `npm run probe:hcu` reveals the real compute ceiling
+- `uploadChunkSize=32` (input-proof budget) and `computeChunkSize=20` (mock HCU ceiling) are now independent fields in `ModelHeader` and `Job`
+- Weights and SNPs stored flat, sliced by `computeChunkSize` on read — no alignment constraint between the two sizes
+- `chunkCount = ceil(weightCount / computeChunkSize)`
+- `docs/design/` renamed from `docs/design/v1/`; all docs updated for decoupled chunk sizes
+- 72 tests pass; new dedicated decoupled-scenario tests in `model_marketplace_chunked_test.ts` and `prs_compute_engine_chunked_snp_test.ts`
+- After `npm run probe:hcu` on Sepolia reveals the real compute ceiling, update `computeChunkSize` in `createModelShell` calls in scripts and profiling
 
 ## Secondary Engineering Work
 
@@ -172,7 +172,7 @@ Previously open questions that now have an implemented and tested answer:
 - Compute uses chunk-addressed reads — not whole-model reads
 - 5000-SNP fixture completes end-to-end (staged SNP upload removes the old OOG boundary)
 - V1 quantization correction is implemented, tested, and documented
-- `computeChunk` permission model decided: permissionless relay is intentional (documented in `docs/design/v1/snp-ingestion.md`)
+- `computeChunk` permission model decided: permissionless relay is intentional (documented in `docs/design/snp-ingestion.md`)
 - `JobFinalized` event is implemented — used by profiler and available to off-chain indexers
 - Full profiling with timing + gas now exists in `reports/heprs-fixture-findings.md`
 - Chunk-size constraints (10 for compute, 32 for upload) are empirically confirmed and documented

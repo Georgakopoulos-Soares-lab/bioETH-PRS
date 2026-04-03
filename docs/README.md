@@ -18,10 +18,10 @@ This directory is organized by purpose so collaborators can find the right level
 
 ## Design
 
-- [`design/v1/overview.md`](design/v1/overview.md): current `v1` system target across publication, SNP upload, and compute
-- [`design/v1/model-marketplace.md`](design/v1/model-marketplace.md): model publication lifecycle and marketplace controls
-- [`design/v1/snp-ingestion.md`](design/v1/snp-ingestion.md): PRS job shell, SNP chunk upload, and compute lifecycle
-- [`design/v1/quantization.md`](design/v1/quantization.md): signed-weight quantization and encoding
+- [`design/overview.md`](design/overview.md): current `v1` system target across publication, SNP upload, and compute
+- [`design/model-marketplace.md`](design/model-marketplace.md): model publication lifecycle and marketplace controls
+- [`design/snp-ingestion.md`](design/snp-ingestion.md): PRS job shell, SNP chunk upload, and compute lifecycle
+- [`design/quantization.md`](design/quantization.md): signed-weight quantization and encoding
 
 ## Reference
 

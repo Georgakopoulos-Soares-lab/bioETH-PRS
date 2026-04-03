@@ -14,10 +14,10 @@ Use it when you want to:
 For architecture and design context, see:
 
 - [`../architecture-roadmap.md`](../architecture-roadmap.md)
-- [`../design/v1/overview.md`](../design/v1/overview.md)
-- [`../design/v1/model-marketplace.md`](../design/v1/model-marketplace.md)
-- [`../design/v1/snp-ingestion.md`](../design/v1/snp-ingestion.md)
-- [`../design/v1/quantization.md`](../design/v1/quantization.md)
+- [`../design/overview.md`](../design/overview.md)
+- [`../design/model-marketplace.md`](../design/model-marketplace.md)
+- [`../design/snp-ingestion.md`](../design/snp-ingestion.md)
+- [`../design/quantization.md`](../design/quantization.md)
 
 ## Environment
 

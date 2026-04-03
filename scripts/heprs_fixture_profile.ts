@@ -169,7 +169,8 @@ function parseCliArgs(argv: string[]): CliOptions {
 
 async function profileFixture(
   fixtureSize: HeprsFixtureSize,
-  chunkSize: number
+  uploadChunkSize: number,
+  computeChunkSize: number
 ): Promise<FixtureProfile> {
   const totalStart = nowNs();
 
@@ -205,7 +206,8 @@ async function profileFixture(
     const modelId = await marketplace.createModelShell.staticCall(
       false,
       BigInt(quantized.weights.length),
-      BigInt(chunkSize),
+      BigInt(uploadChunkSize),
+      BigInt(computeChunkSize),
       `ipfs://heprs/${fixtureSize}`,
       ethers.ZeroHash,
       ethers.ZeroHash,
@@ -215,7 +217,8 @@ async function profileFixture(
     const tx = await marketplace.createModelShell(
       false,
       BigInt(quantized.weights.length),
-      BigInt(chunkSize),
+      BigInt(uploadChunkSize),
+      BigInt(computeChunkSize),
       `ipfs://heprs/${fixtureSize}`,
       ethers.ZeroHash,
       ethers.ZeroHash,
@@ -224,7 +227,7 @@ async function profileFixture(
     );
     publishModelGas += (await tx.wait())?.gasUsed ?? 0n;
 
-    for (const chunk of chunkBigIntVector(quantized.weights, chunkSize)) {
+    for (const chunk of chunkBigIntVector(quantized.weights, uploadChunkSize)) {
       const appendTx = await marketplace.appendPublicModelChunk(modelId, chunk);
       publishModelGas += (await appendTx.wait())?.gasUsed ?? 0n;
     }
@@ -258,7 +261,7 @@ async function profileFixture(
 
   let uploadSnpsGas = 0n;
   const uploadSnpsResult = await timed(async () => {
-    for (const chunk of chunkBigIntVector(snps, chunkSize)) {
+    for (const chunk of chunkBigIntVector(snps, uploadChunkSize)) {
       const input = fhevm.createEncryptedInput(engineAddr, signer.address);
       for (const v of chunk) input.add64(v);
       const { handles, inputProof } = await input.encrypt();
@@ -275,13 +278,13 @@ async function profileFixture(
 
   const chunkTimes: number[] = [];
   let computeGas = 0n;
-  const totalChunks = Math.ceil(snps.length / chunkSize);
+  const totalChunks = Math.ceil(snps.length / computeChunkSize);
   let readPartialResult:
     | { value: bigint; ms: number }
     | undefined;
   const partialFirstChunk = dotProductBigInt(
-    snps.slice(0, chunkSize),
-    quantized.weights.slice(0, chunkSize)
+    snps.slice(0, computeChunkSize),
+    quantized.weights.slice(0, computeChunkSize)
   );
   for (let i = 0; i < totalChunks; i++) {
     const chunkResult = await timed(async () => {
@@ -325,7 +328,8 @@ async function profileFixture(
   return {
     fixtureSize,
     vectorLength: snps.length,
-    chunkSize,
+    uploadChunkSize,
+    computeChunkSize,
     recommendation,
     gas: {
       publishModel: publishModelGas,
@@ -368,7 +372,7 @@ function formatMs(ms: number): string {
 
 function summarizeProfile(profile: FixtureProfile, verbose: boolean): string {
   const lines = [
-    `fixture=${profile.fixtureSize} SNP (vectorLength=${profile.vectorLength}, chunkSize=${profile.chunkSize})`,
+    `fixture=${profile.fixtureSize} SNP (vectorLength=${profile.vectorLength}, uploadChunkSize=${profile.uploadChunkSize}, computeChunkSize=${profile.computeChunkSize})`,
     `status=${profile.status}`
   ];
 
@@ -391,7 +395,7 @@ function summarizeProfile(profile: FixtureProfile, verbose: boolean): string {
 function stringifyProfiles(profiles: FixtureProfile[]): string {
   return JSON.stringify(profiles, (_key, value) =>
     typeof value === "bigint" ? value.toString() : value
-  , 2);
+    , 2);
 }
 
 // Run as a Hardhat test so the @fhevm/hardhat-plugin mock coprocessor is
@@ -406,12 +410,13 @@ describe("HEPRS fixture profiler", function () {
     const profiles: FixtureProfile[] = [];
 
     for (const fixtureSize of options.fixtureSizes) {
-      profiles.push(await profileFixture(fixtureSize, options.chunkSize));
+      profiles.push(await profileFixture(fixtureSize, options.uploadChunkSize, options.computeChunkSize));
     }
 
     console.log("\nHEPRS fixture profile");
     console.log(`fixtures=${options.fixtureSizes.join(",")}`);
-    console.log(`chunkSize=${options.chunkSize}`);
+    console.log(`uploadChunkSize=${options.uploadChunkSize}`);
+    console.log(`computeChunkSize=${options.computeChunkSize}`);
     console.log("");
 
     for (const profile of profiles) {

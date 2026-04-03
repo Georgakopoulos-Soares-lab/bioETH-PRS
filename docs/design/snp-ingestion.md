@@ -62,8 +62,9 @@ The `Job` header tracks:
 
 - `modelId`
 - `weightCount`
-- `chunkSize`
-- `chunkCount`
+- `uploadChunkSize` — governs SNP upload batching
+- `computeChunkSize` — governs compute slicing (HCU-constrained)
+- `chunkCount` — `ceil(weightCount / computeChunkSize)`
 - `uploadedSnpCount`
 - `nextChunkIndex`
 - `processedWeights`
@@ -73,45 +74,37 @@ The `Job` header tracks:
 - `snpsFinalized`
 - `complete`
 
-The SNP values themselves are stored by:
+The SNP values are stored flat per job:
 
 ```text
-snpChunks[jobId][chunkIndex]
+snpData[jobId][absoluteIndex]
 ```
 
-## Why chunk size is aligned to the model
+Upload appends to this flat array in `uploadChunkSize` batches.  Compute
+reads windows of `computeChunkSize` from it, so the two phases are fully
+independent.
 
-In `v1`, the model's chunk geometry is the source of truth.
+## Upload and compute chunk sizes are decoupled
 
-That means:
+The model carries two independent chunk-size parameters:
 
-- the requester does not choose an independent SNP chunk size
-- job upload follows the model's `chunkSize`
-- compute processes chunk `k` of the model against chunk `k` of the SNPs
+- `uploadChunkSize` — how many values per upload call (bounded by the
+  fhEVM input-proof budget at 32 for encrypted SNPs)
+- `computeChunkSize` — how many SNP×weight pairs per `computeChunk` call
+  (bounded by the HCU budget)
+
+SNPs are stored in a flat array and sliced by `computeChunkSize` during
+compute, so `uploadChunkSize` need not equal or divide `computeChunkSize`.
 
 Example:
 
-- model `chunkSize = 256`
-- `weightCount = 5001`
-- `chunkCount = 20`
+- `uploadChunkSize = 32`, `computeChunkSize = 10`
+- `weightCount = 101`
+- Upload transactions: `ceil(101/32) = 4`
+- Compute transactions: `ceil(101/10) = 11`
 
-Then:
-
-- SNP chunk `0` must contain indices `[0..255]`
-- SNP chunk `1` must contain indices `[256..511]`
-- ...
-- SNP chunk `19` contains the final remainder
-
-This keeps the indexing model simple and deterministic.
-
-## Why `v1` does not use a separate SNP chunk size
-
-That would add flexibility, but it would also add more moving parts:
-
-- two chunk geometries
-- alignment rules between them
-- more complex compute indexing
-- more edge cases to test
+This cuts upload transactions by ~3× compared to the old single-chunkSize
+approach (where upload was also forced to 10).
 
 For `v1`, the simpler choice is better:
 
@@ -121,10 +114,9 @@ For `v1`, the simpler choice is better:
 
 ## Chunk-size constraints in practice
 
-Two independent hardware/protocol limits bound what `chunkSize` can safely be.
-Understanding both is essential before publishing a model.
+Two independent hardware/protocol limits govern the two chunk sizes.
 
-### Limit 1 — Input-proof budget (upload): 32 values
+### `uploadChunkSize` — Input-proof budget: 32 values
 
 Every `appendSnpChunk` call packages the encrypted SNP values into a single
 `fhevmjs` input proof.  That proof has a **2048-bit budget**.  Each `euint64`
@@ -134,10 +126,11 @@ value occupies 64 bits, so a single call can carry at most:
 2048 / 64 = 32 encrypted SNP values
 ```
 
-Chunks larger than 32 values will be rejected by the fhEVM input-proof
-validation layer before the transaction even reaches contract storage.
+**Set `uploadChunkSize = 32` to maximise upload efficiency.**  The contract
+enforces this boundary; proofs larger than 32 values are rejected before
+reaching storage.
 
-### Limit 2 — HCU budget (compute): 20 values (mock)
+### `computeChunkSize` — HCU budget: 20 values (mock)
 
 Each SNP processed in `computeChunk` requires **3 FHE operations**:
 
@@ -149,7 +142,7 @@ The mock coprocessor enforces a per-transaction Homomorphic Compute Unit (HCU)
 budget.  A systematic probe (2 April 2026, `npm run probe:hcu:mock`) tested all
 candidate sizes and found:
 
-| chunkSize | 3 ops × chunkSize | Result |
+| computeChunkSize | 3 ops × size | Result |
 | ---: | ---: | --- |
 | 10 | 30 | PASS |
 | 15 | 45 | PASS |
@@ -164,34 +157,34 @@ ceiling of **20 SNPs per `computeChunk` call** on the mock coprocessor.
 > from testing only chunkSize=32 (FAIL) against a ~30 HCU/tx assumption.  The
 > systematic probe corrects this.  See `reports/mock-validation-findings.md §2`.
 
-### The binding constraint is compute, not upload
+### Summary
 
-| Phase | Limit | Source |
+| Phase | Limit | Parameter |
 |---|---|---|
-| `appendSnpChunk` | 32 values | 2048-bit input-proof budget |
-| `computeChunk` | 20 values (mock) | ~60–74 HCU per transaction |
+| `appendSnpChunk` | 32 values | `uploadChunkSize` |
+| `computeChunk` | 20 values (mock) | `computeChunkSize` |
 
-Upload could handle 32 values per call, but compute is the binding constraint.
-**`v1` uses `chunkSize = 10` for both** as a conservative default.  `chunkSize=20`
-is also safe on mock and halves the transaction count for the upload and compute phases.
+The two limits are independent and are now stored as separate fields.
+**Recommended defaults: `uploadChunkSize=32`, `computeChunkSize=20`.**
 
 ### Real fhEVM (Sepolia) HCU ceiling is unknown
 
-The mock coprocessor's ~30 HCU/tx limit is a local development constraint.
+The mock coprocessor's ~60–74 HCU/tx limit is a local development constraint.
 The Sepolia coprocessor may allow a significantly larger HCU budget.  If it
-supports 300 HCU/tx, `chunkSize` becomes 100, reducing the 5000-SNP transaction
-count from ~1005 to ~155.  This is the most impactful unknown for production
-feasibility and will only be measurable after a Sepolia deployment.
+supports 300 HCU/tx, `computeChunkSize` becomes 100, reducing the 5000-SNP
+compute transaction count from ~250 to ~50.  Run `npm run probe:hcu` on a
+Sepolia deployment to measure the real ceiling, then update `computeChunkSize`
+in `createModelShell`.
 
 ### Practical guidance
 
 When publishing a model today:
 
-- set `chunkSize = 10` for conservative local mock-mode development (matches existing tests)
-- set `chunkSize = 20` for optimal mock throughput — confirmed safe, ~45% fewer transactions
-- do not set `chunkSize > 20` on mock — `computeChunk` will revert with `HCUTransactionLimitExceeded`
-- do not set `chunkSize > 32` on any network — `appendSnpChunk` will reject the input proof
-- start with `chunkSize = 10` on a first Sepolia deployment; run `npm run probe:hcu` to measure the real ceiling
+- set `uploadChunkSize = 32` — this is always the correct value (input-proof budget)
+- set `computeChunkSize = 10` for conservative local development (leaves headroom)
+- set `computeChunkSize = 20` for optimal mock throughput — confirmed safe
+- do not set `computeChunkSize > 20` on mock — `computeChunk` will revert with `HCUTransactionLimitExceeded`
+- start with `computeChunkSize = 10` on a first Sepolia deployment; run `npm run probe:hcu` to find the real ceiling
 
 ## Detailed flow
 

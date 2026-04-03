@@ -107,8 +107,9 @@ The `ModelHeader` in `v1` contains:
 * `isPrivate`
 * `finalized`
 * `weightCount`
-* `chunkSize`
-* `chunkCount`
+* `uploadChunkSize` — batch size for weight publication
+* `computeChunkSize` — slice size for weight retrieval during compute
+* `chunkCount` — `ceil(weightCount / computeChunkSize)`
 * `uploadedWeightCount`
 * `manifestURI`
 * `manifestHash`
@@ -167,29 +168,35 @@ This lets the contract know:
 
 It is one of the basic integrity checks for the whole workflow.
 
-### `chunkSize`
+### `uploadChunkSize`
 
-The canonical chunk geometry for the model.
+How many weights are accepted per `appendPublicModelChunk` /
+`appendEncryptedModelChunk` call.  For public models this is unconstrained
+by the fhEVM proof budget; for private models it is capped at 32 (2048-bit
+input-proof budget).
 
-This determines:
+### `computeChunkSize`
 
-* how publication is split into multiple transactions
-* how compute slices the model
-* how compute aligns the SNP vector to model chunks
+How many weights are returned per `getPublicWeightChunk` /
+`getEncryptedWeightChunk` call, which maps 1:1 to the `PRSComputeEngine`
+`computeChunk` HCU budget.
 
-In `v1`, the model's `chunkSize` is authoritative. Jobs do not choose an independent compute chunk size.
+Weights are stored flat and sliced by `computeChunkSize` on read, so
+`uploadChunkSize` need not equal `computeChunkSize`.
 
 ### `chunkCount`
 
-The total number of chunks implied by `weightCount` and `chunkSize`.
+The total number of compute chunks implied by `weightCount` and `computeChunkSize`.
 
 For example:
 
 * `weightCount = 5001`
-* `chunkSize = 256`
-* `chunkCount = ceil(5001 / 256) = 20`
+* `uploadChunkSize = 32`, `computeChunkSize = 10`
+* `chunkCount = ceil(5001 / 10) = 501`
+* upload transactions: `ceil(5001 / 32) = 157`
 
-We store this so other parts of the system can reason about chunk progress without recomputing it repeatedly.
+We store `chunkCount` so other parts of the system can reason about compute
+progress without recomputing it repeatedly.
 
 ### `uploadedWeightCount`
 
@@ -377,37 +384,28 @@ The key point is that chunking is no longer just a compute convenience. It is no
 
 ## Compute alignment
 
-The compute engine uses the model's chunk geometry as the source of truth.
+The compute engine uses the model's `computeChunkSize` as the slice granularity.
+Weights are stored flat; `getPublicWeightChunk(modelId, chunkIndex)` returns
+`weights[chunkIndex * computeChunkSize .. (chunkIndex+1) * computeChunkSize]`.
+SNPs in the job are also stored flat and sliced identically, so model chunk `k`
+aligns with SNP positions `k * computeChunkSize` through
+`(k+1) * computeChunkSize - 1`.
 
-That means:
-
-* the model decides chunk boundaries
-* the job follows those chunk boundaries
-* the matching SNP slice is determined by the same indices
-
-If chunk `7` corresponds to weights `[1792..2047]`, then the compute engine multiplies those weights against SNPs `[1792..2047]`.
-
-This is why the PRS job lifecycle in `v1` no longer takes an independent compute `chunkSize`.
-
-That keeps the system internally consistent and makes correctness easier to reason about.
+Publication uses `uploadChunkSize`, which is independent of `computeChunkSize`.
+This decoupling is the key design change in this version.
 
 ---
 
 ## Relationship to SNP ingestion
 
-`ModelMarketplace` defines the canonical chunk geometry that the PRS job flow follows.
+`ModelMarketplace` defines the compute geometry that the PRS job flow follows:
 
-That means:
-
-* the model's `chunkSize` determines the SNP upload boundaries
+* the model's `computeChunkSize` determines the compute slice size
 * the model's `chunkCount` determines how many PRS compute steps exist
-* `PRSComputeEngine` can align model chunk `k` with SNP chunk `k` deterministically
+* the model's `uploadChunkSize` determines the publication batch size
+* `PRSComputeEngine` inherits all three and uses them independently
 
 The SNP side of that design is documented in [`snp-ingestion.md`](snp-ingestion.md).
-
----
-
-## Compute strategy in V1
 
 The compute job uses:
 
