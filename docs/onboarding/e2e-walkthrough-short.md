@@ -303,8 +303,8 @@ Alice receives her result without exposing:
 
 ## Two Important Implementation Caveats
 
-1. The compute engine currently accepts encrypted SNP arrays directly and does not always verify they correspond to a registered genome in the registry.
+1. The registry ACL is now enforced at job creation, but the contracts still do not cryptographically verify that the submitted SNP ciphertexts match the off-chain sample file registered under `sampleId`.
 
-2. The noise used in `ResultOracle` is currently supplied by the caller rather than generated on-chain.
+2. `ResultOracle` now generates bounded noise on-chain, but the current engine-to-oracle handoff still requires the user to obtain the engine score through the authorized decrypt / re-encrypt path and then submit a fresh encrypted oracle input.
 
 These areas are potential improvement targets for future development.

@@ -60,7 +60,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 * **Differential Privacy (DP):** Adds homomorphic noise to the final encrypted result to prevent "Model Extraction Attacks" (where users reverse-engineer weights by probing the model).
 * **Classification:** Uses `FHE.lt`, `FHE.select`, and boolean ops to compare the noisy score against two thresholds, emitting a categorical result (Low / Medium / High) as `euint8`.
 * Calls `FHE.makePubliclyDecryptable(category)` so the category can be read off-chain after gateway decryption.
-* **Current limitation:** The noise ciphertext is supplied by the caller; the contract does **not** generate cryptographically calibrated Gaussian noise on-chain (see Edge Cases § 7-D).
+* **Current limitation:** The oracle now generates bounded noise on-chain, but the engine-to-oracle handoff still relies on the user obtaining the engine score through the authorized decrypt / re-encrypt path and then submitting a fresh encrypted oracle input.
 
 ### E. Supporting Libraries
 
@@ -78,7 +78,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 | Cryptographic backend | Plaintext arithmetic | Real TFHE ciphertext |
 | Input proofs | Validated by mock | Validated by gateway |
 | ACL enforcement | Validated by mock | Validated by gateway |
-| HCU budget per tx | ~30 ops (mock limit) | Higher — TBD on Sepolia |
+| HCU budget per tx | ~60-74 ops (mock practical range; `computeChunkSize=20` safe) | Higher — TBD on Sepolia |
 | Privacy guarantee | None (plaintext mock) | Full FHE privacy |
 
 The same contract code that passes all 59 local tests is what gets deployed to Sepolia.

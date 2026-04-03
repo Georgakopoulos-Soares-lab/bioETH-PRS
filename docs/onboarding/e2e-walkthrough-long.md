@@ -237,10 +237,14 @@ This is policy declaration versus output delivery.
 
 ### Step 9: Alice calls `ResultOracle.classify`
 
+In the current implementation, Alice first obtains the engine score through the
+authorized decrypt / re-encrypt path, then submits a fresh encrypted input to
+the oracle.
+
 Client passes:
 
-- Encrypted score handle
-- Encrypted noise
+- Encrypted score input
+- `inputProof`
 - Low threshold
 - High threshold
 
@@ -253,8 +257,8 @@ FHE.makePubliclyDecryptable(category)
 Suppose:
 
 - Encrypted score = handle to `Enc(13)`
-- Encrypted noise = handle to `Enc(1)`
 - Thresholds = `5` and `12`
+- On-chain sampled noise = `1`
 
 Oracle computes:
 
