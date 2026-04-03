@@ -16,7 +16,7 @@ event-based score retrieval.
 
 ### Test suite
 
-59 Hardhat tests pass (~20 s) covering all five contracts:
+72 Hardhat tests pass (~20 s) covering all five contracts:
 
 ```bash
 npm run test     # hardhat test via @fhevm/hardhat-plugin mock coprocessor
@@ -25,7 +25,7 @@ npm run test     # hardhat test via @fhevm/hardhat-plugin mock coprocessor
 ### Profiler
 
 ```bash
-npm run profile:heprs   # default chunkSize = 10
+npm run profile:heprs   # default: uploadChunkSize=32, computeChunkSize=20
 ```
 
 The profiler (`scripts/heprs_fixture_profile.ts`) runs as a Mocha `describe/it`
@@ -48,7 +48,11 @@ fully initialised. Each fixture goes through every stage of the real contract fl
 Fixture names like "100 SNP" mean 100 SNPs + 1 intercept, so actual vector lengths
 are 101, 501, 1001, 5001.
 
-## Timing Results (chunkSize = 10)
+## Timing Results (computeChunkSize = 10, uploadChunkSize = 32)
+
+> Note: these timings were captured before upload and compute chunk sizes were decoupled.
+> `computeChunkSize=10` was used for compute; `uploadChunkSize=32` matches the current default.
+> Chunk counts in the table reflect `computeChunkSize=10`.
 
 All times are local Hardhat mock-coprocessor wall-clock measurements. They reflect
 relative phase costs and scaling trends, **not** real-chain latencies or gas costs.
@@ -159,9 +163,10 @@ The maximum safe compute chunk size on mock is **20 SNPs**.
 ### Binding constraint
 
 The **compute step** is the binding bottleneck. Upload can handle 32 values per
-transaction, but compute is capped at 20 on mock. The profiler uses **chunkSize = 10**
-as a conservative default; `chunkSize = 20` is also safe and reduces transaction
-count by ~45%.
+transaction (`uploadChunkSize`), while compute is capped at 20 on mock (`computeChunkSize`).
+These two parameters are now independently configurable. The profiler defaults to
+`uploadChunkSize=32` and `computeChunkSize=20`; earlier profiling used
+`computeChunkSize=10` as a conservative baseline.
 
 ## Mathematical Correctness
 

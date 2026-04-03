@@ -140,7 +140,7 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 1. **Refine Quantization:** Determine the exact Scaling Factor ($10^6$ vs $10^8$) to minimize Mean Squared Error (MSE) vs. Gas Cost. Produce a table of scaling factor × SNP count → MSE.
 2. **Differential Privacy Tuning:** Benchmark the exact amount of noise required to secure weights without destroying clinical accuracy.  Generate ROC / AUC curves at several noise levels.
 3. **Gas Profiling:** Generate data points for the "Gas vs. SNP Count" curve from `scripts/gas_profile.ts` on a live fhEVM node.  Target SNP counts: 100, 300, 600, 1 000, 5 000.
-   * For local mock timing on real HEPRS fixtures, use `npm run profile:heprs` (default `chunkSize=10`, constrained by the mock coprocessor's ~30 HCU/tx limit).
+   * For local mock timing on real HEPRS fixtures, use `npm run profile:heprs` (defaults: `uploadChunkSize=32`, `computeChunkSize=20`; mock HCU ceiling is 20, Sepolia ceiling TBD).
 4. ~~**Registry ↔ Engine ACL Wiring**~~ ✓ Implemented: `createPRSJob(modelId, sampleId)` now calls `GenomicRegistry.hasAccess(sampleId, msg.sender)` and reverts if the caller lacks owner or delegated access.
 5. **Access-control on `computeChunk`:** Currently any address may call `computeChunk(jobId)`. Decide if this is acceptable (permissionless relay) or restrict to `job.requester` or an allow-list.
 6. **End-to-end Client Flow:** Integrate `fhevmjs` re-encryption, gateway-assisted decryption, and public decryption of the `ResultOracle` category.
@@ -203,9 +203,9 @@ Anyone can call `computeChunk(jobId)`, not just the requester. This is a design 
 
 Chunked SNP ingestion removes the old one-shot payload ceiling, but it also creates a new lifecycle state: jobs can now remain half-uploaded if the requester never finishes appending SNP chunks. Compute is correctly blocked until `finalizeSnpUpload`, but abandoned jobs still consume contract state. **Mitigation:** Add cancellation, expiry, or cleanup rules for incomplete jobs and consider whether deposits or fees should discourage abandoned uploads.
 
-### 7-G. Gas Limit vs. Chunk Size
+### 7-G. Gas Limit vs. Compute Chunk Size
 
-The optimal `chunkSize` depends on the fhEVM gas schedule, which differs significantly from vanilla EVM. A chunk that fits in 30 M gas on Hardhat may exceed the block limit on a live fhEVM chain.  **Mitigation:** Empirically profile chunk sizes on the target chain and expose a configurable default.
+The optimal `computeChunkSize` depends on the fhEVM gas schedule, which differs significantly from vanilla EVM. A chunk that fits in 30 M gas on Hardhat may exceed the block limit on a live fhEVM chain. Upload chunk size (`uploadChunkSize`) is independently constrained by the fhEVM input-proof budget (hard limit: 32 `euint64` values). **Mitigation:** Run `npm run probe:hcu` on Sepolia to find the real HCU ceiling, then update `computeChunkSize` in scripts and profiling accordingly.
 
 ### 7-H. Cross-Contract Reads & State Machine Racing
 
@@ -233,8 +233,9 @@ The Sepolia deployment path is now fully instrumented:
 | Score decryption path | `debugger.decryptEuint` — 124 ms | `userDecryptEuint` (KMS re-encryption) — TBD |
 | `JobFinalized` event received | ✓ in receipt | TBD |
 | Correct score value | ✓ 758,685 = expected | TBD |
-| Max safe `chunkSize` for `computeChunk` | **20** (60–74 HCU/tx mock budget; corrects prior claim of 10) | TBD — run `npm run probe:hcu` |
-| Gas: `publishModel` (100 SNPs, chunkSize=10) | 1,675,915 | TBD |
+| Max safe `computeChunkSize` | **20** (60–74 HCU/tx mock budget; corrects prior claim of 10) | TBD — run `npm run probe:hcu` |
+| `uploadChunkSize` limit | **32** euint64 values per input proof (fhEVM 2048-bit budget) | Same on Sepolia |
+| Gas: `publishModel` (100 SNPs, computeChunkSize=10) | 1,675,915 | TBD |
 | Gas: `computeChunk` per call (full chunk) | 622,748 | TBD |
 | Total gas: 100-SNP end-to-end | 18,620,079 | TBD |
 

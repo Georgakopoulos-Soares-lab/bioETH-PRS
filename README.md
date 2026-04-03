@@ -60,7 +60,7 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 | **HEPRS** | Standalone variant that embeds models directly (useful for quick experiments). |
 | **ResultOracle** | Adds encrypted DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
 
-For the documentation map, see [docs/README.md](docs/README.md). For the practical command guide, see [docs/reference/development-workflows.md](docs/reference/development-workflows.md). For the full theory, edge cases, roadmap, and known risks, see [docs/architecture-roadmap.md](docs/architecture-roadmap.md). For the current `v1` system target, see [docs/design/v1/overview.md](docs/design/v1/overview.md). For the model publication design, see [docs/design/v1/model-marketplace.md](docs/design/v1/model-marketplace.md). For the PRS job upload design, see [docs/design/v1/snp-ingestion.md](docs/design/v1/snp-ingestion.md). For the signed-weight and quantization design, see [docs/design/v1/quantization.md](docs/design/v1/quantization.md). For the standalone advisor workflow, see [docs/reference/quantization-advisor.md](docs/reference/quantization-advisor.md). For the quick scale-vs-SNP overflow screen, see [docs/reference/scaling-ceilings.md](docs/reference/scaling-ceilings.md). For collaborator-facing result reports, see [reports/scaling-ceiling-findings.md](reports/scaling-ceiling-findings.md), [reports/advisor-findings.md](reports/advisor-findings.md), and the historical baseline at [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md).
+For the documentation map, see [docs/README.md](docs/README.md). For the practical command guide, see [docs/reference/development-workflows.md](docs/reference/development-workflows.md). For the full theory, edge cases, roadmap, and known risks, see [docs/architecture-roadmap.md](docs/architecture-roadmap.md). For the system design overview, see [docs/design/overview.md](docs/design/overview.md). For the model publication design, see [docs/design/model-marketplace.md](docs/design/model-marketplace.md). For the PRS job upload design, see [docs/design/snp-ingestion.md](docs/design/snp-ingestion.md). For the signed-weight and quantization design, see [docs/design/quantization.md](docs/design/quantization.md). For the standalone advisor workflow, see [docs/reference/quantization-advisor.md](docs/reference/quantization-advisor.md). For the quick scale-vs-SNP overflow screen, see [docs/reference/scaling-ceilings.md](docs/reference/scaling-ceilings.md). For collaborator-facing result reports, see [reports/scaling-ceiling-findings.md](reports/scaling-ceiling-findings.md), [reports/advisor-findings.md](reports/advisor-findings.md), and the historical baseline at [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md).
 
 ---
 
@@ -197,7 +197,8 @@ npx hardhat test scripts/gas_profile.ts
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SNP_COUNTS` | `100,300,600` | Comma-separated SNP vector sizes to profile. |
-| `CHUNK_SIZE` | `10` | Number of SNPs processed per `computeChunk` call (HCU-constrained). |
+| `UPLOAD_CHUNK_SIZE` | `32` | SNPs per `appendSnpChunk` call (fhEVM input-proof limit). |
+| `COMPUTE_CHUNK_SIZE` | `10` | SNPs per `computeChunk` call (HCU-constrained; mock ceiling is 20). |
 | `GAS_PRICE_GWEI` | `30` | Assumed gas price for ETH cost estimation. |
 
 Example:
@@ -228,13 +229,13 @@ This script runs the current mock contract flow with the HEPRS fixture data and 
 Default behavior:
 
 * fixtures: `100`, `500`, `1000`, `5000`
-* chunk size: `10` (HCU-constrained — see [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md))
+* `uploadChunkSize=32` (fhEVM input-proof limit), `computeChunkSize=20` (mock HCU ceiling — see [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md))
 
 Common examples:
 
 ```bash
 npm run profile:heprs -- --fixture 1000
-npm run profile:heprs -- --fixture 5000 --chunk-size 10 --verbose
+npm run profile:heprs -- --fixture 5000 --upload-chunk-size 32 --compute-chunk-size 20 --verbose
 npm run profile:heprs -- --json-out /tmp/heprs-profile.json
 ```
 
@@ -287,8 +288,8 @@ npx hardhat test --network fhevm
 |---------|-------------|-----|
 | `Error: Debug Failure. Output generation failed` | ts-node incompatible with TypeScript ≥ 5.8 | Ensure `tsconfig.json` has `"ts-node": { "swc": true }` and `@swc/core` is installed (`npm install --save-dev @swc/core`). |
 | `Module '"hardhat"' has no exported member 'ethers'` | Wrong `module`/`moduleResolution` in tsconfig | Set `"module": "CommonJS"` and `"moduleResolution": "node"` in `tsconfig.json`. |
-| `out of gas` during `computeChunk` | Model chunk size is too large for the chain's gas limit | Publish the model with a smaller `chunkSize` or increase `blockGasLimit` in `hardhat.config.ts`. |
-| `out of gas` during `appendSnpChunk` | The model-aligned chunk size is too large for SNP upload on the current chain / mock limit | Reduce the published model `chunkSize`, which also reduces SNP upload chunk size. |
+| `out of gas` during `computeChunk` | `computeChunkSize` is too large for the chain's HCU/gas limit | Publish the model with a smaller `computeChunkSize` or increase `blockGasLimit` in `hardhat.config.ts`. Mock ceiling is 20. |
+| `out of gas` during `appendSnpChunk` | `uploadChunkSize` exceeds the fhEVM input-proof budget | Reduce `uploadChunkSize`; the hard limit is 32 `euint64` values per input proof. |
 | `typechain-types` out of date | Generated types stale after contract edits | Run `npx hardhat compile` to regenerate. |
 | `Source not found: @fhevm/solidity/…` | Missing npm packages | Run `npm install` to restore `@fhevm/solidity` and `@fhevm/hardhat-plugin`. |
 

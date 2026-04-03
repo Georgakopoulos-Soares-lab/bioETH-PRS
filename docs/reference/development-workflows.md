@@ -202,13 +202,14 @@ npx hardhat run scripts/gas_profile.ts
 Useful overrides:
 
 ```bash
-SNP_COUNTS=100,500,1000,5000 CHUNK_SIZE=50 npx hardhat run scripts/gas_profile.ts
+SNP_COUNTS=100,500,1000,5000 UPLOAD_CHUNK_SIZE=32 COMPUTE_CHUNK_SIZE=20 npx hardhat run scripts/gas_profile.ts
 ```
 
 Environment variables:
 
 - `SNP_COUNTS`: comma-separated SNP sizes
-- `CHUNK_SIZE`: chunk size used for publication / compute profiling
+- `UPLOAD_CHUNK_SIZE`: SNPs per upload transaction (fhEVM input-proof limit is 32)
+- `COMPUTE_CHUNK_SIZE`: SNPs per `computeChunk` call (mock HCU ceiling is 20)
 - `GAS_PRICE_GWEI`: assumed gas price for ETH estimates
 - `BLOCK_TIME_SEC`: assumed block time for timing estimates
 
@@ -229,7 +230,7 @@ npm run profile:heprs -- --fixture 1000
 Verbose run:
 
 ```bash
-npm run profile:heprs -- --fixture 5000 --chunk-size 128 --verbose
+npm run profile:heprs -- --fixture 5000 --upload-chunk-size 32 --compute-chunk-size 20 --verbose
 ```
 
 Write JSON output:

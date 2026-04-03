@@ -18,7 +18,7 @@ This directory is organized by purpose so collaborators can find the right level
 
 ## Design
 
-- [`design/overview.md`](design/overview.md): current `v1` system target across publication, SNP upload, and compute
+- [`design/overview.md`](design/overview.md): system design overview — publication, SNP upload, and compute
 - [`design/model-marketplace.md`](design/model-marketplace.md): model publication lifecycle and marketplace controls
 - [`design/snp-ingestion.md`](design/snp-ingestion.md): PRS job shell, SNP chunk upload, and compute lifecycle
 - [`design/quantization.md`](design/quantization.md): signed-weight quantization and encoding
@@ -28,10 +28,13 @@ This directory is organized by purpose so collaborators can find the right level
 - [`reference/development-workflows.md`](reference/development-workflows.md): practical command guide for tests, advisor runs, and profiling
 - [`reference/quantization-advisor.md`](reference/quantization-advisor.md): advisor workflow and interpretation
 - [`reference/scaling-ceilings.md`](reference/scaling-ceilings.md): scale-vs-SNP quick-screen reference
+- [`reference/sepolia-deployment.md`](reference/sepolia-deployment.md): Sepolia deployment pre-flight and execution guide
+- [`reference/validation-strategy.md`](reference/validation-strategy.md): mock vs. Sepolia validation coverage comparison
 - [`PIIS2667237525003078.pdf`](PIIS2667237525003078.pdf): HEPRS reference paper
 
 ## Reports
 
+- [`../reports/mock-validation-findings.md`](../reports/mock-validation-findings.md): 100-SNP end-to-end mock baseline — gas, timing, and HCU probe results
+- [`../reports/heprs-fixture-findings.md`](../reports/heprs-fixture-findings.md): HEPRS fixture profiling across all four sizes (100/500/1000/5000 SNPs)
 - [`../reports/scaling-ceiling-findings.md`](../reports/scaling-ceiling-findings.md): generated scale ceiling findings
 - [`../reports/advisor-findings.md`](../reports/advisor-findings.md): advisor findings across HEPRS fixtures
-- [`../reports/heprs-fixture-findings.md`](../reports/heprs-fixture-findings.md): historical HEPRS-backed mock execution findings from the pre-staged-SNP-upload baseline

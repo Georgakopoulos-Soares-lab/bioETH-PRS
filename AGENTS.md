@@ -47,7 +47,7 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 |---|---|
 | `docs/README.md` | Documentation map and reading entrypoints |
 | `docs/architecture-roadmap.md` | Architecture, roadmap, known edge cases, and threat model |
-| `docs/design/overview.md` | Current `v1` system target across publication, SNP upload, and compute |
+| `docs/design/overview.md` | System design overview — publication, SNP upload, and compute |
 | `docs/design/model-marketplace.md` | Detailed model publication lifecycle, provenance, and marketplace controls |
 | `docs/design/snp-ingestion.md` | Detailed PRS job shell, SNP upload, and compute lifecycle |
 | `docs/design/quantization.md` | Signed-weight quantization and overflow-safe encoding design |
@@ -60,5 +60,6 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 | `docs/reference/scaling-ceilings.md` | Quick overflow screening reference |
 | `reports/scaling-ceiling-findings.md` | Collaborator-facing explanation of the generated scale ceiling results |
 | `reports/advisor-findings.md` | Collaborator-facing advisor findings across copied HEPRS fixtures |
-| `reports/heprs-fixture-findings.md` | Historical HEPRS mock-test findings from the pre-staged-SNP-upload baseline |
+| `reports/heprs-fixture-findings.md` | HEPRS fixture profiling across all four sizes (100/500/1000/5000 SNPs) |
+| `reports/mock-validation-findings.md` | 100-SNP end-to-end mock baseline — gas, timing, and HCU probe results |
 | `docs/PIIS2667237525003078.pdf` | HEPRS reference paper |
