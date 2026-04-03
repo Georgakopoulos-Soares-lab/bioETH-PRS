@@ -1,9 +1,8 @@
 # HEPRS Fixture Findings
 
-> Updated 1 April 2026 — reflects the current `@fhevm/solidity` + staged-SNP-upload
-> implementation with chunked encrypted input proofs. All four fixtures (100 / 500 /
-> 1000 / 5000 SNPs) complete end-to-end. Includes gas consumption data from the
-> Hardhat mock coprocessor.
+> Updated 3 April 2026 — reflects the decoupled upload/compute chunk size architecture
+> (`uploadChunkSize=32`, `computeChunkSize=10`). All four fixtures complete end-to-end.
+> Includes fresh gas and timing data from the Hardhat mock coprocessor.
 
 ## Purpose
 
@@ -48,34 +47,30 @@ fully initialised. Each fixture goes through every stage of the real contract fl
 Fixture names like "100 SNP" mean 100 SNPs + 1 intercept, so actual vector lengths
 are 101, 501, 1001, 5001.
 
-## Timing Results (computeChunkSize = 10, uploadChunkSize = 32)
-
-> Note: these timings were captured before upload and compute chunk sizes were decoupled.
-> `computeChunkSize=10` was used for compute; `uploadChunkSize=32` matches the current default.
-> Chunk counts in the table reflect `computeChunkSize=10`.
+## Timing Results (uploadChunkSize = 32, computeChunkSize = 10)
 
 All times are local Hardhat mock-coprocessor wall-clock measurements. They reflect
 relative phase costs and scaling trends, **not** real-chain latencies or gas costs.
 
-| Fixture | Vector len | Chunks | Total    | Publish | Upload SNPs | Compute  | Finalize |
-| ------: | ---------: | -----: | -------: | ------: | ----------: | -------: | -------: |
-| 100     | 101        | 11     | 373 ms   | 15 ms   | 154 ms      | 61 ms    | 70 ms    |
-| 500     | 501        | 51     | 1593 ms  | 53 ms   | 644 ms      | 319 ms   | 359 ms   |
-| 1000    | 1001       | 101    | 3063 ms  | 98 ms   | 1257 ms     | 636 ms   | 672 ms   |
-| 5000    | 5001       | 501    | 15341 ms | 461 ms  | 6542 ms     | 3218 ms  | 3313 ms  |
+| Fixture | Vector len | Compute chunks | Total     | Publish | Upload SNPs | Compute  | Finalize |
+| ------: | ---------: | -------------: | --------: | ------: | ----------: | -------: | -------: |
+| 100     | 101        | 11             | 352 ms    | 10 ms   | 119 ms      | 53 ms    | 72 ms    |
+| 500     | 501        | 51             | 1580 ms   | 21 ms   | 587 ms      | 329 ms   | 361 ms   |
+| 1000    | 1001       | 101            | 2928 ms   | 43 ms   | 1037 ms     | 663 ms   | 679 ms   |
+| 5000    | 5001       | 501            | 14964 ms  | 199 ms  | 5328 ms     | 3473 ms  | 3516 ms  |
 
-**Per-chunk compute averages:** 5.6 ms (100 SNP) to 6.4 ms (5000 SNP) — nearly
+**Per-chunk compute averages:** 4.8 ms (100 SNP) to 6.9 ms (5000 SNP) — nearly
 constant, confirming linear scaling.
 
 ### Phase breakdown
 
 | Phase | % of total (5000 SNP) | Notes |
 | --- | ---: | --- |
-| SNP upload | 43% | Dominated by `fhevm.createEncryptedInput()` proof generation |
-| Compute chunks | 21% | 501 chunks x ~6.4 ms average |
-| Finalize | 22% | Includes mock-coprocessor bookkeeping |
-| Model publish | 3% | Chunked, scales linearly |
-| Other | 11% | Job creation, SNP finalize, fixture loading |
+| SNP upload | 36% | Dominated by `fhevm.createEncryptedInput()` proof generation; 157 upload tx at uploadChunkSize=32 |
+| Compute chunks | 23% | 501 compute tx × ~6.9 ms average |
+| Finalize | 23% | Includes mock-coprocessor bookkeeping |
+| Model publish | 1% | Chunked, scales linearly |
+| Other | 17% | Job creation, SNP finalize, fixture loading |
 
 ## Gas Consumption (Hardhat mock coprocessor)
 
@@ -86,30 +81,32 @@ and event emissions.
 
 | Fixture | Total gas | Publish model | Create job | Upload SNPs | Compute | Finalize |
 |--------:|----------:|--------------:|-----------:|------------:|--------:|---------:|
-| 100     | 18.7M     | 1.7M          | 280K       | 10.0M       | 6.5M    | 156K     |
-| 500     | 88.5M     | 7.2M          | 280K       | 49.1M       | 31.8M   | 156K     |
-| 1000    | 175.8M    | 14.1M         | 280K       | 98.0M       | 63.3M   | 156K     |
-| 5000    | 873.9M    | 69.0M         | 280K       | 488.9M      | 315.5M  | 156K     |
+| 100     | 18.5M     | 1.1M          | 315K       | 10.3M       | 6.6M    | 155K     |
+| 500     | 87.6M     | 4.3M          | 315K       | 50.9M       | 32.0M   | 155K     |
+| 1000    | 174.1M    | 8.2M          | 315K       | 101.7M      | 63.7M   | 155K     |
+| 5000    | 865.9M    | 39.7M         | 315K       | 507.9M      | 317.7M  | 155K     |
+
+Upload SNPs includes `finalizeSnpUpload` gas (~35K per job).
 
 ### Gas breakdown
 
-| Phase | % of total (5000 SNP) | Per-chunk avg | Notes |
+| Phase | % of total (5000 SNP) | Per-tx avg | Notes |
 |---|---:|---:|---|
-| Upload SNPs | 56% | 976K / chunk | Stores encrypted handles; dominant cost |
-| Compute | 36% | 630K / chunk | 3 FHE ops per SNP (mock precompile calls) |
-| Publish model | 8% | 138K / chunk | One-time cost per model |
+| Upload SNPs | 59% | 3.23M / upload tx | Stores encrypted handles; 157 upload tx at uploadChunkSize=32 |
+| Compute | 37% | 634K / compute tx | 3 FHE ops per SNP (mock precompile calls) |
+| Publish model | 5% | 253K / chunk | One-time cost per model |
 | Create job | <1% | — | Fixed per job |
 | Finalize | <1% | — | Fixed per job |
 
 **Key observations:**
 
-- **Upload is the gas-dominant phase** (56%) because each `appendSnpChunk` writes
-  encrypted handle references to storage — 10 SSTORE operations per chunk.
-- **Compute gas is substantial** (36%) even on the mock, where FHE precompile calls
+- **Upload is the gas-dominant phase** (59%) because each `appendSnpChunk` writes
+  encrypted handle references to storage — 32 SSTORE operations per upload chunk.
+- **Compute gas is substantial** (37%) even on the mock, where FHE precompile calls
   are cheap. On real fhEVM, compute will likely become the dominant cost.
 - **Create job and finalize are fixed-cost** — independent of SNP count.
-- **Linear scaling confirmed**: total gas scales at ~175K per SNP (5000-SNP fixture:
-  873.9M / 5001 = ~175K per SNP).
+- **Linear scaling confirmed**: total gas scales at ~173K per SNP (5000-SNP fixture:
+  865.9M / 5001 = ~173K per SNP).
 
 ### Cost estimation (indicative only)
 
@@ -117,10 +114,10 @@ At 30 gwei gas price on an L1-equivalent chain:
 
 | Fixture | Total gas | Est. ETH cost |
 |--------:|----------:|--------------:|
-| 100     | 18.7M     | 0.56 ETH      |
-| 500     | 88.5M     | 2.66 ETH      |
-| 1000    | 175.8M    | 5.27 ETH      |
-| 5000    | 873.9M    | 26.2 ETH      |
+| 100     | 18.5M     | 0.56 ETH      |
+| 500     | 87.6M     | 2.63 ETH      |
+| 1000    | 174.1M    | 5.22 ETH      |
+| 5000    | 865.9M    | 25.98 ETH     |
 
 These are **mock-coprocessor gas costs** — real fhEVM precompile gas pricing will
 change the totals significantly. The numbers are useful for comparing relative phase
@@ -185,17 +182,19 @@ dot product.
 
 ## Scaling Analysis
 
-| SNPs | Transactions required | Est. linear model |
-|-----:|----------------------:|---|
-| 100  | 11 upload + 11 compute + 3 = **25 tx** | ~5 tx per 100 SNPs |
-| 500  | 51 upload + 51 compute + 3 = **105 tx** | |
-| 1000 | 101 upload + 101 compute + 3 = **205 tx** | |
-| 5000 | 501 upload + 501 compute + 3 = **1005 tx** | |
-
+Transaction counts with `uploadChunkSize=32`, `computeChunkSize=10`.
 The "+ 3" accounts for `createPRSJob`, `finalizeSnpUpload`, and `finalize`.
 
-Transaction count scales linearly at ~2N/10 = N/5 total transactions for N SNPs,
-which is the expected outcome for a chunked architecture.
+| SNPs | Upload tx | Compute tx | Total tx |
+|-----:|----------:|-----------:|---------:|
+| 100  | 4         | 11         | **18**   |
+| 500  | 16        | 51         | **70**   |
+| 1000 | 32        | 101        | **136**  |
+| 5000 | 157       | 501        | **661**  |
+
+Decoupling upload from compute reduces total transactions by ~34% vs. the prior
+single-`chunkSize=10` design (which would have required 1005 tx for 5000 SNPs).
+Upload now scales at `ceil(N/32)` and compute at `ceil(N/10)`.
 
 ## Key Differences From Previous Report
 

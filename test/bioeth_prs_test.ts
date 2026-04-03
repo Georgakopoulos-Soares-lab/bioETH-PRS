@@ -105,4 +105,26 @@ describe("BioETHPRS — fhEVM mock coprocessor (Hardhat)", function () {
     await expect(bioeth.computeChunk(jobId))
       .to.be.revertedWith("Job already complete");
   });
+
+  it("readPartial is restricted to the requester", async function () {
+    const [owner, stranger] = await ethers.getSigners();
+    const bioeth = await deploy();
+    const addr = await bioeth.getAddress();
+
+    const weightsEnc = await encryptUint64Array(addr, owner.address, [5n, 6n]);
+    await bioeth.connect(owner).uploadModel(weightsEnc.handles, weightsEnc.inputProof, false);
+
+    const snpsEnc = await encryptUint64Array(addr, owner.address, [1n, 2n]);
+    const jobId = await bioeth.connect(owner).startPRS.staticCall(
+      0n, snpsEnc.handles, snpsEnc.inputProof, 10n
+    );
+    await bioeth.connect(owner).startPRS(0n, snpsEnc.handles, snpsEnc.inputProof, 10n);
+
+    // Requester can call readPartial
+    await expect(bioeth.connect(owner).readPartial(jobId)).to.not.be.reverted;
+
+    // A stranger cannot grant themselves decrypt access
+    await expect(bioeth.connect(stranger).readPartial(jobId))
+      .to.be.revertedWith("Not requester");
+  });
 });

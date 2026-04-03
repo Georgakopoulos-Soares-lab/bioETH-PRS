@@ -134,6 +134,7 @@ contract BioETHPRS is ZamaEthereumConfig {
     function readPartial(uint256 jobId) external returns (euint64) {
         require(jobId < jobs.length, "Invalid job");
         Job storage job = jobs[jobId];
+        require(job.requester == msg.sender, "Not requester");
         FHE.allow(job.partialSum, msg.sender);
         return job.partialSum;
     }

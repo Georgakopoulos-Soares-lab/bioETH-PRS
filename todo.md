@@ -2,7 +2,7 @@
 
 ## Current State
 
-72 tests pass. Contracts compile against `@fhevm/solidity` and run identically on
+73 tests pass. Contracts compile against `@fhevm/solidity` and run identically on
 the local mock coprocessor and on Sepolia. All core engineering work is complete.
 The remaining priority is to execute the Sepolia deployment and record real-FHE
 results.
