@@ -4,7 +4,7 @@
 > every architectural choice in this codebase to a colleague — including why we made it,
 > what alternatives we considered, and what the trade-offs are.
 >
-> Current state: v1 fully implemented, 77 tests passing, mock-validated.
+> Current state: v1 fully implemented, 83 tests passing, mock-validated.
 > Sepolia deployment is tooled and ready to run.
 
 ---
@@ -352,9 +352,10 @@ We measured the mock HCU ceiling systematically (probe across chunkSizes 10, 15,
 testing only chunkSize=32 against an assumed 30-HCU/tx budget, without testing the
 intermediate values. The systematic probe corrected it to 20.
 
-**The default is still 10** because the real Sepolia HCU ceiling is unknown. chunkSize=10
-is conservative and safe everywhere. chunkSize=20 is optimal for mock but may or may not
-work on Sepolia — that's what `npm run probe:hcu` on Sepolia will tell us.
+**The local mock default is now 20** because the systematic probe confirmed it is safe.
+The first Sepolia validation run still starts at 10 because the real HCU ceiling is
+unknown. `chunkSize=20` is optimal for mock but may or may not work on Sepolia —
+that's what `npm run probe:hcu` on Sepolia will tell us.
 
 The Sepolia HCU ceiling could be 300 or more. If it's 300, chunkSize becomes 100,
 dropping a 5000-SNP job from ~1000 transactions to ~100. This is the most impactful
@@ -586,15 +587,15 @@ provenance practice from ML model registries and data lake systems.
 
 ## 12. The Gas Profile and What It Tells Us
 
-From the mock validation baseline (100 SNPs, chunkSize=10):
+From the current mock validation baseline (100 SNPs, uploadChunkSize=32, computeChunkSize=20):
 
 | Phase | Gas | % | What it means |
 |---|---:|---:|---|
-| Upload SNPs | 10.0M | 54% | 11 chunks × storing 10 encrypted handles per chunk. Cold SSTORE is expensive. |
-| Compute | 6.5M | 35% | 11 chunks × ~622K. 3 FHE precompile calls per SNP. |
-| Publish model | 1.7M | 9% | One-time cost, amortized across all users of the model. |
-| Create job | 280K | 2% | Fixed overhead. |
-| Finalize | 156K | <1% | Fixed overhead. |
+| Upload SNPs | 10.3M | 58% | 4 upload chunks at 32 encrypted values each. Cold SSTORE is expensive. |
+| Compute | 5.8M | 33% | 6 compute chunks, 5 full × ~1.12M plus 1 partial chunk. |
+| Publish model | 1.1M | 6% | One-time cost, amortized across all users of the model. |
+| Create job | 315K | 2% | Fixed overhead. |
+| Finalize | 155K | <1% | Fixed overhead. |
 
 **Key insight:** Upload is the dominant cost, not compute. This surprises people — they
 expect FHE operations to dominate. But on the mock, FHE is cheap (plaintext arithmetic).
@@ -605,8 +606,8 @@ structural and unavoidable.
 have a different, higher gas schedule). Upload gas may stay similar (SSTOREs are SSTOREs).
 So the ~35%/54% split will likely flip — compute will dominate on real fhEVM.
 
-**Linear scaling confirmed:** Total gas scales at ~175K per SNP (873.9M for 5000 SNPs /
-5001 ≈ 175K per SNP). The per-SNP cost is consistent, which means the architecture has
+**Linear scaling confirmed:** Total gas scales at ~165K per SNP (827.6M for 5000 SNPs /
+5001 ≈ 165K per SNP). The per-SNP cost is consistent, which means the architecture has
 no hidden quadratic behavior.
 
 ---

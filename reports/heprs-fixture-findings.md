@@ -1,7 +1,7 @@
 # HEPRS Fixture Findings
 
-> Updated 3 April 2026 — reflects the decoupled upload/compute chunk size architecture
-> (`uploadChunkSize=32`, `computeChunkSize=10`). All four fixtures complete end-to-end.
+> Updated 5 April 2026 — reflects the decoupled upload/compute chunk size architecture
+> (`uploadChunkSize=32`, `computeChunkSize=20`). All four fixtures complete end-to-end.
 > Includes fresh gas and timing data from the Hardhat mock coprocessor.
 
 ## Purpose
@@ -15,7 +15,7 @@ event-based score retrieval.
 
 ### Test suite
 
-77 Hardhat tests pass (~20 s) covering all five contracts:
+83 Hardhat tests pass (~20 s) covering all five contracts:
 
 ```bash
 npm run test     # hardhat test via @fhevm/hardhat-plugin mock coprocessor
@@ -38,7 +38,7 @@ fully initialised. Each fixture goes through every stage of the real contract fl
    `externalEuint64[]` + `inputProof` (max 32 values per proof, matching the
    2048-bit input-proof limit)
 5. **Finalize upload** — `finalizeSnpUpload`
-6. **Compute** — chunked `computeChunk` calls (10 SNPs per chunk)
+6. **Compute** — chunked `computeChunk` calls (20 SNPs per chunk)
 7. **Finalize** — `finalize`, then `JobFinalized` event parsed for the encrypted
    score handle, debug-decrypted for verification
 
@@ -47,19 +47,19 @@ fully initialised. Each fixture goes through every stage of the real contract fl
 Fixture names like "100 SNP" mean 100 SNPs + 1 intercept, so actual vector lengths
 are 101, 501, 1001, 5001.
 
-## Timing Results (uploadChunkSize = 32, computeChunkSize = 10)
+## Timing Results (uploadChunkSize = 32, computeChunkSize = 20)
 
 All times are local Hardhat mock-coprocessor wall-clock measurements. They reflect
 relative phase costs and scaling trends, **not** real-chain latencies or gas costs.
 
 | Fixture | Vector len | Compute chunks | Total     | Publish | Upload SNPs | Compute  | Finalize |
 | ------: | ---------: | -------------: | --------: | ------: | ----------: | -------: | -------: |
-| 100     | 101        | 11             | 352 ms    | 10 ms   | 119 ms      | 53 ms    | 72 ms    |
-| 500     | 501        | 51             | 1580 ms   | 21 ms   | 587 ms      | 329 ms   | 361 ms   |
-| 1000    | 1001       | 101            | 2928 ms   | 43 ms   | 1037 ms     | 663 ms   | 679 ms   |
-| 5000    | 5001       | 501            | 14964 ms  | 199 ms  | 5328 ms     | 3473 ms  | 3516 ms  |
+| 100     | 101        | 6              | 382 ms    | 9 ms    | 128 ms      | 60 ms    | 70 ms    |
+| 500     | 501        | 26             | 1460 ms   | 24 ms   | 531 ms      | 285 ms   | 343 ms   |
+| 1000    | 1001       | 51             | 2930 ms   | 42 ms   | 1081 ms     | 592 ms   | 674 ms   |
+| 5000    | 5001       | 251            | 14535 ms  | 196 ms  | 5269 ms     | 3002 ms  | 3523 ms  |
 
-**Per-chunk compute averages:** 4.8 ms (100 SNP) to 6.9 ms (5000 SNP) — nearly
+**Per-chunk compute averages:** 10.0 ms (100 SNP) to 12.0 ms (5000 SNP) — nearly
 constant, confirming linear scaling.
 
 ### Phase breakdown
@@ -67,10 +67,10 @@ constant, confirming linear scaling.
 | Phase | % of total (5000 SNP) | Notes |
 | --- | ---: | --- |
 | SNP upload | 36% | Dominated by `fhevm.createEncryptedInput()` proof generation; 157 upload tx at uploadChunkSize=32 |
-| Compute chunks | 23% | 501 compute tx × ~6.9 ms average |
-| Finalize | 23% | Includes mock-coprocessor bookkeeping |
+| Compute chunks | 21% | 251 compute tx × ~12.0 ms average |
+| Finalize | 24% | Includes mock-coprocessor bookkeeping |
 | Model publish | 1% | Chunked, scales linearly |
-| Other | 17% | Job creation, SNP finalize, fixture loading |
+| Other | 18% | Job creation, SNP finalize, fixture loading |
 
 ## Gas Consumption (Hardhat mock coprocessor)
 
@@ -81,10 +81,10 @@ and event emissions.
 
 | Fixture | Total gas | Publish model | Create job | Upload SNPs | Compute | Finalize |
 |--------:|----------:|--------------:|-----------:|------------:|--------:|---------:|
-| 100     | 18.5M     | 1.1M          | 315K       | 10.3M       | 6.6M    | 155K     |
-| 500     | 87.6M     | 4.3M          | 315K       | 50.9M       | 32.0M   | 155K     |
-| 1000    | 174.1M    | 8.2M          | 315K       | 101.7M      | 63.7M   | 155K     |
-| 5000    | 865.9M    | 39.7M         | 315K       | 507.9M      | 317.7M  | 155K     |
+| 100     | 17,758,112 | 1,128,690 | 315,428 | 10,303,272 | 5,820,927 | 154,850 |
+| 500     | 83,742,088 | 4,256,666 | 315,428 | 50,820,152 | 28,160,047 | 154,850 |
+| 1000    | 166,455,805 | 8,210,154 | 315,428 | 101,656,481 | 56,083,947 | 154,850 |
+| 5000    | 827,599,462 | 39,707,027 | 315,428 | 507,912,065 | 279,475,147 | 154,850 |
 
 Upload SNPs includes `finalizeSnpUpload` gas (~35K per job).
 
@@ -92,21 +92,21 @@ Upload SNPs includes `finalizeSnpUpload` gas (~35K per job).
 
 | Phase | % of total (5000 SNP) | Per-tx avg | Notes |
 |---|---:|---:|---|
-| Upload SNPs | 59% | 3.23M / upload tx | Stores encrypted handles; 157 upload tx at uploadChunkSize=32 |
-| Compute | 37% | 634K / compute tx | 3 FHE ops per SNP (mock precompile calls) |
+| Upload SNPs | 61% | 3.24M / upload tx | Stores encrypted handles; 157 upload tx at uploadChunkSize=32 |
+| Compute | 34% | 1.11M / compute tx | 3 FHE ops per SNP (mock precompile calls) |
 | Publish model | 5% | 253K / chunk | One-time cost per model |
 | Create job | <1% | — | Fixed per job |
 | Finalize | <1% | — | Fixed per job |
 
 **Key observations:**
 
-- **Upload is the gas-dominant phase** (59%) because each `appendSnpChunk` writes
+- **Upload is the gas-dominant phase** (61%) because each `appendSnpChunk` writes
   encrypted handle references to storage — 32 SSTORE operations per upload chunk.
-- **Compute gas is substantial** (37%) even on the mock, where FHE precompile calls
+- **Compute gas is substantial** (34%) even on the mock, where FHE precompile calls
   are cheap. On real fhEVM, compute will likely become the dominant cost.
 - **Create job and finalize are fixed-cost** — independent of SNP count.
-- **Linear scaling confirmed**: total gas scales at ~173K per SNP (5000-SNP fixture:
-  865.9M / 5001 = ~173K per SNP).
+- **Linear scaling confirmed**: total gas scales at ~165K per SNP (5000-SNP fixture:
+  827.6M / 5001 = ~165K per SNP).
 
 ### Cost estimation (indicative only)
 
@@ -114,10 +114,10 @@ At 30 gwei gas price on an L1-equivalent chain:
 
 | Fixture | Total gas | Est. ETH cost |
 |--------:|----------:|--------------:|
-| 100     | 18.5M     | 0.56 ETH      |
-| 500     | 87.6M     | 2.63 ETH      |
-| 1000    | 174.1M    | 5.22 ETH      |
-| 5000    | 865.9M    | 25.98 ETH     |
+| 100     | 17.8M     | 0.53 ETH      |
+| 500     | 83.7M     | 2.51 ETH      |
+| 1000    | 166.5M    | 4.99 ETH      |
+| 5000    | 827.6M    | 24.83 ETH     |
 
 These are **mock-coprocessor gas costs** — real fhEVM precompile gas pricing will
 change the totals significantly. The numbers are useful for comparing relative phase
@@ -141,7 +141,7 @@ Each SNP in `computeChunk` requires **3 FHE operations**:
 - `FHE.mul(snp, encWeight)` — ciphertext multiplication
 - `FHE.add(partialSum, product)` — accumulation
 
-A systematic probe (`npm run probe:hcu:mock`, 2 April 2026) tested all candidate
+A systematic probe (`npm run probe:hcu:mock`, 5 April 2026) tested all candidate
 sizes and found the mock HCU budget is approximately **60–74 ops/tx**:
 
 | chunkSize | ops (3×) | Result |
@@ -163,8 +163,7 @@ The maximum safe compute chunk size on mock is **20 SNPs**.
 The **compute step** is the binding bottleneck. Upload can handle 32 values per
 transaction (`uploadChunkSize`), while compute is capped at 20 on mock (`computeChunkSize`).
 These two parameters are now independently configurable. The profiler defaults to
-`uploadChunkSize=32` and `computeChunkSize=20`; earlier profiling used
-`computeChunkSize=10` as a conservative baseline.
+`uploadChunkSize=32` and `computeChunkSize=20`.
 
 ## Mathematical Correctness
 
@@ -184,19 +183,20 @@ dot product.
 
 ## Scaling Analysis
 
-Transaction counts with `uploadChunkSize=32`, `computeChunkSize=10`.
+Transaction counts with `uploadChunkSize=32`, `computeChunkSize=20`.
 The "+ 3" accounts for `createPRSJob`, `finalizeSnpUpload`, and `finalize`.
 
 | SNPs | Upload tx | Compute tx | Total tx |
 |-----:|----------:|-----------:|---------:|
-| 100  | 4         | 11         | **18**   |
-| 500  | 16        | 51         | **70**   |
-| 1000 | 32        | 101        | **136**  |
-| 5000 | 157       | 501        | **661**  |
+| 100  | 4         | 6          | **13**   |
+| 500  | 16        | 26         | **45**   |
+| 1000 | 32        | 51         | **86**   |
+| 5000 | 157       | 251        | **411**  |
 
-Decoupling upload from compute reduces total transactions by ~34% vs. the prior
-single-`chunkSize=10` design (which would have required 1005 tx for 5000 SNPs).
-Upload now scales at `ceil(N/32)` and compute at `ceil(N/10)`.
+Decoupling upload from compute and raising the mock-safe compute chunk from 10 to 20
+reduces total transactions by ~59% vs. the prior single-`chunkSize=10` design
+(which would have required 1005 tx for 5000 SNPs). Upload now scales at `ceil(N/32)`
+and compute at `ceil(N/20)`.
 
 ## Key Differences From Previous Report
 
@@ -204,8 +204,8 @@ Upload now scales at `ceil(N/32)` and compute at `ceil(N/10)`.
 |---|---|---|
 | SNP ingestion | Monolithic — 5000 SNP failed at `startPRS()` | Staged chunked upload — all fixtures pass |
 | Encryption | Transparent mock values | `fhevmjs` encrypted inputs with proofs |
-| Chunk size | 128 (no HCU enforcement) | 10 (HCU-constrained) |
-| 5000 SNP | Failed (OOG at SNP storage) | Passes in ~15.6 s |
+| Chunk size | 128 (no HCU enforcement) | 20 (mock HCU-constrained) |
+| 5000 SNP | Failed (OOG at SNP storage) | Passes in ~14.4 s |
 | Score retrieval | Direct `readPartial()` | Event-based (`JobFinalized`) + debug decrypt |
 | Mock framework | Old transparent `TFHE.mock.sol` | `@fhevm/hardhat-plugin` mock coprocessor |
 
@@ -214,7 +214,7 @@ Upload now scales at `ceil(N/32)` and compute at `ceil(N/10)`.
 1. **All HEPRS fixtures now complete end-to-end** — the staged-SNP-upload
    architecture eliminates the previous 5000-SNP boundary.
 
-2. **Transaction cost is the practical concern** — a 5000-SNP PRS requires ~1005
+2. **Transaction cost is the practical concern** — a 5000-SNP PRS still requires ~411
    transactions. On-chain, each is a separate block inclusion. Batching or
    session-based optimisations could reduce this.
 

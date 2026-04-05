@@ -1,6 +1,11 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { encryptUint64Array, debugDecryptUint64, debugDecryptUint8 } from "./utils/fhevm-helpers";
+import {
+  decryptUint64,
+  encryptUint64Array,
+  debugDecryptUint64,
+  debugDecryptUint8
+} from "./utils/fhevm-helpers";
 
 function chunkArray<T>(values: T[], chunkSize: number): T[][] {
   const chunks: T[][] = [];
@@ -106,6 +111,47 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       );
       const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
       expect(await debugDecryptUint64(scoreHandle)).to.equal(32n);
+    });
+
+    it("requester can decrypt the raw engine score without calling the oracle", async function () {
+      const [signer] = await ethers.getSigners();
+      const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+      const marketplace = await Marketplace.deploy();
+
+      const modelId = await marketplace.createModelShell.staticCall(
+        false, 2n, 2n, 2n, "ipfs://requester-readable",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.createModelShell(
+        false, 2n, 2n, 2n, "ipfs://requester-readable",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.appendPublicModelChunk(modelId, [7n, 8n]);
+      await marketplace.finalizeModel(modelId);
+
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const sampleId = await registry.registerSample.staticCall("ipfs://sample");
+      await registry.registerSample("ipfs://sample");
+
+      const Engine = await ethers.getContractFactory("PRSComputeEngine");
+      const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
+      const engineAddr = await engine.getAddress();
+
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+      const enc = await encryptUint64Array(engineAddr, signer.address, [1n, 2n]);
+      await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+      await engine.finalizeSnpUpload(jobId);
+      await engine.computeChunk(jobId);
+
+      const tx = await engine.finalize(jobId);
+      const receipt = await tx.wait();
+      const finalEvent = receipt!.logs.find(
+        (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+      );
+      const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+      expect(await decryptUint64(scoreHandle, engineAddr, signer)).to.equal(23n);
     });
 
     it("computes correct dot product via encrypted chunks after authorizing the engine", async function () {
@@ -420,6 +466,76 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       );
       const categoryHandle = oracle.interface.parseLog(classifyEvent as any)!.args.category;
       expect(await debugDecryptUint8(categoryHandle)).to.equal(2n); // High
+    });
+
+    it("supports oracle-only classification through an atomic engine handoff", async function () {
+      const [signer] = await ethers.getSigners();
+
+      const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+      const marketplace = await Marketplace.deploy();
+      const modelId = await marketplace.createModelShell.staticCall(
+        false, 3n, 2n, 2n, "ipfs://oracle-only",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.createModelShell(
+        false, 3n, 2n, 2n, "ipfs://oracle-only",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
+      await marketplace.appendPublicModelChunk(modelId, [3n]);
+      await marketplace.finalizeModel(modelId);
+
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const sampleId = await registry.registerSample.staticCall("ipfs://oracle-only-sample");
+      await registry.registerSample("ipfs://oracle-only-sample");
+
+      const Engine = await ethers.getContractFactory("PRSComputeEngine");
+      const engine = await Engine.deploy(
+        await marketplace.getAddress(), await registry.getAddress()
+      );
+      const engineAddr = await engine.getAddress();
+
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      const oracle = await Oracle.deploy(128n);
+      const oracleAddr = await oracle.getAddress();
+
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+      for (const chunk of chunkArray([4n, 5n, 6n], 2)) {
+        const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
+        await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+      }
+      await engine.finalizeSnpUpload(jobId);
+      await engine.computeChunk(jobId);
+      await engine.computeChunk(jobId);
+
+      const tx = await engine.finalizeTo(jobId, oracleAddr);
+      const receipt = await tx.wait();
+      const finalEvent = receipt!.logs.find(
+        (log: any) => engine.interface.parseLog(log)?.name === "JobFinalizedFor"
+      );
+      const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+
+      let requesterDecryptFailed = false;
+      try {
+        await decryptUint64(scoreHandle, engineAddr, signer);
+      } catch (_err) {
+        requesterDecryptFailed = true;
+      }
+      expect(requesterDecryptFailed).to.equal(true);
+
+      await expect(
+        oracle.classifyPreauthorized(scoreHandle, 200n, 400n)
+      ).to.be.reverted;
+
+      const oracleTx = await engine.finalizeAndClassify(jobId, oracleAddr, 200n, 400n);
+      const oracleReceipt = await oracleTx.wait();
+      const classifyEvent = oracleReceipt!.logs.find(
+        (log: any) => oracle.interface.parseLog(log)?.name === "ResultClassified"
+      );
+      const categoryHandle = oracle.interface.parseLog(classifyEvent as any)!.args.category;
+      expect(await debugDecryptUint8(categoryHandle)).to.equal(0n);
     });
   });
 });

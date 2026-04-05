@@ -3,9 +3,9 @@ import { ethers, fhevm } from "hardhat";
 const DEFAULT_SNP_COUNTS = [100, 300, 600];
 // Decoupled chunk sizes:
 //   uploadChunkSize=32 — 2048-bit input-proof budget (max 32 euint64s per call)
-//   computeChunkSize=10 — HCU-safe on mock; Sepolia ceiling TBD (run probe:hcu)
+//   computeChunkSize=20 — HCU-safe on mock; Sepolia ceiling TBD (run probe:hcu)
 const DEFAULT_UPLOAD_CHUNK_SIZE = 32;
-const DEFAULT_COMPUTE_CHUNK_SIZE = 10;
+const DEFAULT_COMPUTE_CHUNK_SIZE = 20;
 const DEFAULT_GAS_PRICE_GWEI = "30";
 
 const chunkArray = <T>(values: T[], chunkSize: number): T[][] => {
@@ -89,8 +89,8 @@ async function profile(n: number, uploadChunkSize: number, computeChunkSize: num
     computeGas += (await tx.wait())?.gasUsed ?? 0n;
   }
 
-  const finalizeTx = await engine.finalize(jobId);
-  const finalizeGas = (await finalizeTx.wait())?.gasUsed ?? 0n;
+  const finalizeScoreTx = await engine.finalize(jobId);
+  const finalizeGas = (await finalizeScoreTx.wait())?.gasUsed ?? 0n;
 
   const totalGas = publishGas + createJobGas + snpUploadGas + computeGas + finalizeGas;
   const gasPrice = ethers.parseUnits(gasPriceGwei, "gwei");

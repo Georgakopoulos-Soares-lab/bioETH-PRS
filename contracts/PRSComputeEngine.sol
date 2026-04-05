@@ -1,10 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
+import {FHE, euint8, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import "./ModelMarketplace.sol";
 import "./GenomicRegistry.sol";
+
+interface IResultOracle {
+    function classifyPreauthorized(
+        externalEuint64 encryptedScoreHandle,
+        uint64 lowThreshold,
+        uint64 highThreshold
+    ) external returns (euint8);
+}
 
 /// @title PRSComputeEngine - Chunked PRS dot-product against chunk-published models.
 ///
@@ -16,6 +24,8 @@ import "./GenomicRegistry.sol";
 ///                      Mock ceiling: 20. Sepolia ceiling: TBD (run `npm run probe:hcu`).
 ///
 /// SNPs are stored flat (one contiguous array per job) and sliced by computeChunkSize during compute.
+/// v1 enforces ACL and chunk geometry on-chain, but SNP provenance and hardcall-range
+/// assumptions remain off-chain responsibilities of the caller and manifest workflow.
 contract PRSComputeEngine is ZamaEthereumConfig {
     struct Job {
         uint256 modelId;
@@ -69,6 +79,12 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     event JobFinalized(
         uint256 indexed jobId,
         address indexed requester,
+        euint64 encodedScore
+    );
+    event JobFinalizedFor(
+        uint256 indexed jobId,
+        address indexed requester,
+        address indexed grantee,
         euint64 encodedScore
     );
 
@@ -259,23 +275,62 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     ///         the requester themselves.  Keep this in mind when reasoning about
     ///         model-weight-extraction attacks via adaptive probing.
     function finalize(uint256 jobId) external returns (euint64) {
-        require(jobId < jobs.length, "Invalid job");
-        Job storage job = jobs[jobId];
-        require(job.complete, "Job not complete");
-        require(job.requester == msg.sender, "Not requester");
-
-        // V1 quantization correction (avoids negative intermediate):
-        //   encoded_score = (weighted_sum + score_offset) - (weight_zero_point * geno_sum)
-        // Rearranged so the subtraction never underflows: weighted_sum + score_offset
-        // is guaranteed >= weight_zero_point * geno_sum when score_offset = -raw_min.
-        euint64 withOffset = FHE.add(job.partialSum, FHE.asEuint64(job.scoreOffset));
-        euint64 correction = FHE.mul(job.genoSum, FHE.asEuint64(job.weightZeroPoint));
-        euint64 encodedScore = FHE.sub(withOffset, correction);
-        FHE.allowThis(encodedScore);
+        Job storage job = _requireOwnedCompleteJob(jobId);
+        euint64 encodedScore = _encodeFinalScore(job);
         encodedScore = FHE.allow(encodedScore, msg.sender);
 
         emit JobFinalized(jobId, msg.sender, encodedScore);
         return encodedScore;
+    }
+
+    /// @notice Computes the final encoded score and ACL-grants it to a specific grantee.
+    ///
+    /// @dev    This is a lower-level additive alternative to finalize(): it grants
+    ///         handle access to another address without automatically granting
+    ///         requester decryption.  On fhEVM, follow-up use of that handle still
+    ///         depends on the transaction sender owning the handle, so EOAs cannot
+    ///         complete a `finalizeTo(...)` → `oracle.classifyPreauthorized(...)`
+    ///         flow on behalf of the grantee.  Use finalizeAndClassify(...) for an
+    ///         atomic oracle-only path that avoids requester-side decrypt / re-encrypt.
+    ///         This does not remove the requester's ability to later call
+    ///         finalize(jobId) and grant themselves access via the legacy path.
+    function finalizeTo(
+        uint256 jobId,
+        address grantee
+    ) external returns (euint64) {
+        require(grantee != address(0), "Invalid grantee");
+        Job storage job = _requireOwnedCompleteJob(jobId);
+        euint64 encodedScore = _encodeFinalScore(job);
+        encodedScore = FHE.allow(encodedScore, grantee);
+
+        emit JobFinalizedFor(jobId, msg.sender, grantee, encodedScore);
+        return encodedScore;
+    }
+
+    /// @notice Computes the final encoded score and immediately routes it into an oracle.
+    ///
+    /// @dev    This additive path preserves the existing finalize() flow while giving
+    ///         requesters an oracle-only alternative that avoids client-side
+    ///         decrypt / re-encrypt.  The engine remains the handle owner during the
+    ///         same transaction, so ResultOracle.classifyPreauthorized(...) can import
+    ///         the score without a new input proof.
+    function finalizeAndClassify(
+        uint256 jobId,
+        address oracle,
+        uint64 lowThreshold,
+        uint64 highThreshold
+    ) external returns (euint8) {
+        require(oracle != address(0), "Invalid oracle");
+        Job storage job = _requireOwnedCompleteJob(jobId);
+        euint64 encodedScore = _encodeFinalScore(job);
+
+        emit JobFinalizedFor(jobId, msg.sender, oracle, encodedScore);
+        return
+            IResultOracle(oracle).classifyPreauthorized(
+                externalEuint64.wrap(euint64.unwrap(encodedScore)),
+                lowThreshold,
+                highThreshold
+            );
     }
 
     /// @notice View getter for the current partial sum handle (for debug/test decrypt).
@@ -337,6 +392,15 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         require(!job.snpsFinalized, "SNP upload finalized");
     }
 
+    function _requireOwnedCompleteJob(
+        uint256 jobId
+    ) internal view returns (Job storage job) {
+        require(jobId < jobs.length, "Invalid job");
+        job = jobs[jobId];
+        require(job.complete, "Job not complete");
+        require(job.requester == msg.sender, "Not requester");
+    }
+
     function _nextSnpUploadChunkIndex(
         Job storage job
     ) internal view returns (uint256) {
@@ -358,5 +422,18 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         uint256 start = chunkIndex * computeChunkSize;
         uint256 remaining = weightCount - start;
         return remaining > computeChunkSize ? computeChunkSize : remaining;
+    }
+
+    function _encodeFinalScore(
+        Job storage job
+    ) internal returns (euint64 encodedScore) {
+        // V1 quantization correction (avoids negative intermediate):
+        //   encoded_score = (weighted_sum + score_offset) - (weight_zero_point * geno_sum)
+        // Rearranged so the subtraction never underflows: weighted_sum + score_offset
+        // is guaranteed >= weight_zero_point * geno_sum when score_offset = -raw_min.
+        euint64 withOffset = FHE.add(job.partialSum, FHE.asEuint64(job.scoreOffset));
+        euint64 correction = FHE.mul(job.genoSum, FHE.asEuint64(job.weightZeroPoint));
+        encodedScore = FHE.sub(withOffset, correction);
+        FHE.allowThis(encodedScore);
     }
 }

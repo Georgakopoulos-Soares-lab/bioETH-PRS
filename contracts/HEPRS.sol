@@ -5,7 +5,8 @@ import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @title BioETHPRS - bioETH PRS Homomorphic Encryption Polygenic Risk Scoring (Zama FHEVM)
-/// @notice Prototype contract (our bioETH PRS implementation) with chunked PRS computation.
+/// @notice Legacy standalone prototype retained for comparison and onboarding.
+///         The marketplace-backed PRSComputeEngine is the main v1 path.
 contract BioETHPRS is ZamaEthereumConfig {
     struct Model {
         euint64[] weights;

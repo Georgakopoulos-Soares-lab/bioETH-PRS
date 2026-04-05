@@ -52,15 +52,15 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
   * PRS jobs use a shell + chunked SNP upload + finalize-upload lifecycle before compute begins.
   * An on-chain state machine accumulates the encrypted `partialSum` across blocks.
 * Reads only the **next required model chunk** from `ModelMarketplace` and automatically uses either `FHE.mul(weight, snp)` (private, C×C) or `FHE.mul(snp, FHE.asEuint64(weight))` (public, C×P trivial) per model type.
-* **Functions:** `createPRSJob(modelId, sampleId)`, `appendSnpChunk(jobId, encryptedSnps, inputProof)`, `finalizeSnpUpload(jobId)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`.
-* A standalone variant `HEPRS.sol` (contains the `BioETHPRS` contract) also exists; it embeds models directly instead of referencing the marketplace.
+* **Functions:** `createPRSJob(modelId, sampleId)`, `appendSnpChunk(jobId, encryptedSnps, inputProof)`, `finalizeSnpUpload(jobId)`, `computeChunk(jobId)`, `readPartial(jobId)`, `finalize(jobId)`, `finalizeTo(jobId, grantee)`, `finalizeAndClassify(jobId, oracle, lowThreshold, highThreshold)`.
+* A standalone variant `HEPRS.sol` (contains the legacy `BioETHPRS` prototype) also exists; it embeds models directly instead of referencing the marketplace and is retained for comparison/onboarding.
 
 ### D. Contract 4: Result Oracle — `ResultOracle.sol` (Output Layer)
 
 * **Differential Privacy (DP):** Adds homomorphic noise to the final encrypted result to prevent "Model Extraction Attacks" (where users reverse-engineer weights by probing the model).
 * **Classification:** Uses `FHE.lt`, `FHE.select`, and boolean ops to compare the noisy score against two thresholds, emitting a categorical result (Low / Medium / High) as `euint8`.
 * Calls `FHE.makePubliclyDecryptable(category)` so the category can be read off-chain after gateway decryption.
-* **Current limitation:** The oracle now generates bounded noise on-chain, but the engine-to-oracle handoff still relies on the user obtaining the engine score through the authorized decrypt / re-encrypt path and then submitting a fresh encrypted oracle input.
+* **Current limitation:** The oracle now supports both user decrypt / re-encrypt and contract-mediated handle import via `classifyPreauthorized()`, while `PRSComputeEngine.finalizeAndClassify(...)` provides the requester-facing oracle-only path. The default engine path still lets the requester call `finalize()` and learn the raw score directly.
 
 ### E. Supporting Libraries
 
@@ -81,7 +81,7 @@ The system is broken into modular smart contracts to handle EVM Gas limits and s
 | HCU budget per tx | ~60-74 ops (mock practical range; `computeChunkSize=20` safe) | Higher — TBD on Sepolia |
 | Privacy guarantee | None (plaintext mock) | Full FHE privacy |
 
-The same contract code that passes all 59 local tests is what gets deployed to Sepolia.
+The same contract code that passes all 83 local tests is what gets deployed to Sepolia.
 Only the cryptographic backend changes — no contract edits are needed to go from mock to real FHE.
 
 ---
@@ -119,13 +119,13 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 
 | File | Purpose |
 | --- | --- |
-| `contracts/HEPRS.sol` (contains `BioETHPRS`) | Standalone chunked dot-product contract (`uploadModel`, `startPRS`, `computeChunk`, `finalize`). Inherits `ZamaEthereumConfig`. |
+| `contracts/HEPRS.sol` (contains `BioETHPRS`) | Legacy standalone chunked dot-product prototype (`uploadModel`, `startPRS`, `computeChunk`, `finalize`). Inherits `ZamaEthereumConfig`. |
 | `contracts/GenomicRegistry.sol` | URI-based SNP sample registry with per-address ACL. |
 | `contracts/ModelMarketplace.sol` | Public and private GWAS model listing. Inherits `ZamaEthereumConfig`. |
 | `contracts/PRSComputeEngine.sol` | Marketplace-aware chunked PRS engine. Inherits `ZamaEthereumConfig`. |
 | `contracts/ResultOracle.sol` | DP noise injection + categorical classification. Inherits `ZamaEthereumConfig`. |
 | `mock-archive/` | Archived transparent plaintext mock files (no longer on any import path). |
-| `test/bioeth_prs_test.ts` | Chunked PRS unit tests for `BioETHPRS`. |
+| `test/bioeth_prs_test.ts` | Chunked PRS unit tests for the legacy `BioETHPRS` prototype. |
 | `test/registry_marketplace_oracle_test.ts` | End-to-end integration test across all four contracts. |
 | `test/utils/fhevm-helpers.ts` | `fhevmjs` helpers for encryption + input proof generation. |
 | `scripts/gas_profile.ts` | Deploys marketplace + engine, runs multi-SNP gas profiling. |
@@ -233,7 +233,9 @@ The `computeChunk` function mutates storage (`nextChunkIndex`, `processedWeights
 * The oracle's privacy guarantee holds only against *third parties* who observe the classified category output — not against the requester themselves.
 * Repeated `finalize()` calls on jobs with adversarially chosen inputs enable adaptive probing of the model weights, with the oracle providing no protection.
 
-**Design intent (v1):**  The oracle is scoped as optional post-processing for third-party output sharing.  It is not a mandatory gate on the requester's own score.  Papers or deployments claiming DP protection against the requester must redesign the ACL flow to withhold the raw score from the requester and route it exclusively through the oracle.
+**Additive path (April 2026):**  `PRSComputeEngine.finalizeAndClassify(jobId, oracle, ...)` now provides an oracle-only path without requester-side decrypt / re-encrypt. `finalizeTo(jobId, grantee)` remains a lower-level ACL handoff primitive, but fhEVM handle ownership means EOAs cannot complete a two-step `finalizeTo(...)` → `classifyPreauthorized(...)` flow on behalf of the grantee. These additions are optional and do not change the legacy `finalize()` behavior.
+
+**Design intent (v1):**  The oracle is still optional post-processing rather than a mandatory gate on the requester's own score.  Papers or deployments claiming DP protection against the requester must either disable or avoid the `finalize()` path and route outputs exclusively through the oracle-only flow.
 
 **Mitigation (existing):**  Per-requester authorization for private models (`PRSComputeEngine.createPRSJob` checks `canReadPrivateModel(modelId, msg.sender)`) limits who can submit jobs against a given private model, reducing the pool of potential probers.
 
@@ -248,19 +250,19 @@ The Sepolia deployment path is now fully instrumented:
 * `scripts/sepolia_validation.ts` — End-to-end 100-SNP HEPRS fixture validation.  Uses `fhevm.userDecryptEuint` on Sepolia and `fhevm.debugger.decryptEuint` on mock, guarded by `fhevm.isMock`.  Run with `npm run validate:sepolia`.
 * `scripts/probe_hcu_ceiling.ts` — Probes candidate chunkSizes `[10, 15, 20, 25, 32]` to find the real Sepolia HCU ceiling.  Run with `npm run probe:hcu`.
 
-**Mock baseline (measured 2 April 2026 — `npm run validate:mock` + `npm run probe:hcu:mock`):**
+**Mock baseline (measured 5 April 2026 — `npm run validate:mock` + `npm run probe:hcu:mock`):**
 
 | Validation point | Mock baseline | Sepolia observed |
 | --- | --- | --- |
 | Ciphertext input flow (`externalEuint64` + `inputProof`) | ✓ Accepted | TBD |
 | ACL enforcement at `createPRSJob` | ✓ Registry check passes | TBD |
-| Score decryption path | `debugger.decryptEuint` — 124 ms | `userDecryptEuint` (KMS re-encryption) — TBD |
+| Score decryption path | `debugger.decryptEuint` — 130 ms | `userDecryptEuint` (KMS re-encryption) — TBD |
 | `JobFinalized` event received | ✓ in receipt | TBD |
 | Correct score value | ✓ 758,685 = expected | TBD |
 | Max safe `computeChunkSize` | **20** (60–74 HCU/tx mock budget; corrects prior claim of 10) | TBD — run `npm run probe:hcu` |
 | `uploadChunkSize` limit | **32** euint64 values per input proof (fhEVM 2048-bit budget) | Same on Sepolia |
-| Gas: `publishModel` (100 SNPs, computeChunkSize=10) | 1,675,915 | TBD |
-| Gas: `computeChunk` per call (full chunk) | 622,748 | TBD |
-| Total gas: 100-SNP end-to-end | 18,620,079 | TBD |
+| Gas: `publishModel` (100 SNPs, computeChunkSize=20) | 1,128,690 | TBD |
+| Gas: `computeChunk` per call (full chunk, size 20) | 1,149,156 | TBD |
+| Total gas: 100-SNP end-to-end | 17,758,196 | TBD |
 
 See `reports/mock-validation-findings.md` for full breakdown.  Once Sepolia results are available, fill in the "Sepolia observed" column and create `reports/sepolia-validation-findings.md`.

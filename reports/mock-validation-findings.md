@@ -1,6 +1,6 @@
 # Mock Coprocessor Validation Findings
 
-> Generated 2 April 2026 — `npm run validate:mock` + `npm run probe:hcu:mock`
+> Generated 5 April 2026 — `npm run validate:mock` + `npm run probe:hcu:mock`
 > Network: Hardhat (chainId=31337), FHE mode: mock — plaintext arithmetic
 > FHE library: `@fhevm/solidity` v0.11.1 + `@fhevm/hardhat-plugin` v0.4.2
 
@@ -19,8 +19,9 @@ projection.
 | Parameter | Value |
 |---|---|
 | Fixture | HEPRS 100-SNP (101-element vector, 1 intercept) |
-| `chunkSize` | 10 |
-| Chunks | 11 (10 full × 10 SNPs + 1 partial × 1 intercept) |
+| `uploadChunkSize` | 32 |
+| `computeChunkSize` | 20 |
+| Upload / compute chunks | 4 upload chunks, 6 compute chunks |
 | Quantization scale | 3,000,000 |
 | Expected score | 758,685 |
 
@@ -31,43 +32,43 @@ projection.
 | Ciphertext input flow (`externalEuint64` + `inputProof`) | ✓ accepted |
 | ACL enforcement at `createPRSJob` | ✓ registry check passes |
 | `JobFinalized` event received | ✓ in receipt |
-| Score handle emitted | ✓ `0x14af1afa...7a690500` |
+| Score handle emitted | ✓ `0xf967f4d4...7a690500` |
 | Decrypted score (`debugger.decryptEuint`) | 758,685 |
 | Matches expected plaintext dot-product | ✓ PASS |
 
-### Gas by Phase (100-SNP, chunkSize=10)
+### Gas by Phase (100-SNP, uploadChunkSize=32, computeChunkSize=20)
 
 | Phase | Gas | % of total |
 |---|---:|---:|
-| `publishModel` (createShell + 11 chunks + finalize) | 1,675,915 | 9.0% |
-| `createJob` | 291,152 | 1.6% |
-| `uploadSnps` (11 × `appendSnpChunk`) | 10,005,065 | 53.7% |
-| `finalizeSnpUpload` | 34,920 | 0.2% |
-| `compute` (11 × `computeChunk`) | 6,458,236 | 34.7% |
-| `finalize` | 154,791 | 0.8% |
-| **Total** | **18,620,079** | **100%** |
+| `publishModel` (createShell + 4 weight uploads + finalize) | 1,128,690 | 6.4% |
+| `createJob` | 315,428 | 1.8% |
+| `uploadSnps` (4 × `appendSnpChunk`) | 10,303,356 | 58.0% |
+| `finalizeSnpUpload` | 34,945 | 0.2% |
+| `compute` (6 × `computeChunk`) | 5,820,927 | 32.8% |
+| `finalize` | 154,850 | 0.9% |
+| **Total** | **17,758,196** | **100%** |
 
 ### Per-Chunk Compute Gas
 
 | Chunk | Gas |
 |---|---:|
-| 1 (first — cold storage paths) | 654,948 |
-| 2–10 (full, warm) | 622,748 (each) |
-| 11 (partial — 1 SNP) | 198,556 |
+| 1 (first — cold storage paths) | 1,149,156 |
+| 2–5 (full, warm) | 1,116,956 (each) |
+| 6 (partial — 1 SNP) | 203,947 |
 
-First-chunk overhead is ~32K gas (cold `SSTORE` for `partialSum` initialization).
-Partial final chunk scales linearly: 198K ≈ 622K × (1/10) × correction factor for
-the V1 quantization correction ops.
+First-chunk overhead is still ~32K gas (cold `SSTORE` for `partialSum` initialization).
+The partial final chunk remains small because only the intercept term is processed in
+the last window.
 
 ### Timing (mock wall-clock)
 
 | Metric | Value |
 |---|---|
-| Avg compute chunk | 6.4 ms |
-| Min compute chunk | 2 ms |
-| Max compute chunk | 8 ms |
-| Decryption (`debugger.decryptEuint`) | 124 ms |
-| Total test duration | ~509 ms |
+| Avg compute chunk | 7.5 ms |
+| Min compute chunk | 1 ms |
+| Max compute chunk | 10 ms |
+| Decryption (`debugger.decryptEuint`) | 130 ms |
+| Total test duration | ~390 ms |
 
 Mock timings are developer-feedback only.  Real fhEVM latencies (TFHE bootstrapping
 + KMS re-encryption) will be **orders of magnitude higher**.
@@ -86,9 +87,9 @@ synthetic model with `2 × chunkSize` weights (all = 1), uploads matching SNP ch
 
 | chunkSize | Result | Gas/chunk (first) | Avg ms |
 |---:|---|---:|---:|
-| 10 | **PASS** | 654,948 | 6 ms |
-| 15 | **PASS** | 892,096 | 6 ms |
-| 20 | **PASS** | 1,131,299 | 9 ms |
+| 10 | **PASS** | 667,211 | 4 ms |
+| 15 | **PASS** | 908,181 | 6 ms |
+| 20 | **PASS** | 1,149,156 | 10 ms |
 | 25 | **FAIL** — `HCUTransactionLimitExceeded` | — | — |
 | 32 | **FAIL** — `HCUTransactionLimitExceeded` | — | — |
 
@@ -103,17 +104,18 @@ claim was based on testing only chunkSize=32 (FAIL) and inferring ceiling=10 fro
 ~30 HCU/tx assumption.  The systematic probe reveals the actual mock HCU budget is
 in the range **60–74 ops/tx** (since 20 × 3 = 60 passes and 25 × 3 = 75 fails).
 
-**Practical implication:** `chunkSize=20` is safe on the mock coprocessor.  A 100-SNP
-fixture now requires 6 chunks instead of 11, reducing transaction count by ~45%.
-The `v1` default of `chunkSize=10` is conservative by a factor of 2.
+**Practical implication:** `chunkSize=20` is safe on the mock coprocessor.  The local
+`validate:mock` harness now uses `computeChunkSize=20`, so a 100-SNP fixture requires
+6 compute chunks instead of 11.  Keep `computeChunkSize=10` only for the first Sepolia
+validation run until the real HCU ceiling is measured.
 
 ### Gas Scaling (compute phase)
 
 | chunkSize | Gas/chunk | Gas per SNP |
 |---:|---:|---:|
-| 10 | 622,748 | 62,275 |
-| 15 | 862,968 | 57,531 |
-| 20 | 1,102,171 | 55,109 |
+| 10 | 667,211 | 66,721 |
+| 15 | 908,181 | 60,545 |
+| 20 | 1,149,156 | 57,458 |
 
 Gas-per-SNP decreases slightly as `chunkSize` grows — fixed per-chunk overhead
 (state machine bookkeeping, `partialSum` load/store) is amortized over more SNPs.
@@ -126,7 +128,7 @@ Gas-per-SNP decreases slightly as `chunkSize` grows — fixed per-chunk overhead
 
 | Prior claim | Correct value | Source |
 |---|---|---|
-| Mock HCU ceiling = 10 | 20 < ceiling ≤ 25 | `probe:hcu:mock` run, 2 Apr 2026 |
+| Mock HCU ceiling = 10 | 20 < ceiling ≤ 25 | `probe:hcu:mock` run, 5 Apr 2026 |
 | Mock HCU budget ~30 ops/tx | 60–74 ops/tx | inferred from probe results |
 | `chunkSize > 10` triggers HCU error | `chunkSize ≤ 20` is safe | probe confirms |
 
@@ -164,8 +166,7 @@ Gas-per-SNP decreases slightly as `chunkSize` grows — fixed per-chunk overhead
 ## 5. Relation to Other Reports
 
 * **[heprs-fixture-findings.md](heprs-fixture-findings.md)** — multi-fixture profiling
-  (100 / 500 / 1000 / 5000 SNPs) with the HEPRS profiler harness.  Gas and timing
-  tables there used `chunkSize=10`; the HCU ceiling section has been corrected per
-  this report.
+  (100 / 500 / 1000 / 5000 SNPs) with the HEPRS profiler harness.  The latest report
+  now uses the same `uploadChunkSize=32`, `computeChunkSize=20` mock defaults.
 * **sepolia-validation-findings.md** — to be created after first Sepolia deployment.
   Will fill in the "Sepolia observed" column in `docs/architecture-roadmap.md §7-I`.

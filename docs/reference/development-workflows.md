@@ -73,6 +73,25 @@ Current expectation:
 - all tests run in mock mode
 - no extra environment variables are needed
 
+## Run the full local validation bundle
+
+Run the reusable offline verification matrix:
+
+```bash
+npm run validate:local
+```
+
+This bundles:
+
+- `npm run build`
+- `npm test`
+- `npm run validate:mock`
+- `npm run profile:gas`
+- `npm run profile:heprs`
+- `npm run probe:hcu:mock`
+- `npm run advisor:scale-ceilings`
+- `npm run advisor:quantization` across the shipped 100 / 500 / 1000 / 5000 SNP HEPRS fixtures
+
 ## Run a specific test file
 
 Marketplace unit tests:
@@ -196,13 +215,13 @@ npm run profile:gas
 Direct script equivalent:
 
 ```bash
-npx hardhat run scripts/gas_profile.ts
+npx hardhat test scripts/gas_profile.ts
 ```
 
 Useful overrides:
 
 ```bash
-SNP_COUNTS=100,500,1000,5000 UPLOAD_CHUNK_SIZE=32 COMPUTE_CHUNK_SIZE=20 npx hardhat run scripts/gas_profile.ts
+SNP_COUNTS=100,500,1000,5000 UPLOAD_CHUNK_SIZE=32 COMPUTE_CHUNK_SIZE=20 npx hardhat test scripts/gas_profile.ts
 ```
 
 Environment variables:
@@ -211,7 +230,6 @@ Environment variables:
 - `UPLOAD_CHUNK_SIZE`: SNPs per upload transaction (fhEVM input-proof limit is 32)
 - `COMPUTE_CHUNK_SIZE`: SNPs per `computeChunk` call (mock HCU ceiling is 20)
 - `GAS_PRICE_GWEI`: assumed gas price for ETH estimates
-- `BLOCK_TIME_SEC`: assumed block time for timing estimates
 
 ## Run HEPRS fixture profiling
 

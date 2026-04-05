@@ -42,8 +42,8 @@ The full `v1` flow is now:
 5. Requester appends SNP chunks to that job.
 6. Requester finalizes SNP upload.
 7. Anyone may relay `computeChunk(jobId)` until the job is complete.
-8. Requester reads the partial or final encrypted score.
-9. `ResultOracle` can classify the encrypted result into a category.
+8. Requester either reads the final encrypted score, ACL-grants it to another grantee, or atomically routes it into `ResultOracle`.
+9. `ResultOracle` can classify either a freshly re-encrypted score or an engine-mediated on-chain score handle.
 
 In shorthand:
 
@@ -56,7 +56,7 @@ createPRSJob
 appendSnpChunks*
 finalizeSnpUpload
 computeChunk*
-finalize
+finalize | finalizeTo | finalizeAndClassify
 ```
 
 ## Why this design was chosen
@@ -143,7 +143,7 @@ Use the more specific docs for details:
 Important unresolved items remain outside this target:
 
 - `GenomicRegistry` ACL is now enforced at job creation, but the contract still does not verify that submitted SNP ciphertexts match the registered sample URI
-- `ResultOracle` now generates noise on-chain, but the engine-to-oracle handoff still relies on the user's decrypt / re-encrypt path
+- `ResultOracle` now supports both re-encrypted inputs and contract-mediated handle imports, and `PRSComputeEngine.finalizeAndClassify(...)` provides an oracle-only path without requester-side decrypt / re-encrypt, but the default `finalize()` path still exposes the raw score to the requester
 - no pricing / fee layer exists
 - no model deprecation / versioning semantics exist yet
 - mock-mode behavior still needs real fhEVM / Sepolia validation

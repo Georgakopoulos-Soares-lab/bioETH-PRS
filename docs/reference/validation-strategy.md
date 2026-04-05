@@ -1,6 +1,6 @@
 # Validation Strategy for the bioETH PRS Paper
 
-> Last updated: 3 April 2026  
+> Last updated: 5 April 2026  
 > Authors: bioETH PRS team  
 > Purpose: Internal reference for deciding how far to push experimental validation before paper submission
 
@@ -43,12 +43,12 @@ The question is: how do we obtain these measurements?
 
 | Fixture | Total gas | Transactions | Mock wall-clock |
 |---:|---:|---:|---:|
-| 100 SNPs | 18.7M | 25 tx | ~373 ms |
-| 500 SNPs | 88.5M | 105 tx | ~1,593 ms |
-| 1000 SNPs | 175.8M | 205 tx | ~3,063 ms |
-| 5000 SNPs | 873.9M | 1,005 tx | ~15,341 ms |
+| 100 SNPs | 17.8M | 13 tx | ~382 ms |
+| 500 SNPs | 83.7M | 45 tx | ~1,460 ms |
+| 1000 SNPs | 166.5M | 86 tx | ~2,930 ms |
+| 5000 SNPs | 827.6M | 411 tx | ~14,535 ms |
 
-Gas scales linearly at ~175K gas per SNP. Upload dominates (56%), compute is second (36%).
+Gas scales linearly at ~165K gas per SNP. Upload dominates (~61%), compute is second (~34%).
 
 **What it cannot tell us:**
 
@@ -213,9 +213,9 @@ Even with Sepolia results, the following remain as future work or explicit limit
 
 ## Appendix — Current Test Coverage
 
-As of 3 April 2026:
+As of 5 April 2026:
 
-- **77 tests pass** under the mock coprocessor (~20 s)
+- **83 tests pass** under the mock coprocessor (~20 s)
 - All 50 individuals × 4 GWAS fixtures (200 overflow checks) verified safe within `uint64` bounds
 - 100-SNP end-to-end validated with score 758,685 matching expected plaintext dot product
 - HCU ceiling empirically confirmed: mock ceiling is 20 < C ≤ 25 (corrected from prior claim of 10)

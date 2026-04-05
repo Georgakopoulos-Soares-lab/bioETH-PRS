@@ -107,18 +107,21 @@ The model is registered and receives an identifier: `modelID = 7`
 Alice calls the compute engine:
 
 ```text
-createPRSJob(modelId=7)
+createPRSJob(modelId=7, sampleId=17)
 ```
 
 The compute engine creates a job shell:
 
 ```text
 modelId = 7  
+sampleId = 17  
+uploadChunkSize = 2  
+computeChunkSize = 2  
+chunkCount = 2  
 uploadedSnpCount = 0  
 snpsFinalized = false  
 nextChunkIndex = 0  
 processedWeights = 0  
-chunkSize = 2  (read from the published model)  
 partialSum = Enc(0)  
 requester = Alice  
 complete = false  
@@ -128,7 +131,7 @@ The partial sum is an **encrypted accumulator**.
 
 ## Step 6: Alice uploads SNP chunks
 
-Alice appends the encrypted SNP payload in the same chunk geometry as the model:
+Alice appends the encrypted SNP payload in upload chunks:
 
 ```text
 appendSnpChunk(jobId, [Enc(0), Enc(1)], inputProof)
@@ -188,7 +191,7 @@ The job is now finished.
 
 ---
 
-## Step 8: Alice finalizes the job
+## Step 9: Alice finalizes the job
 
 Alice calls: `finalize(jobId)`
 
@@ -206,9 +209,14 @@ Alice now possesses a handle representing: `Enc(13)`
 
 But the value 13 is still hidden.
 
+An additive alternative also exists: `finalizeAndClassify(jobId, oracle, low, high)`
+lets the engine hand the score directly to `ResultOracle` in the same transaction,
+avoiding requester-side decrypt / re-encrypt.  This walkthrough continues with the
+default `finalize()` path because it is still the baseline requester flow.
+
 ---
 
-## Step 9: Alice sends score to ResultOracle
+## Step 10: Alice sends score to ResultOracle
 
 Alice first obtains the engine score through the authorized decrypt / re-encrypt
 path, then calls:
@@ -244,7 +252,7 @@ All comparisons occur on encrypted values.
 
 ---
 
-## Step 10: Oracle makes result decryptable
+## Step 11: Oracle makes result decryptable
 
 The oracle performs:
 
@@ -262,7 +270,7 @@ It does not expose the raw PRS score.
 
 ---
 
-## Step 11: Alice retrieves the result
+## Step 12: Alice retrieves the result
 
 Alice queries the gateway.
 
@@ -305,6 +313,6 @@ Alice receives her result without exposing:
 
 1. The registry ACL is now enforced at job creation, but the contracts still do not cryptographically verify that the submitted SNP ciphertexts match the off-chain sample file registered under `sampleId`.
 
-2. `ResultOracle` now generates bounded noise on-chain, but the current engine-to-oracle handoff still requires the user to obtain the engine score through the authorized decrypt / re-encrypt path and then submit a fresh encrypted oracle input.
+2. `ResultOracle` now generates bounded noise on-chain and supports both requester decrypt / re-encrypt and an engine-mediated oracle-only path via `finalizeAndClassify(...)`. `finalizeTo(...)` still exists as a lower-level ACL handoff primitive, but fhEVM handle ownership means EOAs cannot complete a two-step `finalizeTo(...)` → `classifyPreauthorized(...)` flow on behalf of the grantee. The remaining limitation is that the default `finalize()` path still lets the requester read the raw score directly.
 
 These areas are potential improvement targets for future development.

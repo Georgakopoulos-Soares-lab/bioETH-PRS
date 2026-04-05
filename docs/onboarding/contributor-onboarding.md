@@ -183,7 +183,7 @@ This is called a **Model Extraction Attack**.  DP noise thwarts it by making the
 
 The noise the paper uses is **Gaussian** (bell-curve shaped).  The amount of noise needed to achieve a given privacy guarantee $\varepsilon$ (epsilon — smaller = more private but less accurate) is called the **sensitivity** of the query.
 
-> **Current code status:** The old caller-supplied-noise design has been removed.  `ResultOracle` now generates bounded uniform noise on-chain via `FHE.randEuint64(noiseUpperBound)`, so the caller no longer controls the sampled noise value.  The remaining practical limitation is the engine-to-oracle handoff: the user still has to obtain the engine score through the authorized decrypt / re-encrypt path and then submit a fresh encrypted input to the oracle.
+> **Current code status:** The old caller-supplied-noise design has been removed.  `ResultOracle` now generates bounded uniform noise on-chain via `FHE.randEuint64(noiseUpperBound)`, so the caller no longer controls the sampled noise value.  The repo now supports both the original requester decrypt / re-encrypt flow and an additive oracle-only path via `finalizeAndClassify(...)`. `finalizeTo(...)` is still useful as a lower-level ACL handoff primitive, but fhEVM handle ownership means EOAs cannot finish a two-step `finalizeTo(...)` → `classifyPreauthorized(...)` flow on behalf of the grantee. The remaining limitation is that the default `finalize()` path still lets the requester read the raw score directly.
 
 ---
 
@@ -285,7 +285,7 @@ The layer separation matters because:
     then appends weight chunks                    appendPublicModelChunk(...)
     (or appendEncryptedModelChunk for private)    finalizeModel(modelId)
 
- 5. Client calls PRSComputeEngine                 createPRSJob(modelId)
+ 5. Client calls PRSComputeEngine                 createPRSJob(modelId, sampleId)
     → jobId                                       → creates PRS job shell
     then appends SNP chunks                       appendSnpChunk(jobId, handles, inputProof)
     then marks upload ready                       finalizeSnpUpload(jobId)
@@ -296,9 +296,10 @@ The layer separation matters because:
  7. Client calls finalize                         PRSComputeEngine.finalize(jobId)
     → receives euint64 handle                     → FHE.allow(partialSum, client)
 
- 8. Client re-encrypts score for oracle          ResultOracle.classify(
-    (fresh oracle input + proof)                   encryptedScore, inputProof,
-                                                   lowThreshold, highThreshold)
+ 8. Client either routes through oracle          finalizeAndClassify(jobId, oracle, ...)
+    atomically or re-encrypts score                or ResultOracle.classify(
+    for a fresh oracle input                        encryptedScore, inputProof,
+                                                    lowThreshold, highThreshold)
     → receives euint8 category handle            → FHE.makePubliclyDecryptable(category)
 
  9. Client calls gateway                          Gateway decrypts category
@@ -311,14 +312,16 @@ A 1,000-SNP dot product in FHE requires approximately 1,000 `fheMul` and 1,000 `
 
 **The problem:** 1,000 ops in one transaction overflows the gas limit.
 
-**The solution:** Break the job into chunks of ~100 SNPs, each processed in a separate transaction that stays under the gas ceiling.
+**The solution:** Break the job into bounded chunks, each processed in a separate
+transaction that stays under the gas ceiling.  On the current mock coprocessor,
+the safe default is `computeChunkSize=20`; Sepolia may allow a larger value.
 
 ```
-Transaction 1:  computeChunk(jobId)   → processes SNPs  [ 0.. 99], accumulates into partialSum
-Transaction 2:  computeChunk(jobId)   → processes SNPs [100..199], adds to partialSum
+Transaction 1:  computeChunk(jobId)   → processes SNPs  [ 0.. 19], accumulates into partialSum
+Transaction 2:  computeChunk(jobId)   → processes SNPs [20..39], adds to partialSum
 ...
-Transaction 10: computeChunk(jobId)   → processes SNPs [900..999], job.complete = true
-Transaction 11: finalize(jobId)       → returns final encrypted partialSum
+Transaction 50: computeChunk(jobId)   → processes SNPs [980..999], job.complete = true
+Transaction 51: finalize(jobId)       → returns final encrypted partialSum
 ```
 
 The state machine inside `Job` tracks `nextChunkIndex` and `processedWeights` so each `computeChunk` call knows which published model chunk to load next and which SNP slice to align with it. You can think of this as map-reduce-like in spirit, but `v1` is intentionally simpler: one sequential accumulator, one next chunk, one running `partialSum`.

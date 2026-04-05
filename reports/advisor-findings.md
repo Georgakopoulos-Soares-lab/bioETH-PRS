@@ -39,10 +39,10 @@ Measured local wall-clock runtime per advisor command:
 
 | Fixture | Command runtime |
 |---|---:|
-| `100 SNP` | `0.90s` |
-| `500 SNP` | `0.91s` |
-| `1000 SNP` | `0.91s` |
-| `5000 SNP` | `0.96s` |
+| `100 SNP` | `0.20s` |
+| `500 SNP` | `0.20s` |
+| `1000 SNP` | `0.21s` |
+| `5000 SNP` | `0.26s` |
 
 These are local script runtimes, not on-chain times and not gas costs.
 For the historical pre-staged-SNP-upload execution-path timing baseline on the HEPRS-backed mock contract flow, see [reports/heprs-fixture-findings.md](/Users/galano/Developer/patternforge/utexas-lab/bioeth-prs-project/bioETH-PRS/reports/heprs-fixture-findings.md).
@@ -108,7 +108,7 @@ Interpretation: quantization and bound-analysis are not what is stopping us from
 
 ### 5. Advisor runtime is effectively flat across the copied HEPRS fixtures
 
-The command runtime stayed close to `~0.9s` from `100` to `5000` SNPs.
+The command runtime stayed close to `~0.2s` from `100` to `5000` SNPs.
 
 Interpretation:
 

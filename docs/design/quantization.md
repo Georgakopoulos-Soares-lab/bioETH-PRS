@@ -432,7 +432,7 @@ euint64 encodedScore = FHE.sub(withOffset, correction);
 
 The rearrangement `(partialSum + scoreOffset) - (weightZeroPoint * genoSum)` avoids an unsigned underflow on the intermediate `raw_score_q` when the signed dot product is negative.
 
-`test/utils/heprs.ts::quantizeSignedWeightsToUint64` computes `weightZeroPoint` and `scoreOffset` from the float weights and passes them through to all HEPRS fixture tests. All 59 tests pass under the mock fhEVM stack.
+`test/utils/heprs.ts::quantizeSignedWeightsToUint64` computes `weightZeroPoint` and `scoreOffset` from the float weights and passes them through to all HEPRS fixture tests. All 83 tests pass under the mock fhEVM stack.
 
 Next steps toward V2 are bit-depth optimization and decimal dosage support, both tracked in the architecture roadmap.
 

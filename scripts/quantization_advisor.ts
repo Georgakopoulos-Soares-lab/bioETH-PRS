@@ -3,6 +3,12 @@ import path from "path";
 
 export type TargetMode = "public" | "private";
 export type RecommendationTier = "baseline" | "balanced" | "max_precision";
+export type GenotypeMode = "hardcall_0_1_2";
+
+export interface EncodedThresholds {
+  low: bigint;
+  high: bigint;
+}
 
 export interface GasModel {
   weightBitCost: Record<number, number>;
@@ -62,6 +68,21 @@ export interface AdvisorReport {
   validCandidates: QuantizationCandidate[];
   rejectedScales: RejectedScale[];
   recommendations: Partial<Record<RecommendationTier, QuantizationCandidate>>;
+}
+
+export interface QuantizationManifest {
+  weightScale: number;
+  weightZeroPoint: bigint;
+  scoreOffset: bigint;
+  rawMin: bigint;
+  rawMax: bigint;
+  encodedRange: bigint;
+  maxIntermediate: bigint;
+  genotypeMode: GenotypeMode;
+  accumulatorBits: number;
+  weightCount: number;
+  thresholdsEncoded?: EncodedThresholds;
+  sourceModelHash: string;
 }
 
 interface CliOptions {
@@ -161,8 +182,15 @@ function inferUnsignedBits(maxValue: bigint): number {
 }
 
 function applySafetyMargin(value: bigint, ratio: number): bigint {
-  const margin = Math.ceil(Number(value) * ratio);
-  return value + BigInt(margin);
+  assertFiniteNumber(ratio, "Safety margin ratio");
+  if (ratio < 0) {
+    throw new Error("Safety margin ratio must be >= 0");
+  }
+
+  const RATIO_SCALE = 1_000_000n;
+  const scaledRatio = BigInt(Math.ceil(ratio * Number(RATIO_SCALE)));
+  const margin = ((value * scaledRatio) + (RATIO_SCALE - 1n)) / RATIO_SCALE;
+  return value + margin;
 }
 
 function computeValidationMetrics(
@@ -405,6 +433,74 @@ export function adviseQuantization(input: AdvisorInput): AdvisorReport {
       max_precision: validCandidates[validCandidates.length - 1]
     }
   };
+}
+
+export function buildQuantizationManifest(
+  candidate: QuantizationCandidate,
+  sourceModelHash: string,
+  thresholdsEncoded?: EncodedThresholds
+): QuantizationManifest {
+  return {
+    weightScale: candidate.scale,
+    weightZeroPoint: candidate.weightZeroPoint,
+    scoreOffset: candidate.scoreOffset,
+    rawMin: candidate.rawMin,
+    rawMax: candidate.rawMax,
+    encodedRange: candidate.encodedRange,
+    maxIntermediate: candidate.maxIntermediate,
+    genotypeMode: "hardcall_0_1_2",
+    accumulatorBits: candidate.requiredAccumulatorBits,
+    weightCount: candidate.quantizedWeights.length,
+    thresholdsEncoded,
+    sourceModelHash
+  };
+}
+
+export function validateQuantizationManifest(
+  manifest: QuantizationManifest
+): void {
+  if (manifest.genotypeMode !== "hardcall_0_1_2") {
+    throw new Error("V1 manifests must declare genotypeMode=hardcall_0_1_2");
+  }
+  if (!(manifest.weightScale > 0)) {
+    throw new Error("Manifest weightScale must be > 0");
+  }
+  if (manifest.weightCount <= 0) {
+    throw new Error("Manifest weightCount must be > 0");
+  }
+  if (!/^0x[0-9a-fA-F]{64}$/.test(manifest.sourceModelHash)) {
+    throw new Error("Manifest sourceModelHash must be a 32-byte hex string");
+  }
+  if (manifest.rawMin > manifest.rawMax) {
+    throw new Error("Manifest rawMin must be <= rawMax");
+  }
+
+  const expectedScoreOffset = manifest.rawMin < 0n ? -manifest.rawMin : 0n;
+  if (manifest.scoreOffset !== expectedScoreOffset) {
+    throw new Error("Manifest scoreOffset does not match rawMin");
+  }
+
+  const expectedEncodedRange = manifest.rawMax - manifest.rawMin;
+  if (manifest.encodedRange !== expectedEncodedRange) {
+    throw new Error("Manifest encodedRange does not match rawMin/rawMax");
+  }
+
+  const accumulatorLimit = (1n << BigInt(manifest.accumulatorBits)) - 1n;
+  if (manifest.encodedRange > accumulatorLimit) {
+    throw new Error("Manifest encodedRange exceeds accumulatorBits");
+  }
+  if (manifest.maxIntermediate > accumulatorLimit) {
+    throw new Error("Manifest maxIntermediate exceeds accumulatorBits");
+  }
+
+  if (manifest.thresholdsEncoded) {
+    const { low, high } = manifest.thresholdsEncoded;
+    if (!(0n <= low && low < high && high <= manifest.encodedRange)) {
+      throw new Error(
+        "Encoded thresholds must satisfy 0 <= low < high <= encodedRange"
+      );
+    }
+  }
 }
 
 function printUsage() {

@@ -71,7 +71,7 @@ contracts/
   GenomicRegistry.sol        Data layer — sample URIs + ACL
   ModelMarketplace.sol       Public & private GWAS model listing
   PRSComputeEngine.sol       Marketplace-aware chunked PRS engine
-  HEPRS.sol (contains `BioETHPRS`)   Standalone chunked PRS engine
+  HEPRS.sol (contains `BioETHPRS`)   Legacy standalone prototype retained for comparison
   ResultOracle.sol           DP noise + categorical classification
 test/
   bioeth_prs_test.ts         Standalone HEPRS prototype tests
@@ -94,7 +94,7 @@ mock-archive/                Archived old transparent mocks (not imported)
 
 | Tool | Version | Notes |
 |------|---------|-------|
-| **Node.js** | ≥ 20 LTS | `node -v` |
+| **Node.js** | 20.x or 22.x LTS | `node -v` — run `nvm use` to match the repo's supported range |
 | **npm** (or **yarn / pnpm**) | ≥ 9 | Ships with Node.js |
 | **Git** | any | For cloning the repo |
 
@@ -114,6 +114,7 @@ cd blockchain_prs
 ### 2. Install npm dependencies
 
 ```bash
+nvm use   # if you use nvm; repo pins Node 22 in .nvmrc
 npm install
 ```
 
@@ -156,6 +157,12 @@ npx hardhat test
 
 Expected output: the full mock-mode suite passes.
 
+For the full offline verification bundle, including the mock end-to-end validation script, gas/fixture profilers, HCU probe, and quantization CLI runs across all shipped HEPRS fixtures, run:
+
+```bash
+npm run validate:local
+```
+
 For a fuller command cookbook, including single-file test runs, `--grep` usage, advisor commands, and profiling commands, see [docs/reference/development-workflows.md](docs/reference/development-workflows.md).
 
 ### Test files
@@ -166,7 +173,7 @@ For a fuller command cookbook, including single-file test runs, `--grep` usage, 
 | `test/prs_compute_engine_chunked_snp_test.ts` | Focused `PRSComputeEngine` unit coverage for job shells, SNP upload, readiness, compute relays, and requester-only outputs. |
 | `test/registry_marketplace_oracle_test.ts` | Cross-contract integration test covering registry ACL, marketplace-backed PRS, and oracle classification. |
 | `test/heprs_fixture_test.ts` | HEPRS-backed integration coverage using fixed advisor recommendations across the staged job-upload flow. |
-| `test/bioeth_prs_test.ts` | Standalone `HEPRS.sol` prototype behavior using the older embedded-model path. |
+| `test/bioeth_prs_test.ts` | Legacy `HEPRS.sol` prototype behavior using the older embedded-model path. |
 | `test/quantization_advisor_test.ts` | Advisor recommendation ranking and CLI-summary behavior. |
 | `test/scale_ceiling_reference_test.ts` | Quick overflow-screen reference logic. |
 
@@ -198,7 +205,7 @@ npx hardhat test scripts/gas_profile.ts
 |----------|---------|-------------|
 | `SNP_COUNTS` | `100,300,600` | Comma-separated SNP vector sizes to profile. |
 | `UPLOAD_CHUNK_SIZE` | `32` | SNPs per `appendSnpChunk` call (fhEVM input-proof limit). |
-| `COMPUTE_CHUNK_SIZE` | `10` | SNPs per `computeChunk` call (HCU-constrained; mock ceiling is 20). |
+| `COMPUTE_CHUNK_SIZE` | `20` | SNPs per `computeChunk` call (HCU-constrained; mock ceiling is 20). |
 | `GAS_PRICE_GWEI` | `30` | Assumed gas price for ETH cost estimation. |
 
 Example:

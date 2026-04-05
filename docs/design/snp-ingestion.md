@@ -98,19 +98,17 @@ compute, so `uploadChunkSize` need not equal or divide `computeChunkSize`.
 
 Example:
 
-- `uploadChunkSize = 32`, `computeChunkSize = 10`
+- `uploadChunkSize = 32`, `computeChunkSize = 20`
 - `weightCount = 101`
 - Upload transactions: `ceil(101/32) = 4`
-- Compute transactions: `ceil(101/10) = 11`
+- Compute transactions: `ceil(101/20) = 6`
 
 This cuts upload transactions by ~3× compared to the old single-chunkSize
 approach (where upload was also forced to 10).
 
-For `v1`, the simpler choice is better:
-
-- one chunk geometry
-- one chunk count
-- one set of boundaries
+The engine still keeps a single derived `chunkCount`, but it is now based on
+`computeChunkSize`, not `uploadChunkSize`, because compute windows are the
+state-machine boundary that matters for progress and completion.
 
 ## Chunk-size constraints in practice
 
@@ -139,7 +137,7 @@ Each SNP processed in `computeChunk` requires **3 FHE operations**:
 3. `FHE.add(partialSum, product)` — accumulate into the running sum
 
 The mock coprocessor enforces a per-transaction Homomorphic Compute Unit (HCU)
-budget.  A systematic probe (2 April 2026, `npm run probe:hcu:mock`) tested all
+budget.  A systematic probe (5 April 2026, `npm run probe:hcu:mock`) tested all
 candidate sizes and found:
 
 | computeChunkSize | 3 ops × size | Result |
@@ -181,8 +179,7 @@ in `createModelShell`.
 When publishing a model today:
 
 - set `uploadChunkSize = 32` — this is always the correct value (input-proof budget)
-- set `computeChunkSize = 10` for conservative local development (leaves headroom)
-- set `computeChunkSize = 20` for optimal mock throughput — confirmed safe
+- set `computeChunkSize = 20` for local mock development and profiling — confirmed safe
 - do not set `computeChunkSize > 20` on mock — `computeChunk` will revert with `HCUTransactionLimitExceeded`
 - start with `computeChunkSize = 10` on a first Sepolia deployment; run `npm run probe:hcu` to find the real ceiling
 

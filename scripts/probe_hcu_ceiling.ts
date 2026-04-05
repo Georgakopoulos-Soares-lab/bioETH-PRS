@@ -6,7 +6,7 @@
  *
  * Usage:
  *   npx hardhat test scripts/probe_hcu_ceiling.ts --network sepolia
- *   npx hardhat test scripts/probe_hcu_ceiling.ts   # local mock (expect fail at >10)
+ *   npx hardhat test scripts/probe_hcu_ceiling.ts   # local mock (expect PASS through 20, fail at 25+)
  *
  * How it works:
  *   For each candidate chunkSize the script:
@@ -25,7 +25,7 @@
  *
  * Candidate sizes:
  *   [10, 15, 20, 25, 32]
- *   - 10 is the confirmed mock ceiling
+ *   - 20 is the current confirmed safe mock chunk size
  *   - 32 is the upload-proof ceiling (2048-bit / 64-bit per euint64)
  */
 
@@ -239,10 +239,10 @@ describe("HCU ceiling probe", function () {
     console.log(`\nReport saved to ${outPath}`);
 
     // The probe itself is informational — only fail if the known-safe size fails
-    const knownSafe = results.find((r) => r.chunkSize === 10);
+    const knownSafe = results.find((r) => r.chunkSize === 20);
     if (knownSafe && !knownSafe.passed) {
       throw new Error(
-        `chunkSize=10 (known safe) failed — environment problem: ${knownSafe.errorMessage}`
+        `chunkSize=20 (known safe) failed — environment problem: ${knownSafe.errorMessage}`
       );
     }
   });

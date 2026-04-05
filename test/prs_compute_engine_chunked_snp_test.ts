@@ -195,6 +195,29 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       .to.be.revertedWith("SNP upload not finalized");
   });
 
+  it("accepts arbitrary encrypted SNP values today; hardcall enforcement remains off-chain", async function () {
+    const [jobOwner] = await ethers.getSigners();
+    const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
+    const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), jobOwner.address);
+    const engineAddr = await engine.getAddress();
+
+    const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+    await engine.createPRSJob(modelId, sampleId);
+
+    const enc = await encryptUint64Array(engineAddr, jobOwner.address, [9n, 11n]);
+    await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+    await engine.finalizeSnpUpload(jobId);
+    await engine.computeChunk(jobId);
+
+    const tx = await engine.finalize(jobId);
+    const receipt = await tx.wait();
+    const finalEvent = receipt!.logs.find(
+      (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+    );
+    const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+    expect(await debugDecryptUint64(scoreHandle)).to.equal(31n);
+  });
+
   it("computes a public-model dot product and allows permissionless compute relays", async function () {
     const [jobOwner, relayer] = await ethers.getSigners();
     const { marketplace, modelId } = await deployPublicModel([1n, 2n, 3n], 2n, 2n);
@@ -330,6 +353,63 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     );
     const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
     expect(await debugDecryptUint64(scoreHandle)).to.equal(56n);
+  });
+
+  it("applies private-model quantization metadata when weightZeroPoint and scoreOffset are non-zero", async function () {
+    const [owner] = await ethers.getSigners();
+    const Engine = await ethers.getContractFactory("PRSComputeEngine");
+    const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+    const Registry = await ethers.getContractFactory("GenomicRegistry");
+    const marketplace = await Marketplace.deploy();
+    const registry = await Registry.deploy();
+    const sampleId = await registry.registerSample.staticCall("ipfs://sample");
+    await registry.registerSample("ipfs://sample");
+    const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
+    const mpAddr = await marketplace.getAddress();
+    const engineAddr = await engine.getAddress();
+
+    // Signed quantized weights q=[-3,2,5] -> stored shifted weights u=[0,5,8]
+    // weightZeroPoint=3, rawMin=-6, scoreOffset=6.
+    // For SNPs [2,1,0]:
+    //   weighted_sum = 2*0 + 1*5 + 0*8 = 5
+    //   genoSum = 3
+    //   encoded = (5 + 6) - 3*3 = 2
+    const modelId = await marketplace.createModelShell.staticCall(
+      true, 3n, 2n, 2n, "ipfs://private-model-shifted",
+      ethers.ZeroHash, ethers.ZeroHash, 3n, 6n
+    );
+    await marketplace.createModelShell(
+      true, 3n, 2n, 2n, "ipfs://private-model-shifted",
+      ethers.ZeroHash, ethers.ZeroHash, 3n, 6n
+    );
+
+    const wEnc1 = await encryptUint64Array(mpAddr, owner.address, [0n, 5n]);
+    await marketplace.appendEncryptedModelChunk(modelId, wEnc1.handles, wEnc1.inputProof);
+    const wEnc2 = await encryptUint64Array(mpAddr, owner.address, [8n]);
+    await marketplace.appendEncryptedModelChunk(modelId, wEnc2.handles, wEnc2.inputProof);
+
+    await marketplace.setPrivateModelReader(modelId, engineAddr, true);
+    await marketplace.finalizeModel(modelId);
+
+    const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+    await engine.createPRSJob(modelId, sampleId);
+
+    const sEnc1 = await encryptUint64Array(engineAddr, owner.address, [2n, 1n]);
+    await engine.appendSnpChunk(jobId, sEnc1.handles, sEnc1.inputProof);
+    const sEnc2 = await encryptUint64Array(engineAddr, owner.address, [0n]);
+    await engine.appendSnpChunk(jobId, sEnc2.handles, sEnc2.inputProof);
+    await engine.finalizeSnpUpload(jobId);
+
+    await engine.computeChunk(jobId);
+    await engine.computeChunk(jobId);
+
+    const tx = await engine.finalize(jobId);
+    const receipt = await tx.wait();
+    const finalEvent = receipt!.logs.find(
+      (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+    );
+    const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+    expect(await debugDecryptUint64(scoreHandle)).to.equal(2n);
   });
 
   describe("Registry ACL enforcement", function () {

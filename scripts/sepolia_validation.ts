@@ -47,9 +47,11 @@ import {
 const FIXTURE_SIZE = 100 as const;
 // Decoupled chunk sizes:
 //   UPLOAD_CHUNK_SIZE=32 — 2048-bit input-proof budget (max 32 euint64s per call)
-//   COMPUTE_CHUNK_SIZE=10 — conservative starting point; run probe:hcu to find Sepolia ceiling
+//   mock computeChunkSize=20 — confirmed safe on the local HCU probe
+//   Sepolia computeChunkSize=10 — conservative starting point; run probe:hcu to find real ceiling
 const UPLOAD_CHUNK_SIZE = 32;
-const COMPUTE_CHUNK_SIZE = 10;
+const MOCK_COMPUTE_CHUNK_SIZE = 20;
+const SEPOLIA_COMPUTE_CHUNK_SIZE = 10;
 
 interface SavedDeployment {
   contracts: {
@@ -77,10 +79,17 @@ describe("Sepolia 100-SNP validation", function () {
         : chainId === 1n ? "mainnet"
           : `chain-${chainId}`;
     const isMock = fhevm.isMock;
+    const computeChunkSize = process.env.COMPUTE_CHUNK_SIZE
+      ? Number(process.env.COMPUTE_CHUNK_SIZE)
+      : (isMock ? MOCK_COMPUTE_CHUNK_SIZE : SEPOLIA_COMPUTE_CHUNK_SIZE);
+
+    if (!Number.isInteger(computeChunkSize) || computeChunkSize <= 0) {
+      throw new Error("COMPUTE_CHUNK_SIZE must be a positive integer");
+    }
 
     console.log(`\nNetwork  : ${network.name} (chainId=${chainId})`);
     console.log(`FHE mode : ${isMock ? "mock — plaintext arithmetic" : "REAL TFHE ciphertext"}`);
-    console.log(`Fixture  : ${FIXTURE_SIZE} SNPs, uploadChunkSize=${UPLOAD_CHUNK_SIZE}, computeChunkSize=${COMPUTE_CHUNK_SIZE}\n`);
+    console.log(`Fixture  : ${FIXTURE_SIZE} SNPs, uploadChunkSize=${UPLOAD_CHUNK_SIZE}, computeChunkSize=${computeChunkSize}\n`);
 
     const [signer] = await ethers.getSigners();
 
@@ -158,7 +167,7 @@ describe("Sepolia 100-SNP validation", function () {
       false,
       BigInt(quantized.weights.length),
       BigInt(UPLOAD_CHUNK_SIZE),
-      BigInt(COMPUTE_CHUNK_SIZE),
+      BigInt(computeChunkSize),
       `ipfs://heprs/100`,
       ethers.ZeroHash,
       ethers.ZeroHash,
@@ -169,7 +178,7 @@ describe("Sepolia 100-SNP validation", function () {
       false,
       BigInt(quantized.weights.length),
       BigInt(UPLOAD_CHUNK_SIZE),
-      BigInt(COMPUTE_CHUNK_SIZE),
+      BigInt(computeChunkSize),
       `ipfs://heprs/100`,
       ethers.ZeroHash,
       ethers.ZeroHash,
@@ -197,7 +206,7 @@ describe("Sepolia 100-SNP validation", function () {
 
     // ── 5. Upload SNP chunks ─────────────────────────────────────────────────
     const totalUploadChunks = Math.ceil(snps.length / UPLOAD_CHUNK_SIZE);
-    const totalComputeChunks = Math.ceil(snps.length / COMPUTE_CHUNK_SIZE);
+    const totalComputeChunks = Math.ceil(snps.length / computeChunkSize);
     console.log(`Uploading ${totalUploadChunks} SNP chunks (${UPLOAD_CHUNK_SIZE} SNPs each)...`);
     const t_upload = Date.now();
     let uploadGas = 0n;
@@ -216,7 +225,7 @@ describe("Sepolia 100-SNP validation", function () {
     console.log(`  finalizeSnpUpload gas=${finalizeUploadGas}\n`);
 
     // ── 6. Compute chunks ────────────────────────────────────────────────────
-    console.log(`Computing ${totalComputeChunks} chunks (${COMPUTE_CHUNK_SIZE} SNPs each)...`);
+    console.log(`Computing ${totalComputeChunks} chunks (${computeChunkSize} SNPs each)...`);
     const chunkTimesMs: number[] = [];
     const chunkGasPerCall: string[] = [];
     let computeGas = 0n;
@@ -290,7 +299,7 @@ describe("Sepolia 100-SNP validation", function () {
       timestamp: new Date().toISOString(),
       fixtureSize: FIXTURE_SIZE,
       uploadChunkSize: UPLOAD_CHUNK_SIZE,
-      computeChunkSize: COMPUTE_CHUNK_SIZE,
+      computeChunkSize,
       scale: recommendation.scale,
       passed: true,
       gas: {
@@ -329,7 +338,7 @@ describe("Sepolia 100-SNP validation", function () {
     console.log("\n=== Summary ===");
     console.log(`Network    : ${networkKey} (${isMock ? "mock" : "REAL FHE"})`);
     console.log(`Upload     : ${totalUploadChunks} × uploadChunkSize=${UPLOAD_CHUNK_SIZE}`);
-    console.log(`Compute    : ${totalComputeChunks} × computeChunkSize=${COMPUTE_CHUNK_SIZE}`);
+    console.log(`Compute    : ${totalComputeChunks} × computeChunkSize=${computeChunkSize}`);
     console.log(`Total gas  : ${totalGas}`);
     console.log(`Avg chunk  : ${avgChunkMs.toFixed(1)}ms`);
     console.log(`Decrypt    : ${decryptMs}ms`);

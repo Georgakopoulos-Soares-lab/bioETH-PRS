@@ -67,17 +67,41 @@ contract ResultOracle is ZamaEthereumConfig {
         uint64 lowThreshold,
         uint64 highThreshold
     ) external returns (euint8) {
+        euint64 score = FHE.fromExternal(encryptedScore, inputProof);
+        return _classifyScore(score, lowThreshold, highThreshold);
+    }
+
+    /// @notice Classifies a score handle that has already been ACL-granted to this oracle.
+    ///
+    /// @dev    This is a lower-level import path for contract-controlled handoffs.
+    ///         With empty-proof `FHE.fromExternal`, the transaction sender must
+    ///         already own the handle.  In practice, EOAs cannot complete a
+    ///         `finalizeTo(...)` → `classifyPreauthorized(...)` handoff on behalf of
+    ///         another grantee.  `PRSComputeEngine.finalizeAndClassify(...)` provides
+    ///         the additive oracle-only flow for ordinary requesters.
+    function classifyPreauthorized(
+        externalEuint64 encryptedScoreHandle,
+        uint64 lowThreshold,
+        uint64 highThreshold
+    ) external returns (euint8) {
+        euint64 score = FHE.fromExternal(encryptedScoreHandle, hex"");
+        return _classifyScore(score, lowThreshold, highThreshold);
+    }
+
+    function _classifyScore(
+        euint64 score,
+        uint64 lowThreshold,
+        uint64 highThreshold
+    ) internal returns (euint8) {
         require(
             lowThreshold < highThreshold,
             "lowThreshold must be less than highThreshold"
         );
-        euint64 score = FHE.fromExternal(encryptedScore, inputProof);
         FHE.allowThis(score);
 
         // Generate noise entirely on-chain — caller cannot control or predict this value.
         euint64 noise = FHE.randEuint64(noiseUpperBound);
         FHE.allowThis(noise);
-
         euint64 noisy = FHE.add(score, noise);
         FHE.allowThis(noisy);
 

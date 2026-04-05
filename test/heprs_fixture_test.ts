@@ -31,6 +31,8 @@ function chunkedDotProductBigInt(
 
 describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", function () {
   this.timeout(120000);
+  const uploadChunkSize = 32;
+  const computeChunkSize = 20;
 
   for (const fixtureSize of ONCHAIN_HEPRS_FIXTURE_SIZES) {
     it(`matches a plaintext dot product on the HEPRS ${fixtureSize}-SNP fixture using the balanced advisor recommendation`, async function () {
@@ -45,9 +47,7 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
       );
       // Decoupled chunk sizes:
       //   uploadChunkSize=32 — 2048-bit input-proof budget (max 32 euint64s per call)
-      //   computeChunkSize=10 — HCU-safe on mock; Sepolia ceiling TBD (run probe:hcu)
-      const uploadChunkSize = 32;
-      const computeChunkSize = 10;
+      //   computeChunkSize=20 — HCU-safe on mock; Sepolia ceiling TBD (run probe:hcu)
 
       // V1 corrected encoded score: (weighted_sum + scoreOffset) - weightZeroPoint * genoSum
       const genoSum = snps.reduce((a, b) => a + b, 0n);
@@ -135,8 +135,6 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
     const recommendation = getHeprsBalancedRecommendation(5000);
     const quantized = quantizeHeprsWeightsWithRecommendation(5000, betas);
     // Decoupled chunk sizes
-    const uploadChunkSize = 32;
-    const computeChunkSize = 10;
 
     expect(snps.length).to.equal(quantized.weights.length);
     expect(snps.length).to.equal(5001);

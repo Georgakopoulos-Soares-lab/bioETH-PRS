@@ -96,9 +96,9 @@ function parseCliArgs(argv: string[]): CliOptions {
   const fixtureSizes: HeprsFixtureSize[] = [];
   // Decoupled defaults:
   //   uploadChunkSize=32 — 2048-bit input-proof budget (max 32 euint64s per call)
-  //   computeChunkSize=10 — HCU-safe on mock; Sepolia ceiling TBD (run probe:hcu)
+  //   computeChunkSize=20 — HCU-safe on mock; Sepolia ceiling TBD (run probe:hcu)
   let uploadChunkSize = 32;
-  let computeChunkSize = 10;
+  let computeChunkSize = 20;
   let verbose = false;
   let jsonOutPath: string | undefined;
 
@@ -400,9 +400,9 @@ function stringifyProfiles(profiles: FixtureProfile[]): string {
 
 // Run as a Hardhat test so the @fhevm/hardhat-plugin mock coprocessor is
 // fully initialized before any FHE operations execute.
-// Usage: npm run profile:heprs [-- --fixture 100 --chunk-size 10]
+// Usage: npm run profile:heprs [-- --fixture 100 --compute-chunk-size 20]
 describe("HEPRS fixture profiler", function () {
-  // Allow up to 30 min for all four fixtures at chunkSize=10
+  // Allow up to 30 min for all four fixtures at computeChunkSize=20
   this.timeout(1_800_000);
 
   it("profiles all requested fixtures and prints timing summary", async function () {

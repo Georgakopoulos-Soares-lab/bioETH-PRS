@@ -191,8 +191,8 @@ The total number of compute chunks implied by `weightCount` and `computeChunkSiz
 For example:
 
 * `weightCount = 5001`
-* `uploadChunkSize = 32`, `computeChunkSize = 10`
-* `chunkCount = ceil(5001 / 10) = 501`
+* `uploadChunkSize = 32`, `computeChunkSize = 20`
+* `chunkCount = ceil(5001 / 20) = 251`
 * upload transactions: `ceil(5001 / 32) = 157`
 
 We store `chunkCount` so other parts of the system can reason about compute
