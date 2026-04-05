@@ -215,8 +215,11 @@ Even with Sepolia results, the following remain as future work or explicit limit
 
 As of 5 April 2026:
 
-- **83 tests pass** under the mock coprocessor (~20 s)
+- **94 tests pass** under the mock coprocessor (~21 s)
 - All 50 individuals × 4 GWAS fixtures (200 overflow checks) verified safe within `uint64` bounds
 - 100-SNP end-to-end validated with score 758,685 matching expected plaintext dot product
 - HCU ceiling empirically confirmed: mock ceiling is 20 < C ≤ 25 (corrected from prior claim of 10)
 - DP noise generation: on-chain via `FHE.randEuint64(noiseUpperBound)`, zero-noise loophole closed
+- `finalizeTo` / `finalizeAndClassify` guard branches fully covered (zero address, non-requester, incomplete job)
+- `classifyPreauthorized` threshold guard exercised via the atomic `finalizeAndClassify` path
+- ACL revocation lifecycle documented and tested: registry revocation only blocks new job creation; private-model reader revocation blocks in-flight `computeChunk` (marketplace re-checks auth per chunk)

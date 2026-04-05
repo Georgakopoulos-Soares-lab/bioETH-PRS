@@ -537,5 +537,93 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       const categoryHandle = oracle.interface.parseLog(classifyEvent as any)!.args.category;
       expect(await debugDecryptUint8(categoryHandle)).to.equal(0n);
     });
+
+    it("classifyPreauthorized threshold guard is enforced via the atomic engine handoff path", async function () {
+      // Tests that _classifyScore's require(lowThreshold < highThreshold) is exercised
+      // through the classifyPreauthorized entry point, using finalizeAndClassify as the caller.
+      const [signer] = await ethers.getSigners();
+
+      const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+      const marketplace = await Marketplace.deploy();
+      const modelId = await marketplace.createModelShell.staticCall(
+        false, 2n, 2n, 2n, "ipfs://threshold-guard",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.createModelShell(
+        false, 2n, 2n, 2n, "ipfs://threshold-guard",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
+      await marketplace.finalizeModel(modelId);
+
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const sampleId = await registry.registerSample.staticCall("ipfs://threshold-sample");
+      await registry.registerSample("ipfs://threshold-sample");
+
+      const Engine = await ethers.getContractFactory("PRSComputeEngine");
+      const engine = await Engine.deploy(
+        await marketplace.getAddress(), await registry.getAddress()
+      );
+      const engineAddr = await engine.getAddress();
+
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      const oracle = await Oracle.deploy(128n);
+
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+      const enc = await encryptUint64Array(engineAddr, signer.address, [1n, 2n]);
+      await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+      await engine.finalizeSnpUpload(jobId);
+      await engine.computeChunk(jobId);
+
+      // lowThreshold > highThreshold — should revert deep inside oracle._classifyScore
+      await expect(
+        engine.finalizeAndClassify(jobId, await oracle.getAddress(), 500n, 100n)
+      ).to.be.revertedWith("lowThreshold must be less than highThreshold");
+    });
+
+    it("classifyPreauthorized threshold guard fires when thresholds are equal", async function () {
+      // Equal thresholds (low == high) are also invalid; verify they are caught.
+      const [signer] = await ethers.getSigners();
+
+      const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+      const marketplace = await Marketplace.deploy();
+      const modelId = await marketplace.createModelShell.staticCall(
+        false, 2n, 2n, 2n, "ipfs://equal-thresholds",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.createModelShell(
+        false, 2n, 2n, 2n, "ipfs://equal-thresholds",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
+      await marketplace.finalizeModel(modelId);
+
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const sampleId = await registry.registerSample.staticCall("ipfs://equal-sample");
+      await registry.registerSample("ipfs://equal-sample");
+
+      const Engine = await ethers.getContractFactory("PRSComputeEngine");
+      const engine = await Engine.deploy(
+        await marketplace.getAddress(), await registry.getAddress()
+      );
+      const engineAddr = await engine.getAddress();
+
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      const oracle = await Oracle.deploy(128n);
+
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+      const enc = await encryptUint64Array(engineAddr, signer.address, [1n, 2n]);
+      await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+      await engine.finalizeSnpUpload(jobId);
+      await engine.computeChunk(jobId);
+
+      await expect(
+        engine.finalizeAndClassify(jobId, await oracle.getAddress(), 200n, 200n)
+      ).to.be.revertedWith("lowThreshold must be less than highThreshold");
+    });
   });
 });

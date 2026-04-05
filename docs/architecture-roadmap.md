@@ -172,6 +172,11 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 
 **Remaining scope:** This is an authorization check, not a data-integrity proof. The contract cannot verify that the submitted ciphertexts correspond to the registered sample's off-chain URI — that linkage is the caller's responsibility. Model probing via self-registered arbitrary data remains possible; differential privacy noise (§ 7-D) is the mitigation for that threat.
 
+**ACL revocation and in-flight jobs (documented April 2026):** Registry and private-model ACL revocation behave differently for in-flight jobs:
+
+* *Registry revocation* (`revokeAccess`) only affects new calls to `createPRSJob`. Once a job exists, all subsequent steps (`appendSnpChunk`, `finalizeSnpUpload`, `computeChunk`, `finalize`) are gated on `job.requester == msg.sender`, not on registry. Revoking sample access does not cancel an in-progress job.
+* *Private-model reader revocation* (`setPrivateModelReader(modelId, engine, false)`) does block in-flight compute. `ModelMarketplace.getEncryptedWeightChunk` re-checks `canReadPrivateModel` on every call, so revoking engine access mid-job causes the next `computeChunk` to revert with `"Reader not authorized"`. Operators should be aware that revoking a model's engine reader effectively cancels any running jobs that have not yet completed the compute phase.
+
 ### 7-B. Marketplace Trust & Model Integrity
 
 * No mechanism prevents listing garbage weights. On-chain validation of statistical quality is infeasible; consider off-chain attestation or DAO-curated whitelists.

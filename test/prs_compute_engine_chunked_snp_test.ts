@@ -528,4 +528,165 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       await expect(engine.createPRSJob(modelId, sampleId)).to.not.be.reverted;
     });
   });
+
+  describe("finalize delegation guards", function () {
+    // Shared helper: creates a public-model job with weights [1n, 2n], SNPs [1n, 2n],
+    // fully uploaded and computed so it is ready to finalize.
+    async function completePublicJob() {
+      const [owner, stranger] = await ethers.getSigners();
+      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
+      const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), owner.address);
+      const engineAddr = await engine.getAddress();
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+      const enc = await encryptUint64Array(engineAddr, owner.address, [1n, 2n]);
+      await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+      await engine.finalizeSnpUpload(jobId);
+      await engine.computeChunk(jobId);
+      return { engine, jobId, owner, stranger };
+    }
+
+    it("finalizeTo rejects zero grantee address", async function () {
+      const { engine, jobId } = await completePublicJob();
+      await expect(engine.finalizeTo(jobId, ethers.ZeroAddress))
+        .to.be.revertedWith("Invalid grantee");
+    });
+
+    it("finalizeAndClassify rejects zero oracle address", async function () {
+      const { engine, jobId } = await completePublicJob();
+      await expect(engine.finalizeAndClassify(jobId, ethers.ZeroAddress, 100n, 200n))
+        .to.be.revertedWith("Invalid oracle");
+    });
+
+    it("finalizeTo rejects call from non-requester", async function () {
+      const { engine, jobId, stranger } = await completePublicJob();
+      await expect(engine.connect(stranger).finalizeTo(jobId, stranger.address))
+        .to.be.revertedWith("Not requester");
+    });
+
+    it("finalizeAndClassify rejects call from non-requester", async function () {
+      const { engine, jobId, stranger } = await completePublicJob();
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      const oracle = await Oracle.deploy(128n);
+      await expect(
+        engine.connect(stranger).finalizeAndClassify(jobId, await oracle.getAddress(), 100n, 200n)
+      ).to.be.revertedWith("Not requester");
+    });
+
+    it("finalizeTo rejects job that is not yet complete", async function () {
+      const [owner] = await ethers.getSigners();
+      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
+      const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), owner.address);
+      const engineAddr = await engine.getAddress();
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+      const enc = await encryptUint64Array(engineAddr, owner.address, [1n, 2n]);
+      await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+      await engine.finalizeSnpUpload(jobId);
+      // SNPs uploaded but computeChunk not called — job not complete
+      await expect(engine.finalizeTo(jobId, owner.address))
+        .to.be.revertedWith("Job not complete");
+    });
+
+    it("finalizeAndClassify rejects job that is not yet complete", async function () {
+      const [owner] = await ethers.getSigners();
+      const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
+      const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), owner.address);
+      const engineAddr = await engine.getAddress();
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      const oracle = await Oracle.deploy(128n);
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+      const enc = await encryptUint64Array(engineAddr, owner.address, [1n, 2n]);
+      await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+      await engine.finalizeSnpUpload(jobId);
+      // SNPs uploaded but computeChunk not called — job not complete
+      await expect(engine.finalizeAndClassify(jobId, await oracle.getAddress(), 100n, 200n))
+        .to.be.revertedWith("Job not complete");
+    });
+
+    it("finalizeAndClassify propagates oracle threshold guard to requester", async function () {
+      // lowThreshold >= highThreshold is caught inside _classifyScore via classifyPreauthorized,
+      // confirming the guard is exercised through the atomic engine → oracle path.
+      const { engine, jobId } = await completePublicJob();
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      const oracle = await Oracle.deploy(128n);
+      await expect(
+        engine.finalizeAndClassify(jobId, await oracle.getAddress(), 300n, 100n)
+      ).to.be.revertedWith("lowThreshold must be less than highThreshold");
+    });
+  });
+
+  describe("ACL revocation during in-flight jobs", function () {
+    it("revoking registry sample access after job creation does not block compute or finalize", async function () {
+      // Registry hasAccess is checked only at createPRSJob time.
+      // Subsequent steps are gated on job.requester == msg.sender, not registry.
+      const [owner, researcher] = await ethers.getSigners();
+      const { marketplace, modelId } = await deployPublicModel([3n, 4n], 2n, 2n);
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const sampleId = await registry.registerSample.staticCall("ipfs://revoke-sample");
+      await registry.registerSample("ipfs://revoke-sample");
+      await registry.grantAccess(sampleId, researcher.address);
+
+      const Engine = await ethers.getContractFactory("PRSComputeEngine");
+      const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
+      const engineAddr = await engine.getAddress();
+
+      const jobId = await engine.connect(researcher).createPRSJob.staticCall(modelId, sampleId);
+      await engine.connect(researcher).createPRSJob(modelId, sampleId);
+
+      // Revoke registry access after the job has already been created
+      await registry.revokeAccess(sampleId, researcher.address);
+
+      // In-flight: append, finalize upload, compute, finalize all succeed
+      const enc = await encryptUint64Array(engineAddr, researcher.address, [1n, 2n]);
+      await engine.connect(researcher).appendSnpChunk(jobId, enc.handles, enc.inputProof);
+      await engine.connect(researcher).finalizeSnpUpload(jobId);
+      await engine.connect(researcher).computeChunk(jobId);
+      await expect(engine.connect(researcher).finalize(jobId)).to.not.be.reverted;
+
+      // New job creation is now blocked for the revoked researcher
+      await expect(engine.connect(researcher).createPRSJob(modelId, sampleId))
+        .to.be.revertedWith("No registry access");
+    });
+
+    it("revoking engine private model reader after SNP upload blocks subsequent computeChunk", async function () {
+      // getEncryptedWeightChunk re-checks canReadPrivateModel on every call.
+      // Revoking engine access after SNP upload but before compute kills the in-flight job.
+      const [owner] = await ethers.getSigners();
+      const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+      const marketplace = await Marketplace.deploy();
+      const mpAddr = await marketplace.getAddress();
+
+      const modelId = await marketplace.createModelShell.staticCall(
+        true, 2n, 2n, 2n, "ipfs://priv-revoke",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.createModelShell(
+        true, 2n, 2n, 2n, "ipfs://priv-revoke",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      const wEnc = await encryptUint64Array(mpAddr, owner.address, [3n, 4n]);
+      await marketplace.appendEncryptedModelChunk(modelId, wEnc.handles, wEnc.inputProof);
+      await marketplace.finalizeModel(modelId);
+
+      const { engine, sampleId } = await deployEngine(mpAddr, owner.address);
+      const engineAddr = await engine.getAddress();
+      await marketplace.setPrivateModelReader(modelId, engineAddr, true);
+
+      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+      const sEnc = await encryptUint64Array(engineAddr, owner.address, [1n, 2n]);
+      await engine.appendSnpChunk(jobId, sEnc.handles, sEnc.inputProof);
+      await engine.finalizeSnpUpload(jobId);
+
+      // Revoke engine's private model reader access before compute
+      await marketplace.setPrivateModelReader(modelId, engineAddr, false);
+
+      // computeChunk calls marketplace.getEncryptedWeightChunk which re-checks authorization
+      await expect(engine.computeChunk(jobId))
+        .to.be.revertedWith("Reader not authorized");
+    });
+  });
 });
