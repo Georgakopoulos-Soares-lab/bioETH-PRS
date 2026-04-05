@@ -14,13 +14,12 @@ This directory is organized by purpose so collaborators can find the right level
 - [`onboarding/codebase-reading-guide.md`](onboarding/codebase-reading-guide.md): suggested reading order through the repo
 - [`onboarding/concepts-cheatsheet.md`](onboarding/concepts-cheatsheet.md): quick concept reference
 - [`onboarding/e2e-walkthrough-short.md`](onboarding/e2e-walkthrough-short.md): short end-to-end scenario
-- [`onboarding/e2e-walkthrough-long.md`](onboarding/e2e-walkthrough-long.md): *(superseded — see contract-grounded walkthrough)*
 - [`onboarding/e2e-walkthrough-contract-grounded.md`](onboarding/e2e-walkthrough-contract-grounded.md): full contract-grounded end-to-end example with real `v1` state, permissions, quantization, and oracle handoff
+- [`onboarding/colleague-briefing-pack.md`](onboarding/colleague-briefing-pack.md): speaker-oriented briefing guide — 30s / 2min / 5-10min formats, common Q&A
 
 ## Design
 
 - [`design/overview.md`](design/overview.md): system design overview — publication, SNP upload, and compute
-- [`design/system-explainer.md`](design/system-explainer.md): bottom-up contract explainer — what each contract does and why, with benchmark context
 - [`design/model-marketplace.md`](design/model-marketplace.md): model publication lifecycle and marketplace controls
 - [`design/snp-ingestion.md`](design/snp-ingestion.md): PRS job shell, SNP chunk upload, and compute lifecycle
 - [`design/quantization.md`](design/quantization.md): signed-weight quantization and encoding

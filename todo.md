@@ -2,7 +2,7 @@
 
 ## Current State
 
-73 tests pass. Contracts compile against `@fhevm/solidity` and run identically on
+77 tests pass. Contracts compile against `@fhevm/solidity` and run identically on
 the local mock coprocessor and on Sepolia. All core engineering work is complete.
 The remaining priority is to execute the Sepolia deployment and record real-FHE
 results.
@@ -13,10 +13,10 @@ Implemented and tested:
 - Standalone `BioETHPRS` (`HEPRS.sol`)
 - Chunked model publication lifecycle and staged SNP ingestion state machine
 - V1 quantization correction: `(weighted_sum + scoreOffset) - (weightZeroPoint × genoSum)`
-- `ResultOracle` on-chain DP noise via `FHE.randEuint64(noiseUpperBound)`
-- Upload and compute chunk sizes decoupled: `uploadChunkSize=32`, `computeChunkSize=20`
+- `ResultOracle` on-chain DP noise via `FHE.randEuint64(noiseUpperBound)`; threshold sanity check (`low < high`)
+- Upload and compute chunk sizes decoupled: `uploadChunkSize=32`, `computeChunkSize=20`; private models capped at `uploadChunkSize=32`
 - Flat weight and SNP storage; `getPublicWeightChunk` slices by `computeChunkSize`
-- Registry ACL enforced at `createPRSJob`; permissionless `computeChunk` relay documented
+- Registry ACL enforced at `createPRSJob`; per-requester private model authorization; permissionless `computeChunk` relay documented
 - Mock HCU ceiling confirmed at 20 SNPs/tx (60-74 ops/tx budget); real Sepolia ceiling TBD
 - `reports/mock-validation-findings.md` — 100-SNP end-to-end PASS, gas/timing baseline
 - Sepolia tooling complete: `deploy.ts`, `sepolia_validation.ts`, `probe_hcu_ceiling.ts`

@@ -54,7 +54,7 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 | `docs/onboarding/contributor-onboarding.md` | Full educational guide — bio, crypto, systems background |
 | `docs/onboarding/concepts-cheatsheet.md` | Quick concept reference |
 | `docs/onboarding/e2e-walkthrough-short.md` | End-to-end scenario walkthrough |
-| `docs/onboarding/e2e-walkthrough-long.md` | Detailed component-by-component flow |
+| `docs/onboarding/e2e-walkthrough-contract-grounded.md` | Detailed component-by-component flow |
 | `docs/reference/development-workflows.md` | Practical command guide for tests, advisor runs, and profiling |
 | `docs/reference/quantization-advisor.md` | Quantization advisor workflow and interpretation |
 | `docs/reference/scaling-ceilings.md` | Quick overflow screening reference |

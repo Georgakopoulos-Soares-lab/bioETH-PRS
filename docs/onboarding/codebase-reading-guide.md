@@ -277,7 +277,7 @@ to understand the contracts.
 
 ## Optional deeper reading (docs)
 
-- `docs/onboarding/e2e-walkthrough-contract-grounded.md` — component-by-component walkthrough with exact contract state, quantization, and oracle handoff (supersedes `e2e-walkthrough-long.md`)
+- `docs/onboarding/e2e-walkthrough-contract-grounded.md` — component-by-component walkthrough with exact contract state, quantization, and oracle handoff
 - `docs/architecture-roadmap.md §7` — known edge cases (ACL enforcement gap,
   uint64 overflow risk, DP noise not truly random in mock)
 - `docs/onboarding/contributor-onboarding.md` — biological and cryptographic background if you want to go
