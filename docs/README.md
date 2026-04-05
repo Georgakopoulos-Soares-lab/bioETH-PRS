@@ -16,7 +16,6 @@ This directory is organized by purpose so collaborators can find the right level
 - [`onboarding/e2e-walkthrough-short.md`](onboarding/e2e-walkthrough-short.md): short end-to-end scenario
 - [`onboarding/e2e-walkthrough-long.md`](onboarding/e2e-walkthrough-long.md): detailed end-to-end walkthrough
 - [`onboarding/e2e-walkthrough-contract-grounded.md`](onboarding/e2e-walkthrough-contract-grounded.md): full contract-grounded end-to-end example with real `v1` state, permissions, quantization, and oracle handoff
-- [`onboarding/colleague-briefing-pack.md`](onboarding/colleague-briefing-pack.md): speaker-oriented guide for explaining the repo, design decisions, validation story, and likely Q&A
 
 ## Design
 

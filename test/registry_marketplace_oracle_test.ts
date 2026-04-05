@@ -237,6 +237,19 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       await expect(Oracle.deploy(1000n)).to.be.revertedWith("Noise bound must be a positive power of two");
     });
 
+    it("rejects classify when lowThreshold >= highThreshold", async function () {
+      const oracle = await deployOracle();
+      const [signer] = await ethers.getSigners();
+      const oracleAddr = await oracle.getAddress();
+      const enc = await encryptUint64Array(oracleAddr, signer.address, [500n]);
+      await expect(
+        oracle.classify(enc.handles[0], enc.inputProof, 1000n, 1000n)
+      ).to.be.revertedWith("lowThreshold must be less than highThreshold");
+      await expect(
+        oracle.classify(enc.handles[0], enc.inputProof, 2000n, 1000n)
+      ).to.be.revertedWith("lowThreshold must be less than highThreshold");
+    });
+
     it("noise is added — noisy score exceeds raw score", async function () {
       // Verify on-chain noise contributes: classify a score that sits in Low but
       // check that the emitted noisyScore handle decrypts to a value >= raw score.

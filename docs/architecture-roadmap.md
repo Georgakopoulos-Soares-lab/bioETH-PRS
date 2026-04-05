@@ -168,6 +168,8 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 
 `createPRSJob(modelId, sampleId)` now calls `GenomicRegistry.hasAccess(sampleId, msg.sender)` before accepting any SNP data. The function reverts with `"No registry access"` if the caller is not the sample owner or a granted delegate, and reverts with `"Invalid sample"` if the `sampleId` does not exist. This closes the authorization gap: only parties registered against a sample may initiate a PRS job over it.
 
+**Per-requester private model authorization (April 2026):**  `createPRSJob` now additionally checks `marketplace.canReadPrivateModel(modelId, msg.sender)` for private models.  Previously, any user could run a job against a private model as long as the shared engine contract was authorized — the check was against `address(this)`, not `msg.sender`.  Model owners must now explicitly authorize each requester via `setPrivateModelReader(modelId, requesterAddr, true)`.  Owners are automatically authorized at model creation.
+
 **Remaining scope:** This is an authorization check, not a data-integrity proof. The contract cannot verify that the submitted ciphertexts correspond to the registered sample's off-chain URI — that linkage is the caller's responsibility. Model probing via self-registered arbitrary data remains possible; differential privacy noise (§ 7-D) is the mitigation for that threat.
 
 ### 7-B. Marketplace Trust & Model Integrity
@@ -211,7 +213,29 @@ The optimal `computeChunkSize` depends on the fhEVM gas schedule, which differs 
 
 The `computeChunk` function mutates storage (`nextChunkIndex`, `processedWeights`, `partialSum`, `complete`) after reading the next chunk from `ModelMarketplace`. In the current design the marketplace address is fixed at construction and the chunk getters are simple reads, so the practical re-entrancy surface is low, but this is no longer a pure single-contract state transition. Future extensions should preserve the trusted-read assumption or add a re-entrancy guard if callbacks or external hooks are introduced. Additionally, two concurrent `computeChunk` transactions for the same `jobId` could race. The EVM serialises them, but miners/sequencers could reorder them adversarially.
 
-### 7-I. Mock vs. Real FHE Divergence
+### 7-J. GenomicRegistry URI On-Chain Observability — Documentation Gap
+
+`GenomicRegistry` stores sample URIs in contract storage and previously emitted them in the `SampleRegistered` event.  The Solidity `private` modifier on the `samples` array and the `getSample()` ACL check only gate the *Solidity read path* — any node operator or chain observer can read contract storage directly via `eth_getStorageAt` and scan past events.  The URI is therefore **publicly observable on-chain** regardless of the ACL.
+
+**What this means for privacy:**  If a URI is an IPFS CID pointing to sensitive genomic data, publishing that CID on-chain reveals *which data is registered*, even if the data itself is encrypted off-chain.  The ACL does not conceal this.
+
+**Mitigations applied (April 2026):**
+* The URI is no longer emitted in `SampleRegistered` events (reduces easy indexer exposure).
+* Storage still holds the URI in plaintext and remains observable via storage-slot inspection.
+
+**Remaining scope:**  True URI confidentiality requires either (a) encrypting the URI before storing it on-chain, or (b) storing only a hash/commitment and resolving the real pointer off-chain under a separate access-control layer.  This is deferred; the current system treats URIs as metadata whose *existence* is public, with ACL protecting only the Solidity function-call path.
+
+### 7-K. Oracle as Optional Post-Processing — Raw Score Accessible to Requester
+
+`PRSComputeEngine.finalize()` grants ACL on the raw encoded score directly to `msg.sender` (the job requester).  The requester can decrypt this score without ever calling `ResultOracle.classify()`.  This means:
+
+* The DP noise layer in `ResultOracle` does **not** prevent the requester from learning the exact score.
+* The oracle's privacy guarantee holds only against *third parties* who observe the classified category output — not against the requester themselves.
+* Repeated `finalize()` calls on jobs with adversarially chosen inputs enable adaptive probing of the model weights, with the oracle providing no protection.
+
+**Design intent (v1):**  The oracle is scoped as optional post-processing for third-party output sharing.  It is not a mandatory gate on the requester's own score.  Papers or deployments claiming DP protection against the requester must redesign the ACL flow to withhold the raw score from the requester and route it exclusively through the oracle.
+
+**Mitigation (existing):**  Per-requester authorization for private models (`PRSComputeEngine.createPRSJob` checks `canReadPrivateModel(modelId, msg.sender)`) limits who can submit jobs against a given private model, reducing the pool of potential probers.
 
 The `@fhevm/hardhat-plugin` mock coprocessor validates handles, ACL, and input proofs but still performs plaintext arithmetic. Tests that pass in mock mode may still fail on a real fhEVM deployment due to: differing gas costs, ciphertext expansion, or gateway decryption flow.  **Mitigation:** Confirm results on the Sepolia testnet (real FHE) before claiming a feature is production-ready. There is no local Docker node option — Zama deprecated it.
 

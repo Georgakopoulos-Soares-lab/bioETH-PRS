@@ -2,6 +2,14 @@
 pragma solidity ^0.8.24;
 
 /// @title GenomicRegistry - Data layer for encrypted SNP vector pointers.
+///
+/// @dev    Sample URIs are stored in contract storage and are therefore observable
+///         on-chain regardless of the Solidity `private` modifier.  The `getSample()`
+///         ACL gates only the Solidity read path — any node operator or observer can
+///         inspect storage directly via eth_getStorageAt.  Treat sample URIs as
+///         metadata whose *existence* and *hash* are public, not as private data.
+///         For true URI confidentiality, store an encrypted or hashed pointer here
+///         and resolve it off-chain under a separate access-control layer.
 contract GenomicRegistry {
     struct Sample {
         string uri;
@@ -11,14 +19,14 @@ contract GenomicRegistry {
     Sample[] private samples;
     mapping(uint256 => mapping(address => bool)) private access;
 
-    event SampleRegistered(uint256 indexed sampleId, address indexed owner, string uri);
+    event SampleRegistered(uint256 indexed sampleId, address indexed owner);
     event AccessGranted(uint256 indexed sampleId, address indexed grantee);
     event AccessRevoked(uint256 indexed sampleId, address indexed grantee);
 
     function registerSample(string calldata uri) external returns (uint256) {
         samples.push(Sample({ uri: uri, owner: msg.sender }));
         uint256 sampleId = samples.length - 1;
-        emit SampleRegistered(sampleId, msg.sender, uri);
+        emit SampleRegistered(sampleId, msg.sender);
         return sampleId;
     }
 

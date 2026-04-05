@@ -22,9 +22,9 @@ contract ModelMarketplace is ZamaEthereumConfig {
         bool isPrivate;
         bool finalized;
         uint256 weightCount;
-        uint256 uploadChunkSize;   // batch size for weight publication
-        uint256 computeChunkSize;  // slice size for weight retrieval during compute
-        uint256 chunkCount;        // = ceil(weightCount / computeChunkSize)
+        uint256 uploadChunkSize; // batch size for weight publication
+        uint256 computeChunkSize; // slice size for weight retrieval during compute
+        uint256 chunkCount; // = ceil(weightCount / computeChunkSize)
         uint256 uploadedWeightCount;
         string manifestURI;
         bytes32 manifestHash;
@@ -78,8 +78,15 @@ contract ModelMarketplace is ZamaEthereumConfig {
         require(weightCount > 0, "Weight count must be > 0");
         require(uploadChunkSize > 0, "Upload chunk size must be > 0");
         require(computeChunkSize > 0, "Compute chunk size must be > 0");
+        // Private-model weights are uploaded as encrypted inputs: the fhEVM coprocessor
+        // enforces a 2048-bit input-proof budget, capping each call at 32 euint64 values.
+        require(
+            !isPrivate || uploadChunkSize <= 32,
+            "Private model upload chunk must not exceed 32 (fhEVM proof budget)"
+        );
 
-        uint256 chunkCount = (weightCount + computeChunkSize - 1) / computeChunkSize;
+        uint256 chunkCount = (weightCount + computeChunkSize - 1) /
+            computeChunkSize;
         modelHeaders.push(
             ModelHeader({
                 owner: msg.sender,
@@ -127,7 +134,10 @@ contract ModelMarketplace is ZamaEthereumConfig {
         require(weights.length == expectedLength, "Invalid chunk length");
 
         uint64[] storage store = publicWeightData[modelId];
-        require(store.length == chunkIndex * model.uploadChunkSize, "Chunk already uploaded");
+        require(
+            store.length == chunkIndex * model.uploadChunkSize,
+            "Chunk already uploaded"
+        );
         for (uint256 i = 0; i < weights.length; i++) {
             store.push(weights[i]);
         }
@@ -153,7 +163,10 @@ contract ModelMarketplace is ZamaEthereumConfig {
         );
 
         euint64[] storage store = encryptedWeightData[modelId];
-        require(store.length == chunkIndex * model.uploadChunkSize, "Chunk already uploaded");
+        require(
+            store.length == chunkIndex * model.uploadChunkSize,
+            "Chunk already uploaded"
+        );
         for (uint256 i = 0; i < encryptedWeights.length; i++) {
             euint64 w = FHE.fromExternal(encryptedWeights[i], inputProof);
             FHE.allowThis(w);
@@ -398,7 +411,10 @@ contract ModelMarketplace is ZamaEthereumConfig {
             return 0;
         }
         uint256 remaining = model.weightCount - model.uploadedWeightCount;
-        return remaining > model.uploadChunkSize ? model.uploadChunkSize : remaining;
+        return
+            remaining > model.uploadChunkSize
+                ? model.uploadChunkSize
+                : remaining;
     }
 
     /// @dev Returns the number of weights in a given compute chunk.

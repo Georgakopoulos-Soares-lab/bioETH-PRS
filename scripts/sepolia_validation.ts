@@ -74,8 +74,8 @@ describe("Sepolia 100-SNP validation", function () {
     const chainId = network.chainId;
     const networkKey =
       chainId === 11155111n ? "sepolia"
-      : chainId === 1n ? "mainnet"
-      : "hardhat";
+        : chainId === 1n ? "mainnet"
+          : `chain-${chainId}`;
     const isMock = fhevm.isMock;
 
     console.log(`\nNetwork  : ${network.name} (chainId=${chainId})`);

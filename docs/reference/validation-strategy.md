@@ -31,6 +31,7 @@ The question is: how do we obtain these measurements?
 **Status: Done.** All measurements in this tier are complete.
 
 **What it validates:**
+
 - Protocol correctness end-to-end (create job → upload SNPs → compute → finalize)
 - Gas consumption for non-FHE overhead (storage writes, state machine transitions, calldata)
 - HCU ceiling (mock: max chunkSize = 20)
@@ -50,6 +51,7 @@ The question is: how do we obtain these measurements?
 Gas scales linearly at ~175K gas per SNP. Upload dominates (56%), compute is second (36%).
 
 **What it cannot tell us:**
+
 - Real TFHE ciphertext latency (bootstrapping, KMS re-encryption) — mock latencies are developer feedback only, orders of magnitude faster than real FHE
 - Actual Sepolia precompile gas costs (FHE precompiles have different gas schedules)
 - Real HCU budget on Sepolia (mock ceiling may not match production ceiling)
@@ -68,6 +70,7 @@ Deploy the same contracts (no code changes needed) to the Ethereum Sepolia testn
 **Status: Not yet run.** All tooling is built and ready.
 
 **What it adds over Tier 1:**
+
 - Real TFHE ciphertext flow (ciphertexts are actual FHE-encrypted values, not mock handles)
 - Real end-to-end latency (includes TFHE bootstrapping time, Zama coprocessor queue, KMS re-encryption round-trip)
 - Real fhEVM precompile gas costs (may differ significantly from mock)
@@ -99,6 +102,7 @@ npm run probe:hcu               # → deployments/sepolia-hcu-probe.json
 Expected runtime: **15–90 minutes** (depending on Sepolia congestion and Zama coprocessor queue depth). This is a one-time run.
 
 **What we get from it:**
+
 - Real per-phase gas costs (publishModel, uploadSnps, computeChunk, finalize)
 - Real end-to-end latency (wall-clock from job creation to decrypted score)
 - Real HCU ceiling → optimal chunkSize for production
@@ -155,6 +159,7 @@ Frame all results as mock-coprocessor baseline. Be explicit in the paper that la
 ### Option B — Mock + Sepolia (recommended)
 
 Run the Sepolia validation once. This is a ~1–2 hour operation using tooling that is already written and tested. It produces:
+
 - Real gas cost tables for the paper
 - Real latency numbers (at least for the 100-SNP fixture)
 - Confirmation that real TFHE ciphertexts flow correctly through the full pipeline
@@ -176,6 +181,7 @@ Once the Sepolia run completes, these paper claims become available:
 5. **Deployment evidence** — "Contracts are deployed at addresses [A, B, C, D] on Sepolia (chainId 11155111)"
 
 These results also feed back into:
+
 - `docs/architecture-roadmap.md §7-I` — "Sepolia observed" column
 - `reports/sepolia-validation-findings.md` — timing and gas report
 - `docs/design/snp-ingestion.md` — real HCU ceiling
@@ -209,7 +215,7 @@ Even with Sepolia results, the following remain as future work or explicit limit
 
 As of 3 April 2026:
 
-- **69 tests pass** under the mock coprocessor (~20 s)
+- **77 tests pass** under the mock coprocessor (~20 s)
 - All 50 individuals × 4 GWAS fixtures (200 overflow checks) verified safe within `uint64` bounds
 - 100-SNP end-to-end validated with score 758,685 matching expected plaintext dot product
 - HCU ceiling empirically confirmed: mock ceiling is 20 < C ≤ 25 (corrected from prior claim of 10)

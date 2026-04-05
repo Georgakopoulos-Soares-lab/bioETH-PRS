@@ -653,7 +653,7 @@ test/heprs_fixture_test.ts                  — HEPRS-backed integration tests
 test/quantization_advisor_test.ts           — advisor tests across HEPRS fixtures + CLI summary
 test/registry_marketplace_oracle_test.ts    — marketplace/engine/oracle integration tests
 test/scale_ceiling_reference_test.ts        — scale-ceiling reference test
-test/utils/fhevm.ts                         — fhevmjs helpers (used only for real fhEVM/Sepolia)
+test/utils/fhevm.ts                         — fhevmjs helpers (not yet created; needed only for real fhEVM/Sepolia)
 ```
 
 For real FHE (Sepolia testnet), see [README.md](README.md).
@@ -692,7 +692,7 @@ all mock-mode tests passing
 
 ### Adding a gateway-decryption assertion
 
-To assert the actual numeric value, extend `test/utils/fhevm.ts` with a `decrypt64` helper that calls the gateway, and add assertions like:
+To assert the actual numeric value, create `test/utils/fhevm.ts` with a `decrypt64` helper that calls the gateway, and add assertions like:
 
 ```typescript
 const plaintext = await decrypt64(await getFhevmInstance(), score);

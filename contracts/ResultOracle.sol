@@ -39,7 +39,8 @@ contract ResultOracle is ZamaEthereumConfig {
     ///                         Examples: 128 (2^7), 1048576 (2^20), 4294967296 (2^32).
     constructor(uint64 _noiseUpperBound) {
         require(
-            _noiseUpperBound > 0 && (_noiseUpperBound & (_noiseUpperBound - 1)) == 0,
+            _noiseUpperBound > 0 &&
+                (_noiseUpperBound & (_noiseUpperBound - 1)) == 0,
             "Noise bound must be a positive power of two"
         );
         noiseUpperBound = _noiseUpperBound;
@@ -53,6 +54,11 @@ contract ResultOracle is ZamaEthereumConfig {
     /// @param lowThreshold    Scores below this (after noise) map to Low.
     /// @param highThreshold   Scores at or above this (after noise) map to High.
     ///
+    /// @dev    Noise is uniform on [0, noiseUpperBound), which introduces an upward bias
+    ///         of noiseUpperBound/2 on average.  For a scientifically unbiased mechanism,
+    ///         adjust thresholds upward by noiseUpperBound/2 or use centered noise once
+    ///         fhEVM supports signed arithmetic.
+    ///
     /// @return category  Encrypted risk category (euint8: 0=Low, 1=Medium, 2=High).
     ///                   Made publicly decryptable via FHE.makePubliclyDecryptable.
     function classify(
@@ -61,6 +67,10 @@ contract ResultOracle is ZamaEthereumConfig {
         uint64 lowThreshold,
         uint64 highThreshold
     ) external returns (euint8) {
+        require(
+            lowThreshold < highThreshold,
+            "lowThreshold must be less than highThreshold"
+        );
         euint64 score = FHE.fromExternal(encryptedScore, inputProof);
         FHE.allowThis(score);
 
@@ -71,16 +81,16 @@ contract ResultOracle is ZamaEthereumConfig {
         euint64 noisy = FHE.add(score, noise);
         FHE.allowThis(noisy);
 
-        euint64 lowHandle  = FHE.asEuint64(lowThreshold);
+        euint64 lowHandle = FHE.asEuint64(lowThreshold);
         euint64 highHandle = FHE.asEuint64(highThreshold);
 
-        ebool isLow    = FHE.lt(noisy, lowHandle);
+        ebool isLow = FHE.lt(noisy, lowHandle);
         ebool belowHigh = FHE.lt(noisy, highHandle);
-        ebool isMedium  = FHE.and(FHE.not(isLow), belowHigh);
+        ebool isMedium = FHE.and(FHE.not(isLow), belowHigh);
 
-        euint8 lowCat    = FHE.asEuint8(uint8(RiskCategory.Low));
+        euint8 lowCat = FHE.asEuint8(uint8(RiskCategory.Low));
         euint8 mediumCat = FHE.asEuint8(uint8(RiskCategory.Medium));
-        euint8 highCat   = FHE.asEuint8(uint8(RiskCategory.High));
+        euint8 highCat = FHE.asEuint8(uint8(RiskCategory.High));
 
         euint8 category = FHE.select(
             isLow,

@@ -379,4 +379,73 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
         .to.be.revertedWith("Invalid sample");
     });
   });
+
+  describe("Private model per-requester authorization", function () {
+    async function deployPrivateModel(weights: bigint[]) {
+      const [owner] = await ethers.getSigners();
+      const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+      const marketplace = await Marketplace.deploy();
+      const mpAddr = await marketplace.getAddress();
+
+      const modelId = await marketplace.createModelShell.staticCall(
+        true, BigInt(weights.length), 2n, 2n, "ipfs://priv",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      await marketplace.createModelShell(
+        true, BigInt(weights.length), 2n, 2n, "ipfs://priv",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      );
+      for (let i = 0; i < weights.length; i += 2) {
+        const chunk = weights.slice(i, i + 2);
+        const enc = await encryptUint64Array(mpAddr, owner.address, chunk);
+        await marketplace.appendEncryptedModelChunk(modelId, enc.handles, enc.inputProof);
+      }
+      await marketplace.finalizeModel(modelId);
+      return { marketplace, modelId, owner, mpAddr };
+    }
+
+    it("unauthorized requester is rejected even when engine is authorized", async function () {
+      const [owner, stranger] = await ethers.getSigners();
+      const { marketplace, modelId } = await deployPrivateModel([1n, 2n]);
+      const { engine, registry, sampleId } = await deployEngine(
+        await marketplace.getAddress(), owner.address
+      );
+      // Grant stranger registry access so the registry check passes
+      await registry.grantAccess(sampleId, stranger.address);
+
+      // Authorize the engine but NOT stranger
+      await marketplace.setPrivateModelReader(modelId, await engine.getAddress(), true);
+
+      await expect(engine.connect(stranger).createPRSJob(modelId, sampleId))
+        .to.be.revertedWith("Requester not authorized for private model");
+    });
+
+    it("authorized requester can create a job after explicit allowlisting", async function () {
+      const [owner, researcher] = await ethers.getSigners();
+      const { marketplace, modelId } = await deployPrivateModel([1n, 2n]);
+      const { engine, registry, sampleId } = await deployEngine(
+        await marketplace.getAddress(), owner.address
+      );
+      await registry.grantAccess(sampleId, researcher.address);
+
+      const engineAddr = await engine.getAddress();
+      await marketplace.setPrivateModelReader(modelId, engineAddr, true);
+      await marketplace.setPrivateModelReader(modelId, researcher.address, true);
+
+      await expect(engine.connect(researcher).createPRSJob(modelId, sampleId))
+        .to.not.be.reverted;
+    });
+
+    it("model owner can always run jobs on their own private model", async function () {
+      const [owner] = await ethers.getSigners();
+      const { marketplace, modelId } = await deployPrivateModel([1n, 2n]);
+      const { engine, sampleId } = await deployEngine(
+        await marketplace.getAddress(), owner.address
+      );
+      await marketplace.setPrivateModelReader(modelId, await engine.getAddress(), true);
+
+      // Owner is auto-authorized at createModelShell time
+      await expect(engine.createPRSJob(modelId, sampleId)).to.not.be.reverted;
+    });
+  });
 });

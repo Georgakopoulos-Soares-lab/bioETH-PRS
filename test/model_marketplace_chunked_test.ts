@@ -148,12 +148,22 @@ describe("ModelMarketplace — chunked publication v1", function () {
       await expect(
         marketplace.createModelShell(false, 1n, 2n, 0n, "ipfs://manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n)
       ).to.be.revertedWith("Compute chunk size must be > 0");
+
+      // Private models: upload chunk must not exceed 32 (fhEVM proof budget)
+      await expect(
+        marketplace.createModelShell(true, 1n, 33n, 2n, "ipfs://manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n)
+      ).to.be.revertedWith("Private model upload chunk must not exceed 32 (fhEVM proof budget)");
+
+      // Public models: upload chunk above 32 is fine
+      await expect(
+        marketplace.createModelShell(false, 1n, 100n, 2n, "ipfs://manifest", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n)
+      ).to.not.be.reverted;
     });
 
     it("chunkCount is based on computeChunkSize, not uploadChunkSize", async function () {
       // uploadChunkSize=4, computeChunkSize=2: 5 weights → chunkCount=3 (ceil(5/2))
       const { marketplace, modelId } = await createPublicShell(5n, 4n, 2n);
-      const [,,, , , computeChunkSize, chunkCount] = await marketplace.getModelHeader(modelId);
+      const [, , , , , computeChunkSize, chunkCount] = await marketplace.getModelHeader(modelId);
       expect(computeChunkSize).to.equal(2n);
       expect(chunkCount).to.equal(3n); // ceil(5/2), not ceil(5/4)=2
     });

@@ -97,6 +97,14 @@ contract PRSComputeEngine is ZamaEthereumConfig {
                 marketplace.canReadPrivateModel(modelId, address(this)),
                 "Engine not authorized"
             );
+            // Per-requester authorization: model owners must explicitly allow each
+            // requester via setPrivateModelReader(modelId, requesterAddr, true).
+            // This prevents any user from probing a private model simply because
+            // the shared engine contract has been granted reader access.
+            require(
+                marketplace.canReadPrivateModel(modelId, msg.sender),
+                "Requester not authorized for private model"
+            );
         }
 
         euint64 zero = FHE.asEuint64(0);
@@ -240,6 +248,16 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         return job.partialSum;
     }
 
+    /// @notice Returns the quantization-corrected encrypted PRS score for a completed job.
+    ///
+    /// @dev    The raw encoded score is ACL-granted directly to the requester.  The
+    ///         ResultOracle (classify()) is therefore optional post-processing: the
+    ///         requester can decrypt the raw score without going through the oracle.
+    ///         This means the DP noise layer does not prevent the job requester from
+    ///         learning the exact score.  The oracle's privacy guarantee holds only
+    ///         against third parties who observe the classified output, not against
+    ///         the requester themselves.  Keep this in mind when reasoning about
+    ///         model-weight-extraction attacks via adaptive probing.
     function finalize(uint256 jobId) external returns (euint64) {
         require(jobId < jobs.length, "Invalid job");
         Job storage job = jobs[jobId];

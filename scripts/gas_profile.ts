@@ -89,7 +89,10 @@ async function profile(n: number, uploadChunkSize: number, computeChunkSize: num
     computeGas += (await tx.wait())?.gasUsed ?? 0n;
   }
 
-  const totalGas = publishGas + createJobGas + snpUploadGas + computeGas;
+  const finalizeTx = await engine.finalize(jobId);
+  const finalizeGas = (await finalizeTx.wait())?.gasUsed ?? 0n;
+
+  const totalGas = publishGas + createJobGas + snpUploadGas + computeGas + finalizeGas;
   const gasPrice = ethers.parseUnits(gasPriceGwei, "gwei");
   const totalEth = ethers.formatEther(totalGas * gasPrice);
 
@@ -102,6 +105,7 @@ async function profile(n: number, uploadChunkSize: number, computeChunkSize: num
     createJobGas,
     snpUploadGas,
     computeGas,
+    finalizeGas,
     totalGas,
     totalEth,
     gasPriceGwei
@@ -134,6 +138,7 @@ describe("Gas profile — synthetic SNP counts", function () {
       console.log(`Job create gas: ${result.createJobGas}`);
       console.log(`SNP upload gas: ${result.snpUploadGas}`);
       console.log(`Compute gas: ${result.computeGas}`);
+      console.log(`Finalize gas: ${result.finalizeGas}`);
       console.log(`Total gas: ${result.totalGas}`);
       console.log(`Gas price: ${result.gasPriceGwei} gwei`);
       console.log(`Estimated ETH: ${result.totalEth}`);
