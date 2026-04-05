@@ -220,6 +220,7 @@ The `computeChunk` function mutates storage (`nextChunkIndex`, `processedWeights
 **What this means for privacy:**  If a URI is an IPFS CID pointing to sensitive genomic data, publishing that CID on-chain reveals *which data is registered*, even if the data itself is encrypted off-chain.  The ACL does not conceal this.
 
 **Mitigations applied (April 2026):**
+
 * The URI is no longer emitted in `SampleRegistered` events (reduces easy indexer exposure).
 * Storage still holds the URI in plaintext and remains observable via storage-slot inspection.
 

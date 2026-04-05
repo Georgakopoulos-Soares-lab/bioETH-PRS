@@ -31,8 +31,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         uint256 modelId;
         uint256 sampleId;
         uint256 weightCount;
-        uint256 uploadChunkSize;   // for SNP upload validation
-        uint256 computeChunkSize;  // for compute slicing (HCU-constrained)
+        uint256 uploadChunkSize; // for SNP upload validation
+        uint256 computeChunkSize; // for compute slicing (HCU-constrained)
         uint256 chunkCount;
         uint256 uploadedSnpCount;
         uint256 nextChunkIndex;
@@ -66,10 +66,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         uint256 indexed chunkIndex,
         uint256 chunkLength
     );
-    event SnpUploadFinalized(
-        uint256 indexed jobId,
-        address indexed requester
-    );
+    event SnpUploadFinalized(uint256 indexed jobId, address indexed requester);
     event ChunkComputed(
         uint256 indexed jobId,
         uint256 indexed chunkIndex,
@@ -93,7 +90,10 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         registry = GenomicRegistry(registryAddress);
     }
 
-    function createPRSJob(uint256 modelId, uint256 sampleId) external returns (uint256) {
+    function createPRSJob(
+        uint256 modelId,
+        uint256 sampleId
+    ) external returns (uint256) {
         require(registry.hasAccess(sampleId, msg.sender), "No registry access");
 
         (
@@ -148,7 +148,14 @@ contract PRSComputeEngine is ZamaEthereumConfig {
 
         jobs.push(job);
         uint256 jobId = jobs.length - 1;
-        emit JobCreated(jobId, modelId, msg.sender, weightCount, computeChunkSize, sampleId);
+        emit JobCreated(
+            jobId,
+            modelId,
+            msg.sender,
+            weightCount,
+            computeChunkSize,
+            sampleId
+        );
         return jobId;
     }
 
@@ -180,7 +187,10 @@ contract PRSComputeEngine is ZamaEthereumConfig {
 
     function finalizeSnpUpload(uint256 jobId) external {
         Job storage job = _requireOwnedPendingUploadJob(jobId);
-        require(job.uploadedSnpCount == job.weightCount, "SNP upload incomplete");
+        require(
+            job.uploadedSnpCount == job.weightCount,
+            "SNP upload incomplete"
+        );
 
         job.snpsFinalized = true;
         emit SnpUploadFinalized(jobId, msg.sender);
@@ -213,10 +223,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         if (job.isPrivate) {
             euint64[] memory encryptedWeights = marketplace
                 .getEncryptedWeightChunk(job.modelId, chunkIndex);
-            require(
-                encryptedWeights.length == chunkLen,
-                "Invalid model chunk"
-            );
+            require(encryptedWeights.length == chunkLen, "Invalid model chunk");
             for (uint256 i = 0; i < encryptedWeights.length; i++) {
                 acc = FHE.add(acc, FHE.mul(encryptedWeights[i], snps[i]));
                 genoAcc = FHE.add(genoAcc, snps[i]);
@@ -226,12 +233,12 @@ contract PRSComputeEngine is ZamaEthereumConfig {
                 job.modelId,
                 chunkIndex
             );
-            require(
-                publicWeights.length == chunkLen,
-                "Invalid model chunk"
-            );
+            require(publicWeights.length == chunkLen, "Invalid model chunk");
             for (uint256 i = 0; i < publicWeights.length; i++) {
-                acc = FHE.add(acc, FHE.mul(snps[i], FHE.asEuint64(publicWeights[i])));
+                acc = FHE.add(
+                    acc,
+                    FHE.mul(snps[i], FHE.asEuint64(publicWeights[i]))
+                );
                 genoAcc = FHE.add(genoAcc, snps[i]);
             }
         }
@@ -248,12 +255,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             job.complete = true;
         }
 
-        emit ChunkComputed(
-            jobId,
-            chunkIndex,
-            processedWeights,
-            job.complete
-        );
+        emit ChunkComputed(jobId, chunkIndex, processedWeights, job.complete);
     }
 
     function readPartial(uint256 jobId) external returns (euint64) {
@@ -411,7 +413,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         Job storage job
     ) internal view returns (uint256) {
         uint256 remaining = job.weightCount - job.uploadedSnpCount;
-        return remaining > job.uploadChunkSize ? job.uploadChunkSize : remaining;
+        return
+            remaining > job.uploadChunkSize ? job.uploadChunkSize : remaining;
     }
 
     function _computeChunkLength(
@@ -431,8 +434,14 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         //   encoded_score = (weighted_sum + score_offset) - (weight_zero_point * geno_sum)
         // Rearranged so the subtraction never underflows: weighted_sum + score_offset
         // is guaranteed >= weight_zero_point * geno_sum when score_offset = -raw_min.
-        euint64 withOffset = FHE.add(job.partialSum, FHE.asEuint64(job.scoreOffset));
-        euint64 correction = FHE.mul(job.genoSum, FHE.asEuint64(job.weightZeroPoint));
+        euint64 withOffset = FHE.add(
+            job.partialSum,
+            FHE.asEuint64(job.scoreOffset)
+        );
+        euint64 correction = FHE.mul(
+            job.genoSum,
+            FHE.asEuint64(job.weightZeroPoint)
+        );
         encodedScore = FHE.sub(withOffset, correction);
         FHE.allowThis(encodedScore);
     }
