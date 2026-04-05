@@ -197,7 +197,7 @@ It:
 - checks that `msg.sender` is the owner or a granted delegate of `sampleId` in `GenomicRegistry` (reverts with `"No registry access"` or `"Invalid sample"` otherwise)
 - reads the finalized model config from `ModelMarketplace`
 - checks that the model is finalized
-- checks private-model engine authorization if needed
+- for private models: checks both engine authorization (`canReadPrivateModel(modelId, address(this))`) **and** per-requester authorization (`canReadPrivateModel(modelId, msg.sender)`); the model owner is auto-authorized at model creation time, all other requesters require an explicit `setPrivateModelReader` call
 - stores the job metadata (including `sampleId`)
 - sets `uploadedSnpCount = 0`
 - sets `nextChunkIndex = 0`

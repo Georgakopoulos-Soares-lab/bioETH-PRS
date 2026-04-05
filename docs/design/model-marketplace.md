@@ -535,7 +535,7 @@ The table below summarizes the main `v1` controls.
 | No overwrite of stored chunk | Chunk storage must be empty before write | Silent replacement of earlier payloads | It does not verify chunk semantics beyond shape |
 | Public/private path separation | Public and private append/getter checks | Type confusion between plaintext and encrypted model paths | It does not make public models confidential |
 | Private reader allowlist | `setPrivateModelReader`, `getEncryptedWeightChunk` | Arbitrary reading of private model chunks | It is a simple allowlist, not the final real-fhEVM privacy story |
-| Engine authorization for private compute | `createPRSJob` checks engine authorization | Late failure when a private model has not authorized the engine | It does not validate off-chain encrypted input provenance |
+| Engine AND requester authorization for private compute | `createPRSJob` checks engine authorization and `msg.sender` authorization | Late failure when a private model has not authorized the engine or requester | It does not validate off-chain encrypted input provenance |
 | Chunk-aligned job geometry | `createPRSJob` copies `weightCount`, `chunkSize`, and `chunkCount` from the model header | Mismatched chunk boundaries between model and compute job | It does not prove the ciphertexts match the registered sample's actual data |
 | Requester-only partial/final output access | `readPartial`, `finalize` | Granting decrypt access to arbitrary observers | It does not stop anyone from paying gas to advance `computeChunk` |
 | Event trail for publication lifecycle | model creation/append/finalize/reader-set events | Opaque state changes with poor observability | Events do not prove scientific correctness by themselves |

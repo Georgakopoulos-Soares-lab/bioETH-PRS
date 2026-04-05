@@ -4,7 +4,7 @@
 > every architectural choice in this codebase to a colleague — including why we made it,
 > what alternatives we considered, and what the trade-offs are.
 >
-> Current state: v1 fully implemented, 67 tests passing, mock-validated.
+> Current state: v1 fully implemented, 77 tests passing, mock-validated.
 > Sepolia deployment is tooled and ready to run.
 
 ---
@@ -396,6 +396,12 @@ weights are ever visible. This is the maximum IP protection scenario.
 the researcher to grant the compute engine FHE read access via `setPrivateModelReader`.
 This extra authorization step exists because the coprocessor needs to know that the engine
 is allowed to use the encrypted weight handles.
+
+Additionally, `PRSComputeEngine.createPRSJob` now enforces **per-requester** authorization
+for private models: it checks `marketplace.canReadPrivateModel(modelId, msg.sender)` in
+addition to the engine-level check.  The model owner is auto-authorized at
+`createModelShell` time; all other requesters must be explicitly added via
+`setPrivateModelReader(modelId, requesterAddr, true)`.
 
 **Why support both in v1?** The paper needs both cases — "open science" (public weights,
 common in polygenic score databases) and "proprietary model" (private weights, relevant

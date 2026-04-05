@@ -15,7 +15,7 @@ event-based score retrieval.
 
 ### Test suite
 
-72 Hardhat tests pass (~20 s) covering all five contracts:
+77 Hardhat tests pass (~20 s) covering all five contracts:
 
 ```bash
 npm run test     # hardhat test via @fhevm/hardhat-plugin mock coprocessor
@@ -136,6 +136,7 @@ consumes 64 bits, so a single `appendSnpChunk` call can pack at most
 ### 2. HCU limit (compute): 20 values (mock)
 
 Each SNP in `computeChunk` requires **3 FHE operations**:
+
 - `FHE.asEuint64(weight)` — trivial encryption of the public weight
 - `FHE.mul(snp, encWeight)` — ciphertext multiplication
 - `FHE.add(partialSum, product)` — accumulation
@@ -174,6 +175,7 @@ expected = sum(snp[i] * quantizedWeight[i]) + scoreOffset - weightZeroPoint * su
 ```
 
 The quantization advisor selects:
+
 - 100 / 500 SNP: `scale = 3,000,000` (balanced tier, 16/32 bits)
 - 1000 / 5000 SNP: `scale = 1,000,000` (balanced tier, 16/32 bits)
 

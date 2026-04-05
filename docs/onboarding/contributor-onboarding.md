@@ -347,14 +347,16 @@ mapping(uint256 => mapping(address => bool)) private access;
 **Key functions:**
 
 - `registerSample(uri)` — You call this with an IPFS CID pointing to your encrypted SNP file.  Returns a `sampleId`.
-- `grantAccess(sampleId, grantee)` — Allows a researcher's address to retrieve the URI.
+- `grantAccess(sampleId, grantee)` — Allows another address to use the sample in a PRS job.
 - `getSample(sampleId)` — Returns the URI and owner.  Reverts if the caller neither owns the sample nor has been granted access.
 
-**What it does NOT do (yet):**
+**URI privacy limitation:** The URI is stored in contract storage and is observable on-chain regardless of the `getSample()` ACL — any node operator can read storage via `eth_getStorageAt`.  The ACL gates only the Solidity function-call path.  Treat sample URIs as metadata whose *existence* is public; do not store unencrypted sensitive pointers here.  The `SampleRegistered` event intentionally does not include the URI (removed to reduce indexer exposure), but the storage slot is still readable.
 
-- The `PRSComputeEngine` does **not** call `GenomicRegistry.getSample()` to verify the client has a registered sample before accepting encrypted SNPs.  This is a known gap — see `docs/architecture-roadmap.md` §7-A.
+**What it does NOT do:**
 
-**Mental model:** Think of it as a decentralised file-sharing service where access control is enforced by the blockchain.  The actual file is off-chain (encrypted on IPFS); only the metadata is on-chain.
+- The contract cannot verify that the ciphertexts submitted to `PRSComputeEngine` actually encode the registered sample's data — that linkage is the caller's responsibility.
+
+**Mental model:** Think of it as a decentralised access-control registry.  The actual file is off-chain (encrypted on IPFS); only the ownership and access grant metadata are on-chain.
 
 ---
 
@@ -447,24 +449,27 @@ For new feature work, **prefer `PRSComputeEngine`** as it integrates with the fu
 function classify(
     externalEuint64 encryptedScore, // user-supplied encrypted oracle input
     bytes inputProof,               // fhEVM proof for encryptedScore
-    uint64 lowThreshold,       // plaintext threshold (quantized)
+    uint64 lowThreshold,       // plaintext threshold (quantized); must be < highThreshold
     uint64 highThreshold       // plaintext threshold (quantized)
 ) external returns (euint8)
 ```
 
 **What happens inside:**
 
-1. `score = FHE.fromExternal(encryptedScore, inputProof)` imports the encrypted score
-2. `noise = FHE.randEuint64(noiseUpperBound)` samples on-chain random noise
-3. `noisy = FHE.add(score, noise)`
-4. `isLow = FHE.lt(noisy, lowThreshold)` — encrypted boolean
-5. `isMedium = FHE.and(FHE.not(isLow), FHE.lt(noisy, highThreshold))`
-6. `category = FHE.select(isLow, 0, FHE.select(isMedium, 1, 2))`
-5. `FHE.makePubliclyDecryptable(category)` — publishes decrypt permission
+1. `require(lowThreshold < highThreshold)` — sanity check; inverted thresholds revert
+2. `score = FHE.fromExternal(encryptedScore, inputProof)` imports the encrypted score
+3. `noise = FHE.randEuint64(noiseUpperBound)` samples on-chain random noise
+4. `noisy = FHE.add(score, noise)`
+5. `isLow = FHE.lt(noisy, lowThreshold)` — encrypted boolean
+6. `isMedium = FHE.and(FHE.not(isLow), FHE.lt(noisy, highThreshold))`
+7. `category = FHE.select(isLow, 0, FHE.select(isMedium, 1, 2))`
+8. `FHE.makePubliclyDecryptable(category)` — publishes decrypt permission
 
 All comparisons and selections happen inside the FHE domain — no plaintext score is ever revealed.
 
 **The thresholds are plaintext.** `lowThreshold` and `highThreshold` are quantized integers (e.g., if the raw scale is $10^6$, a PRS of 0.5 → `lowThreshold = 500000`).  Since they are public, they do not compromise privacy.
+
+**Noise bias note:** Noise is uniform on `[0, noiseUpperBound)`, introducing an upward bias of `noiseUpperBound/2` on average.  Compensate by shifting thresholds upward by `noiseUpperBound/2`.
 
 **Emitted event:**
 
@@ -703,39 +708,43 @@ expect(plaintext).to.equal(56n);
 
 ## 11. Known Limitations and Open Problems
 
-These are the areas where the prototype is incomplete.  Each is a potential contribution:
+These are areas where the prototype is incomplete.
 
-### 11-A. Registry ↔ Compute Engine Disconnect (high priority)
+### 11-A. Registry ↔ Compute Engine Disconnect — Resolved
 
-`PRSComputeEngine` still accepts arbitrary encrypted SNP chunks from the requester. It does not verify that those chunks correspond to a registered sample. A malicious user could still submit arbitrary ciphertexts to probe the model.
+~~`PRSComputeEngine` did not verify that SNP chunks correspond to a registered sample.~~
 
-**To fix:** Add a `sampleId`-linked job path, call `GenomicRegistry.getSample(sampleId)`, and revert if the caller has no access.
+**Fixed:** `createPRSJob(modelId, sampleId)` now calls `GenomicRegistry.hasAccess(sampleId, msg.sender)` and reverts if the caller is not the sample owner or a granted delegate.  The linkage between the *sample identity* and the *submitted ciphertexts* is still the caller's responsibility — the contract cannot verify that the ciphertexts actually encode the registered sample's data.
 
-### 11-B. Permissionless `computeChunk`
+### 11-B. Per-Requester Private Model Authorization — Resolved
 
-Anyone can call `computeChunk(jobId)` — not just the job requester.  This enables gasless relaying (useful for UX) but also griefing.
+~~Any user could run a job against a private model as long as the shared engine contract was authorized — the check was against `address(this)`, not `msg.sender`.~~
 
-### 11-C. Caller-Supplied DP Noise
+**Fixed:** `createPRSJob` now checks `canReadPrivateModel(modelId, msg.sender)` in addition to the engine-level check.  Owners are auto-authorized; all other requesters require an explicit `setPrivateModelReader(modelId, addr, true)` call from the model owner.
 
-`ResultOracle.classify` accepts the noise from the caller.  A malicious caller can pass zero noise.
+### 11-C. Caller-Supplied DP Noise — Resolved
 
-**To fix:** Use `FHE.randEuint64()` (if available on the target fhEVM version) to generate noise on-chain.
+~~`ResultOracle.classify` accepted the noise as a caller-supplied ciphertext.  A malicious caller could pass `encrypt(0)`.~~
 
-### 11-D. Negative Weight Encoding
+**Fixed:** `ResultOracle` now generates noise entirely on-chain via `FHE.randEuint64(noiseUpperBound)`.  The constructor takes an immutable `noiseUpperBound` (must be a positive power of two).  The oracle is optional post-processing; the requester still receives the raw score from `finalize()` and can decrypt it directly.  See `architecture-roadmap.md §7-D` and §7-K for threat model implications.
 
-GWAS weights are often negative.  `euint64` cannot directly represent negative numbers.  A mapping scheme (e.g., offset encoding or splitting into magnitude + sign) must be designed and documented.
+### 11-D. Negative Weight Encoding — Resolved
 
-### 11-E. Job Cleanup / Expiry Is Still Missing
+~~`euint64` cannot represent negative numbers and GWAS betas are signed floats.~~
 
-Chunked SNP upload now scales better, but incomplete jobs can still be abandoned mid-upload.  The current engine blocks compute until `finalizeSnpUpload`, but it does not yet reclaim or expire abandoned job state.
+**Fixed:** V1 quantization uses a zero-point shift (`weightZeroPoint`) and a score offset (`scoreOffset`) so all arithmetic stays in `uint64` while negative betas are correctly encoded.  See `docs/design/quantization.md` for the full derivation.
 
-### 11-F. No `euint16` Intermediate Accumulation
+### 11-E. Permissionless `computeChunk`
 
-The roadmap targets cheaper intermediate ops using `euint16` before widening.  Not yet implemented — all math uses `euint64`.
+Anyone can call `computeChunk(jobId)` — not just the job requester.  This enables gasless relaying but also griefing.  See `architecture-roadmap.md §7-E`.
 
-### 11-G. No Finalize Event
+### 11-F. Job Cleanup / Expiry Is Still Missing
 
-`finalize()` does not emit an event.  Off-chain indexers cannot track completed jobs without scanning all transactions.
+Incomplete jobs (abandoned mid-upload) hold contract state indefinitely.  No cancellation or expiry mechanism exists.  See `architecture-roadmap.md §7-F`.
+
+### 11-G. No `euint16` Intermediate Accumulation
+
+All arithmetic uses `euint64`.  A cheaper `euint16` intermediate path is in the roadmap but not yet implemented.
 
 ---
 

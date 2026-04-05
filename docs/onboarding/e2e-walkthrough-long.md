@@ -1,6 +1,11 @@
-# End-to-End Flow: Upgraded Realistic Scenario
+# End-to-End Walkthrough — Superseded
 
-This version keeps the same Alice/CardioLab toy inputs, but maps each step to the exact component that acts in the system.
+> This document has been superseded by the more detailed and contract-grounded
+> [`e2e-walkthrough-contract-grounded.md`](e2e-walkthrough-contract-grounded.md),
+> which covers the same Alice/CardioLab scenario with exact contract state,
+> quantization math, and oracle handoff.
+>
+> Please read that document instead.
 
 We will keep:
 
