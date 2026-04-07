@@ -45,21 +45,10 @@ npm run profile:gas    # gas profiling script (mock mode, Hardhat only)
 
 | Doc | Purpose |
 |---|---|
-| `docs/README.md` | Documentation map and reading entrypoints |
-| `docs/architecture-roadmap.md` | Architecture, roadmap, known edge cases, and threat model |
-| `docs/design/overview.md` | System design overview — publication, SNP upload, and compute |
-| `docs/design/model-marketplace.md` | Detailed model publication lifecycle, provenance, and marketplace controls |
-| `docs/design/snp-ingestion.md` | Detailed PRS job shell, SNP upload, and compute lifecycle |
-| `docs/design/quantization.md` | Signed-weight quantization and overflow-safe encoding design |
-| `docs/onboarding/contributor-onboarding.md` | Full educational guide — bio, crypto, systems background |
-| `docs/onboarding/concepts-cheatsheet.md` | Quick concept reference |
-| `docs/onboarding/e2e-walkthrough-short.md` | End-to-end scenario walkthrough |
-| `docs/onboarding/e2e-walkthrough-contract-grounded.md` | Detailed component-by-component flow |
-| `docs/reference/development-workflows.md` | Practical command guide for tests, advisor runs, and profiling |
-| `docs/reference/quantization-advisor.md` | Quantization advisor workflow and interpretation |
-| `docs/reference/scaling-ceilings.md` | Quick overflow screening reference |
-| `reports/scaling-ceiling-findings.md` | Collaborator-facing explanation of the generated scale ceiling results |
-| `reports/advisor-findings.md` | Collaborator-facing advisor findings across copied HEPRS fixtures |
-| `reports/heprs-fixture-findings.md` | HEPRS fixture profiling across all four sizes (100/500/1000/5000 SNPs) |
-| `reports/mock-validation-findings.md` | 100-SNP end-to-end mock baseline — gas, timing, and HCU probe results |
+| `docs/architecture.md` | Architecture, design decisions, threat model, known gaps, benchmark baseline |
+| `docs/quantization.md` | Signed-weight quantization and overflow-safe encoding |
+| `docs/onboarding.md` | New contributor guide — biology, FHE background, concepts glossary, e2e example |
+| `docs/reference.md` | Dev commands, chunk sizes, scale ceilings, validation tiers, Sepolia deployment |
+| `docs/findings.md` | Benchmark findings — gas, timing, HCU probe, advisor results |
+| `docs/roadmap.md` | Completed work, active priorities, future engineering |
 | `docs/PIIS2667237525003078.pdf` | HEPRS reference paper |

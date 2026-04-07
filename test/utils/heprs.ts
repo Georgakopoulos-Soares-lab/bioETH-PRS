@@ -12,7 +12,7 @@ export interface HeprsAdvisorRecommendation {
   requiredAccumulatorBits: number;
 }
 
-// Static recommendations copied from reports/advisor-findings.md so tests do
+// Static recommendations copied from docs/findings.md so tests do
 // not rerun the advisor. These correspond to the current "balanced" default.
 export const HEPRS_BALANCED_RECOMMENDATIONS = {
   100: {

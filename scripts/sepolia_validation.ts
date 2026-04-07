@@ -21,7 +21,7 @@
  *  5. Asserts the decrypted score matches the expected plaintext dot-product.
  *  6. Writes a JSON report to deployments/{network}-validation-100snp.json.
  *
- * Validated items (maps to todo.md §1):
+ * Validated items (maps to docs/roadmap.md):
  *  - ciphertext input flow (externalEuint64 + inputProof through gateway)
  *  - ACL behavior (registry hasAccess check at createPRSJob)
  *  - gateway / re-encryption / decryption flow

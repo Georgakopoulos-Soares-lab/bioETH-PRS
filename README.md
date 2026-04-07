@@ -41,7 +41,7 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
                                              │
                                              ▼
                             ┌────────────────────────────┐
-                            │  PRSComputeEngine / HEPRS  │
+                            │  PRSComputeEngine           │
                             │  Chunked FHE dot product    │
                             └────────────┬───────────────┘
                                          │
@@ -57,10 +57,10 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 | **GenomicRegistry** | Stores IPFS/Arweave URIs of encrypted SNP data with per-address access control. |
 | **ModelMarketplace** | Lists GWAS weight vectors — **public** (`uint64[]`, cheaper C×P via `FHE.asEuint64`) or **private** (`euint64[]`, full C×C `FHE.mul`). |
 | **PRSComputeEngine** | Creates PRS job shells, ingests SNPs in model-aligned chunks, and computes the encrypted dot product chunk by chunk. |
-| **HEPRS** | Standalone variant that embeds models directly (useful for quick experiments). |
-| **ResultOracle** | Adds encrypted DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
+| **ResultOracle** | Adds on-chain random DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
+| **BioETHPRS** (`contracts/legacy/HEPRS.sol`) | Legacy standalone prototype — embeds model directly, no marketplace dependency. Retained for onboarding and comparison. |
 
-For the documentation map, see [docs/README.md](docs/README.md). For the practical command guide, see [docs/reference/development-workflows.md](docs/reference/development-workflows.md). For the full theory, edge cases, roadmap, and known risks, see [docs/architecture-roadmap.md](docs/architecture-roadmap.md). For the system design overview, see [docs/design/overview.md](docs/design/overview.md). For the model publication design, see [docs/design/model-marketplace.md](docs/design/model-marketplace.md). For the PRS job upload design, see [docs/design/snp-ingestion.md](docs/design/snp-ingestion.md). For the signed-weight and quantization design, see [docs/design/quantization.md](docs/design/quantization.md). For the standalone advisor workflow, see [docs/reference/quantization-advisor.md](docs/reference/quantization-advisor.md). For the quick scale-vs-SNP overflow screen, see [docs/reference/scaling-ceilings.md](docs/reference/scaling-ceilings.md). For collaborator-facing result reports, see [reports/scaling-ceiling-findings.md](reports/scaling-ceiling-findings.md), [reports/advisor-findings.md](reports/advisor-findings.md), and the historical baseline at [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md).
+Docs: [architecture](docs/architecture.md) · [quantization](docs/quantization.md) · [onboarding](docs/onboarding.md) · [reference & commands](docs/reference.md) · [findings](docs/findings.md) · [roadmap](docs/roadmap.md)
 
 ---
 
@@ -71,7 +71,7 @@ contracts/
   GenomicRegistry.sol        Data layer — sample URIs + ACL
   ModelMarketplace.sol       Public & private GWAS model listing
   PRSComputeEngine.sol       Marketplace-aware chunked PRS engine
-  HEPRS.sol (contains `BioETHPRS`)   Legacy standalone prototype retained for comparison
+  legacy/HEPRS.sol               BioETHPRS — legacy standalone prototype (no marketplace)
   ResultOracle.sol           DP noise + categorical classification
 test/
   bioeth_prs_test.ts         Standalone HEPRS prototype tests
@@ -163,7 +163,7 @@ For the full offline verification bundle, including the mock end-to-end validati
 npm run validate:local
 ```
 
-For a fuller command cookbook, including single-file test runs, `--grep` usage, advisor commands, and profiling commands, see [docs/reference/development-workflows.md](docs/reference/development-workflows.md).
+For a fuller command cookbook, including single-file test runs, `--grep` usage, advisor commands, and profiling commands, see [docs/reference.md](docs/reference.md).
 
 ### Test files
 
@@ -173,7 +173,7 @@ For a fuller command cookbook, including single-file test runs, `--grep` usage, 
 | `test/prs_compute_engine_chunked_snp_test.ts` | Focused `PRSComputeEngine` unit coverage for job shells, SNP upload, readiness, compute relays, and requester-only outputs. |
 | `test/registry_marketplace_oracle_test.ts` | Cross-contract integration test covering registry ACL, marketplace-backed PRS, and oracle classification. |
 | `test/heprs_fixture_test.ts` | HEPRS-backed integration coverage using fixed advisor recommendations across the staged job-upload flow. |
-| `test/bioeth_prs_test.ts` | Legacy `HEPRS.sol` prototype behavior using the older embedded-model path. |
+| `test/bioeth_prs_test.ts` | Legacy `BioETHPRS` prototype behavior using the older embedded-model path (`contracts/legacy/HEPRS.sol`). |
 | `test/quantization_advisor_test.ts` | Advisor recommendation ranking and CLI-summary behavior. |
 | `test/scale_ceiling_reference_test.ts` | Quick overflow-screen reference logic. |
 
@@ -236,7 +236,7 @@ This script runs the current mock contract flow with the HEPRS fixture data and 
 Default behavior:
 
 * fixtures: `100`, `500`, `1000`, `5000`
-* `uploadChunkSize=32` (fhEVM input-proof limit), `computeChunkSize=20` (mock HCU ceiling — see [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md))
+* `uploadChunkSize=32` (fhEVM input-proof limit), `computeChunkSize=20` (mock HCU ceiling — see [docs/findings.md](docs/findings.md))
 
 Common examples:
 
@@ -250,8 +250,7 @@ These timings are local Hardhat mock timings. They are useful for collaborator d
 
 See also:
 
-* historical baseline: [reports/heprs-fixture-findings.md](reports/heprs-fixture-findings.md)
-* [reports/advisor-findings.md](reports/advisor-findings.md)
+* historical baseline and advisor findings: [docs/findings.md](docs/findings.md)
 
 ---
 

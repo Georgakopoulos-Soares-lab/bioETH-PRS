@@ -8,7 +8,7 @@
  *   npx hardhat run scripts/deploy.ts --network sepolia
  *   npx hardhat run scripts/deploy.ts --network hardhat   # local mock (quick sanity check)
  *
- * See docs/reference/sepolia-deployment.md for the full pre-flight checklist.
+ * See docs/reference.md for the full pre-flight checklist.
  */
 
 import fs from "fs";

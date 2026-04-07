@@ -27,15 +27,15 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 | ModelMarketplace | [contracts/ModelMarketplace.sol](contracts/ModelMarketplace.sol) | Public / private GWAS weight chunks (`ZamaEthereumConfig`) |
 | PRSComputeEngine | [contracts/PRSComputeEngine.sol](contracts/PRSComputeEngine.sol) | Chunked dot-product state machine (`ZamaEthereumConfig`) |
 | ResultOracle | [contracts/ResultOracle.sol](contracts/ResultOracle.sol) | DP noise + categorical classification (`ZamaEthereumConfig`) |
-| BioETHPRS | [contracts/HEPRS.sol](contracts/HEPRS.sol) | Standalone variant (`ZamaEthereumConfig`) |
+| BioETHPRS | [contracts/legacy/HEPRS.sol](contracts/legacy/HEPRS.sol) | Legacy standalone variant — no marketplace dependency |
 
 ## Security Invariants — Never Violate
 
 1. **No raw scores publicly decryptable** — `FHE.makePubliclyDecryptable` only on risk categories (`euint8`), never on `partialSum` or final PRS scores (`euint64`).
 2. **ACL on every encrypted output** — every `euint64` returned to a user must have `FHE.allow(handle, userAddress)` before the function returns.
 3. **Quantization ceiling** — `scale × 2 × N_snps` must fit in `uint64` (max ~1.8×10^19). At scale 10^8 and 5000 SNPs: 10^12 ✓. Run `npm run advisor:quantization` before deploying new models.
-4. **No arbitrary-noise bypass** — `ResultOracle.classify()` accepts caller-supplied noise. Until on-chain noise generation is implemented, document that zero-noise calls break DP guarantees.
-5. **Registry ACL wiring** — `PRSComputeEngine` does not yet verify `GenomicRegistry` ACL. Do not assume it does. Tracked in `docs/architecture-roadmap.md` § 7-A.
+4. **On-chain noise only** — `ResultOracle` generates noise via `FHE.randEuint64(noiseUpperBound)`. The old caller-supplied noise parameter has been removed. Zero-noise calls are impossible.
+5. **Registry ACL enforced** — `PRSComputeEngine.createPRSJob` checks `GenomicRegistry.hasAccess(sampleId, msg.sender)`. Do not assume compute chunks also re-check (they don't).
 6. **State machine integrity** — PRS job transitions: `PENDING → UPLOADING → READY → COMPUTING → DONE`. Never allow compute calls before `finalizeSnpUpload` completes.
 
 ## Key Conventions
@@ -58,10 +58,10 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 
 | Question | Go to |
 |---|---|
-| Architecture & threat model | [docs/architecture-roadmap.md](docs/architecture-roadmap.md) |
-| Quantization math & overflow | [docs/design/quantization.md](docs/design/quantization.md) |
-| SNP ingestion lifecycle | [docs/design/snp-ingestion.md](docs/design/snp-ingestion.md) |
-| Model marketplace design | [docs/design/model-marketplace.md](docs/design/model-marketplace.md) |
-| Dev workflow commands | [docs/reference/development-workflows.md](docs/reference/development-workflows.md) |
+| Architecture, design decisions, threat model | [docs/architecture.md](docs/architecture.md) |
+| Quantization math & overflow | [docs/quantization.md](docs/quantization.md) |
+| Dev workflow commands, chunk sizes, validation tiers, Sepolia deployment | [docs/reference.md](docs/reference.md) |
+| New contributor onboarding & e2e example | [docs/onboarding.md](docs/onboarding.md) |
+| Benchmark findings & gas data | [docs/findings.md](docs/findings.md) |
+| Roadmap & active work | [docs/roadmap.md](docs/roadmap.md) |
 | HEPRS reference paper | [docs/PIIS2667237525003078.pdf](docs/PIIS2667237525003078.pdf) |
-| Known implementation gaps & risks | [docs/architecture-roadmap.md § 7](docs/architecture-roadmap.md) |

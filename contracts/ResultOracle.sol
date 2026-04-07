@@ -46,6 +46,20 @@ contract ResultOracle is ZamaEthereumConfig {
         noiseUpperBound = _noiseUpperBound;
     }
 
+    /// @notice Expected upward bias introduced by the uniform noise mechanism.
+    ///
+    /// @dev    Noise is drawn from [0, noiseUpperBound) uniformly, so E[noise] = noiseUpperBound/2.
+    ///         Callers should add this value to each classification threshold so that the
+    ///         noisy comparison aligns with the intended plaintext boundary:
+    ///
+    ///             adjustedThreshold = intendedThreshold + expectedNoiseBias()
+    ///
+    ///         This is a deterministic, correctable bias — not a source of unpredictability.
+    ///         The privacy guarantee comes from the noise variance, not its mean.
+    function expectedNoiseBias() external view returns (uint64) {
+        return noiseUpperBound / 2;
+    }
+
     /// @notice Adds on-chain random noise to the encrypted score and classifies the
     ///         result into Low / Medium / High risk.
     ///

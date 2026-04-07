@@ -6,7 +6,7 @@ import "@nomicfoundation/hardhat-toolbox";
 process.env.HARDHAT_DISABLE_TELEMETRY_PROMPT = "true";
 
 // Credentials are managed via `npx hardhat vars set <KEY>` — never committed.
-// See docs/reference/sepolia-deployment.md for setup instructions.
+// See docs/reference.md § Sepolia Deployment for setup instructions.
 const MNEMONIC = vars.get(
   "MNEMONIC",
   "test test test test test test test test test test test junk"

@@ -18,7 +18,7 @@
  *   Because the SNP upload proof budget caps at 32 encrypted values per call,
  *   the maximum testable chunkSize is 32.  If Sepolia's HCU budget is higher
  *   than 32 × 3 = 96 ops, the real ceiling will require the decoupled-chunk
- *   architecture (todo.md Priority 4) to observe.
+ *   architecture (docs/roadmap.md) to observe.
  *
  * Output:
  *   Console table + deployments/{network}-hcu-probe.json
