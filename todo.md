@@ -18,7 +18,7 @@ Implemented and tested:
 - Flat weight and SNP storage; `getPublicWeightChunk` slices by `computeChunkSize`
 - Registry ACL enforced at `createPRSJob`; per-requester private model authorization; permissionless `computeChunk` relay documented
 - Mock HCU ceiling confirmed at 20 SNPs/tx (60-74 ops/tx budget); real Sepolia ceiling TBD
-- `reports/mock-validation-findings.md` — 100-SNP end-to-end PASS, gas/timing baseline
+- `docs/findings.md` — mock baseline, HEPRS fixture profiling, and advisor results
 - Sepolia tooling complete: `deploy.ts`, `sepolia_validation.ts`, `probe_hcu_ceiling.ts`
 
 ---
@@ -29,7 +29,7 @@ Implemented and tested:
 
 Tooling is complete. This item requires credentials and testnet ETH to execute.
 
-Pre-flight (see `docs/reference/sepolia-deployment.md`):
+Pre-flight (see `docs/reference.md`):
 
 - Obtain Sepolia ETH (~0.2 ETH covers deploy + validation + HCU probe)
 - `npx hardhat vars set MNEMONIC`
@@ -45,10 +45,10 @@ npm run probe:hcu            # find real Sepolia computeChunkSize ceiling
 
 After runs complete:
 
-- Fill in "Sepolia observed" column in `docs/architecture-roadmap.md §7-I`
-- Create `reports/sepolia-validation-findings.md` with gas and timing data
+- Fill in the Sepolia tables in `docs/findings.md`
+- Extend `docs/findings.md` with gas and timing data from Sepolia validation
 - Update `computeChunkSize` defaults in scripts if the real ceiling differs from 20
-- Update `docs/design/snp-ingestion.md` "Chunk-size constraints" with the real ceiling
+- Update the chunk-size guidance in `docs/reference.md` and `docs/architecture.md` if the real ceiling differs
 
 ---
 
@@ -83,7 +83,7 @@ are in hand, or when the paper needs evidence for a specific claim.
 
 - Produce a clean benchmark story for mock and real fhEVM across all phases:
   model publication, SNP ingestion, chunked compute, finalize / output path
-- Mock baseline exists in `reports/heprs-fixture-findings.md` and `reports/mock-validation-findings.md`
+- Mock baseline already lives in `docs/findings.md`
 - Real Sepolia numbers are the missing piece
 
 ### Scientific validation

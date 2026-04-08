@@ -1,5 +1,7 @@
 # bioETH PRS — High-Performance Confidential GWAS via fhEVM
 
+> Note: this combined document predates the repo's current flat docs layout. The canonical split docs now live in `docs/architecture.md`, `docs/roadmap.md`, `docs/quantization.md`, `docs/reference.md`, and `docs/findings.md`.
+
 ## 1. Project Overview & Research Gap
 
 **Title:** High-Performance Confidential GWAS: Optimizing Polygenic Risk Scoring via fhEVM.
@@ -88,15 +90,11 @@ Only the cryptographic backend changes — no contract edits are needed to go fr
 
 ## 4. Engineering Specifications & Optimizations
 
-See also `docs/design/overview.md` for the current `v1` system target across publication, SNP upload, and compute.
-See also `docs/design/quantization.md` for the dedicated production-oriented design of quantization, signed-weight handling, offsets, and overflow-safe score encoding.
-See also `docs/design/model-marketplace.md` for the current chunked publication, metadata, permissions, and chunk-oriented compute design of `ModelMarketplace`.
-See also `docs/design/snp-ingestion.md` for the current chunked PRS job upload and compute lifecycle.
-See also `docs/reference/quantization-advisor.md` for the standalone advisor capability that helps model publishers choose candidate scales before upload.
-See also `docs/reference/scaling-ceilings.md` for the simple scale-vs-SNP quick-screen reference under `uint64`.
-See also `reports/scaling-ceiling-findings.md` for the collaborator-facing explanation of the generated ceiling results.
-See also `reports/advisor-findings.md` for the current 100/500/1000/5000 SNP advisor results and what they imply for the present contract shape.
-See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed mock-test baseline from before staged SNP upload.
+See also `docs/architecture.md` for the current `v1` system architecture and security invariants.
+See also `docs/quantization.md` for the production-oriented design of quantization, signed-weight handling, offsets, and overflow-safe score encoding.
+See also `docs/reference.md` for advisor usage, chunk-size quick references, and the Sepolia deployment workflow.
+See also `docs/findings.md` for the current mock baseline, HCU ceiling, and advisor results.
+See also `docs/roadmap.md` for the active priority list and future engineering direction.
 
 * **Quantization Strategy:** GWAS weights (floats, e.g., 0.0045) are scaled by a factor (e.g., $10^8$) to fit into **`euint64`** integers.
 * **Bit-Depth Optimization (planned, not yet implemented):** Intermediate chunk calculations should use **`euint16`** (cheaper gas) where possible, aggregating into larger types only for the final sum. The current contracts use `euint64` exclusively.
@@ -119,7 +117,7 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 
 | File | Purpose |
 | --- | --- |
-| `contracts/HEPRS.sol` (contains `BioETHPRS`) | Legacy standalone chunked dot-product prototype (`uploadModel`, `startPRS`, `computeChunk`, `finalize`). Inherits `ZamaEthereumConfig`. |
+| `contracts/legacy/HEPRS.sol` (contains `BioETHPRS`) | Legacy standalone chunked dot-product prototype (`uploadModel`, `startPRS`, `computeChunk`, `finalize`). Inherits `ZamaEthereumConfig`. |
 | `contracts/GenomicRegistry.sol` | URI-based SNP sample registry with per-address ACL. |
 | `contracts/ModelMarketplace.sol` | Public and private GWAS model listing. Inherits `ZamaEthereumConfig`. |
 | `contracts/PRSComputeEngine.sol` | Marketplace-aware chunked PRS engine. Inherits `ZamaEthereumConfig`. |
@@ -185,7 +183,7 @@ See also `reports/heprs-fixture-findings.md` for the historical HEPRS-backed moc
 
 ### 7-C. Integer Overflow in euint64 Multiplication
 
-Multiplying two `euint64` values can produce a result exceeding 64 bits (max $\approx 1.8 \times 10^{19}$). As a quick-screen under the simplified assumption `max_quantized_weight ~= scale` and hardcall dosage `<= 2`, require `scale × 2 × N < 2^64`. For example, at scale $10^8$ and `N=5000`, max accumulation is `5000 × 2 × 10^8 = 10^12`, which is safe. See `docs/reference/scaling-ceilings.md` for the generated ceiling table. For real models, use the advisor and exact per-model bounds rather than this simplified screen.
+Multiplying two `euint64` values can produce a result exceeding 64 bits (max $\approx 1.8 \times 10^{19}$). As a quick-screen under the simplified assumption `max_quantized_weight ~= scale` and hardcall dosage `<= 2`, require `scale × 2 × N < 2^64`. For example, at scale $10^8$ and `N=5000`, max accumulation is `5000 × 2 × 10^8 = 10^12`, which is safe. See `docs/reference.md` for the current quick-screen ceiling table. For real models, use the advisor and exact per-model bounds rather than this simplified screen.
 
 ### 7-D. Differential Privacy Noise — Resolved (on-chain generation)
 
@@ -271,4 +269,4 @@ The Sepolia deployment path is now fully instrumented:
 | Gas: `computeChunk` per call (full chunk, size 20) | 1,149,156 | TBD |
 | Total gas: 100-SNP end-to-end | 17,758,196 | TBD |
 
-See `reports/mock-validation-findings.md` for full breakdown.  Once Sepolia results are available, fill in the "Sepolia observed" column and create `reports/sepolia-validation-findings.md`.
+See `docs/findings.md` for the full breakdown. Once Sepolia results are available, fill in the corresponding Sepolia data there and add a `Sepolia Validation` section.

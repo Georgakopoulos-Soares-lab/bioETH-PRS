@@ -7,24 +7,25 @@ By the end you will have a complete mental model of every line of code in the pr
 
 ## Phase 1 — Conceptual grounding (docs)
 
-### 1. `docs/onboarding/concepts-cheatsheet.md`
+### 1. `docs/onboarding.md` — Background + Concepts Glossary
 
-A 1-page reference for the core concepts: what a SNP is, what GWAS weights are,
-why you need FHE, and what a PRS dot-product looks like. Read this first so the
-math in the code makes sense.
+Use the `Background` and `Concepts Glossary` sections as the core reference for
+what a SNP is, what GWAS weights are, why you need FHE, and what a PRS
+dot-product looks like. Read this first so the math in the code makes sense.
 
-### 2. `docs/onboarding/e2e-walkthrough-short.md`
+### 2. `docs/onboarding.md` — End-to-End Example
 
-A single narrated walkthrough of one user registering a sample, a researcher
-listing a model, computing a PRS, and reading the result category. This is the
-story the contracts tell together — read it before touching any `.sol` file.
+Read the `End-to-End Example` section for a narrated walkthrough of one user
+registering a sample, a researcher listing a model, computing a PRS, and
+reading the result category. This is the story the contracts tell together —
+read it before touching any `.sol` file.
 
-### 3. `docs/architecture-roadmap.md`
+### 3. `docs/architecture.md` + `docs/roadmap.md`
 
-The full architecture doc. Covers: how the HEPRS paper maps to this codebase,
-per-contract responsibilities, known edge cases (ACL gap, overflow risk, etc.),
-and the roadmap. Skim it now; come back to specific sections as you read the
-contracts.
+`docs/architecture.md` covers how the HEPRS paper maps to this codebase,
+per-contract responsibilities, and the main security and correctness
+constraints. `docs/roadmap.md` carries the active priorities and future work.
+Skim both now; come back to specific sections as you read the contracts.
 
 ---
 
@@ -98,7 +99,7 @@ Two flavours of model:
 
 **Connects to:** `PRSComputeEngine` reads one model chunk at a time instead of fetching the full model.
 
-### 9. `contracts/HEPRS.sol` — `BioETHPRS` contract (~143 lines)
+### 9. `contracts/legacy/HEPRS.sol` — `BioETHPRS` contract (~143 lines)
 
 **Read this before PRSComputeEngine.** It's the self-contained version of the
 system: model storage + job management + computation in one file.
@@ -277,8 +278,6 @@ to understand the contracts.
 
 ## Optional deeper reading (docs)
 
-- `docs/onboarding/e2e-walkthrough-contract-grounded.md` — component-by-component walkthrough with exact contract state, quantization, and oracle handoff
-- `docs/architecture-roadmap.md §7` — known edge cases (ACL enforcement gap,
-  uint64 overflow risk, DP noise not truly random in mock)
-- `docs/onboarding/contributor-onboarding.md` — biological and cryptographic background if you want to go
-  deeper on PRS biology or TFHE theory
+- `docs/onboarding.md` — full onboarding background, glossary, and contract-grounded end-to-end walkthrough
+- `docs/architecture.md` — system invariants, quantization correction, and known gaps
+- `docs/roadmap.md` — active priorities and future engineering context
