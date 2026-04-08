@@ -33,7 +33,7 @@ For each SNP count you will see:
 - **Total gas** and **Estimated ETH** at the given gas price
 
 **Key questions to answer:**
-- Is compute gas growing linearly with SNP count? (Expected: yes — each SNP = 1 `mulPlain` or `mul` + 1 `add`)
+- Is compute gas growing linearly with SNP count? (Expected: yes — each SNP = 1 trivial-encrypt + 1 `mul` + 1 `add`)
 - What is the marginal gas cost per SNP?
 - At what SNP count does a single run exceed the $45 target? (At 30 gwei, $45 ≈ 150M gas)
 - Does changing chunk size significantly affect total gas?
@@ -41,7 +41,7 @@ For each SNP count you will see:
 ## Optimization Levers
 
 If costs are too high, suggest in order of impact:
-1. **Switch to public model weights** — `mulPlain` (C×P) is ~60% cheaper than `mul` (C×C)
+1. **Switch to public model weights** — `FHE.mul(snp, FHE.asEuint64(weight))` (C×P) is ~60% cheaper than C×C
 2. **Reduce scaling factor** — smaller integers may reduce FHE op cost
 3. **Adjust chunk size** — find the sweet spot between per-chunk overhead and gas limit per block
 4. **Bit-depth optimization** (planned) — `euint16` intermediates instead of `euint64` throughout
@@ -56,4 +56,4 @@ If costs are too high, suggest in order of impact:
 
 ## Reference
 
-See [docs/reference/development-workflows.md](../../docs/reference/development-workflows.md) for the full workflow guide and [.github/skills/gas-profile/SKILL.md](../../.github/skills/gas-profile/SKILL.md) for the detailed skill definition.
+See [docs/reference.md](../../docs/reference.md) for the full workflow guide and [.github/skills/gas-profile/SKILL.md](../../.github/skills/gas-profile/SKILL.md) for the detailed skill definition.

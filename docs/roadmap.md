@@ -13,7 +13,7 @@
 - Per-requester private model authorization
 - `finalizeAndClassify` path — oracle-only finalization, no raw score exposed to requester
 - ACL revocation mid-compute documented and tested
-- 83 tests passing (mock FHE)
+- 94 tests passing (mock FHE)
 - HEPRS fixture profiling (100/500/1000 SNPs on-chain; 5000 off-chain)
 - Mock HCU ceiling measured: 20 SNPs/tx (60–74 ops/tx budget)
 - Sepolia tooling ready: `deploy.ts`, `sepolia_validation.ts`, `probe_hcu_ceiling.ts`

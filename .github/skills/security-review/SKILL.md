@@ -21,13 +21,12 @@ Read **all** contracts before producing findings:
 - [`contracts/ModelMarketplace.sol`](../../../contracts/ModelMarketplace.sol)
 - [`contracts/PRSComputeEngine.sol`](../../../contracts/PRSComputeEngine.sol)
 - [`contracts/ResultOracle.sol`](../../../contracts/ResultOracle.sol)
-- [`contracts/HEPRS.sol`](../../../contracts/HEPRS.sol)
+- [`contracts/legacy/HEPRS.sol`](../../../contracts/legacy/HEPRS.sol) — legacy standalone (no marketplace)
 
 Supporting context (read as needed):
 
-- [`docs/architecture-roadmap.md`](../../../docs/architecture-roadmap.md) — threat model, known gaps
-- [`docs/design/snp-ingestion.md`](../../../docs/design/snp-ingestion.md) — state machine spec
-- [`docs/design/quantization.md`](../../../docs/design/quantization.md) — overflow analysis
+- [`docs/architecture.md`](../../../docs/architecture.md) — threat model, state machine spec, known gaps
+- [`docs/quantization.md`](../../../docs/quantization.md) — overflow analysis and quantization math
 - [`AGENTS.md`](../../../AGENTS.md) — security invariants section
 
 ---
@@ -132,7 +131,7 @@ double-processing? (The EVM serialises, but note the risk for documentation.)
 - `euint64` accumulates up to `weightCount` terms. At `scale = 10^8` and
   `weightCount = 5001`, the maximum accumulation is `5001 × 2 × 10^8 = 10^12`,
   well within `2^64 ≈ 1.8 × 10^19`. Confirm the ceiling check is in place (see
-  `docs/design/quantization.md` and `npm run advisor:scale-ceilings`).
+  `docs/quantization.md` and `npm run advisor:scale-ceilings`).
 - Non-FHE Solidity arithmetic: confirm no unchecked blocks are used outside of
   explicitly justified gas-optimization contexts.
 
@@ -151,7 +150,7 @@ double-processing? (The EVM serialises, but note the risk for documentation.)
 
 - **Abandoned jobs**: A requester can `createPRSJob` and `finalizeSnpUpload` then
   never call `computeChunk`. Storage is consumed indefinitely. Is there any cleanup
-  mechanism? (Known gap — documented in `docs/architecture-roadmap.md §7-F`.)
+  mechanism? (Known gap — documented in `docs/architecture.md §7-F`.)
 - **Chunk spam**: Can a requester call `appendSnpChunk` with the same chunk index
   twice? Confirm the guard `store.length == chunkIndex * uploadChunkSize` catches
   this.
@@ -213,13 +212,13 @@ These are documented design decisions that should be noted but not re-flagged as
 new findings unless the implementation deviates from the documented intent:
 
 - **Permissionless `computeChunk`**: Any address may relay computation. Documented
-  in `docs/design/snp-ingestion.md`. Griefing impact is limited (no state
+  in `docs/architecture.md`. Griefing impact is limited (no state
   corruption possible; only wasted compute gas for the relayer).
 - **Caller-supplied thresholds in `ResultOracle.classify()`**: `lowThreshold` and
   `highThreshold` are caller-supplied. This enables threshold probing but is
   mitigated by DP noise and intentional — the oracle is a generic classifier.
 - **Uniform noise (not Laplacian)**: `FHE.randEuint64(noiseUpperBound)` produces
   uniform noise. Formal DP calibration is future work. Documented in
-  `docs/architecture-roadmap.md §7-D`.
+  `docs/architecture.md §7-D`.
 - **No job expiry**: Abandoned jobs are a known storage griefing vector.
-  Documented in `docs/architecture-roadmap.md §7-F`.
+  Documented in `docs/architecture.md §7-F`.

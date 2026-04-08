@@ -4,61 +4,104 @@ applyTo: "**/*.sol"
 ---
 # Solidity + fhEVM Patterns
 
-## Encrypted Types
+## Import Paths
 
-- `euint64` — primary type for SNP values and weights (user-defined value type wrapping `uint64`)
-- `euint8` — used for categorical outputs (risk category)
-- `ebool` — encrypted boolean for comparisons
-- In this repo's local mock workflow they come from `./fhevm/EncryptedTypes.sol`
-- Real fhEVM migration should use the npm-managed `@fhevm/solidity` package path instead of any vendored copy
-
-## Import Patterns
+All production contracts import from the official Zama package — never from local mock files:
 
 ```solidity
-// For contracts using the TFHE wrapper (GenomicRegistry, PRSComputeEngine, BioETHPRS):
-import "./TFHE.sol";
-
-// For contracts using the local mock directly (ResultOracle in this repo):
-import "./fhevm/FHE.sol";
-
-// For encrypted types:
-import "./fhevm/EncryptedTypes.sol";
+import {FHE, euint64, euint8, ebool, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 ```
 
-## TFHE Library Operations
+Contracts inherit `ZamaEthereumConfig` to auto-wire coprocessor, KMS, and ACL addresses on both Hardhat mock and Sepolia.
 
-The `TFHE.sol` wrapper exposes:
-- `TFHE.asEuint64(uint64)` — encrypt a plaintext into `euint64`
-- `TFHE.add(euint64, euint64)` — homomorphic addition
-- `TFHE.mul(euint64, euint64)` — ciphertext × ciphertext (expensive)
-- `TFHE.mulPlain(euint64, uint64)` — ciphertext × plaintext (~60% cheaper)
-- `TFHE.allow(euint64, address)` — grant ACL decrypt permission
-- `TFHE.makePubliclyDecryptable(euint64)` — allow anyone to decrypt via gateway
+Old mock files in `mock-archive/` (TFHE.mock.sol, FHE.mock.sol, EncryptedTypes.mock.sol) must never be imported.
 
-For `FHE.sol` directly (used in ResultOracle): `FHE.lt()`, `FHE.select()`, `FHE.and()`, `FHE.not()`, `FHE.asEuint8()`, `FHE.makePubliclyDecryptable()`.
+## Encrypted Types
+
+- `euint64` — primary type for SNP values and model weights
+- `euint8` — categorical outputs (risk category: 0=Low, 1=Medium, 2=High)
+- `ebool` — encrypted boolean for comparisons (`FHE.lt`, `FHE.and`, `FHE.not`)
+- `externalEuint64` — user-supplied ciphertext handle; must be verified with `FHE.fromExternal`
+
+## Core FHE Operations
+
+```solidity
+// Encrypt a plaintext (trivial encryption — coprocessor can optimize C×P)
+euint64 h = FHE.asEuint64(uint64Value);
+
+// Arithmetic
+euint64 sum  = FHE.add(a, b);
+euint64 diff = FHE.sub(a, b);   // reverts if result would underflow
+euint64 prod = FHE.mul(a, b);   // C×C (expensive)
+
+// Public-weight optimization (C×P via trivial encryption — ~60% cheaper than C×C)
+euint64 prod = FHE.mul(snp, FHE.asEuint64(publicWeight));
+
+// Comparisons / selects
+ebool  lt     = FHE.lt(a, b);
+euint8 result = FHE.select(condition, trueVal, falseVal);
+
+// Random encrypted value (must be power-of-two bound)
+euint64 noise = FHE.randEuint64(uint64 noiseUpperBound);
+
+// Type casts
+euint8 cat = FHE.asEuint8(uint8Value);
+```
+
+There is no `mulPlain` or `TFHE.mul`. Use `FHE.mul(snp, FHE.asEuint64(weight))` for public-weight (C×P) multiplications.
+
+## User-Supplied Ciphertext Inputs
+
+```solidity
+function example(externalEuint64 encInput, bytes calldata inputProof) external {
+    euint64 handle = FHE.fromExternal(encInput, inputProof);  // validates proof
+    FHE.allowThis(handle);   // contract can use handle in future txs
+    _store(handle);
+}
+```
+
+## ACL Discipline — Non-Negotiable
+
+Every handle that is:
+- **Stored in contract storage** → call `FHE.allowThis(handle)` immediately after creation
+- **Returned to a user** → call `FHE.allow(handle, userAddress)` before returning
+- **Made public** → call `FHE.makePubliclyDecryptable(handle)` — **only for `euint8` risk categories, never for `euint64` scores**
+
+```solidity
+// Correct pattern
+euint64 score = FHE.add(a, b);
+FHE.allowThis(score);          // store it
+FHE.allow(score, requester);   // grant requester decrypt rights
+return score;
+```
 
 ## Multiplication Strategy
 
-- **Private model** (weights as `euint64[]`): use `TFHE.mul(weight, snp)` — C×C multiplication
-- **Public model** (weights as `uint64[]`): use `TFHE.mulPlain(snp, weight)` — C×P multiplication, preferred when IP protection is not needed
+| Model type | Weight storage | Operation | Gas |
+|---|---|---|---|
+| Public | `uint64[]` | `FHE.mul(snp, FHE.asEuint64(weight))` | ~60% cheaper (C×P) |
+| Private | `euint64[]` | `FHE.mul(encryptedWeight, snp)` | Full C×C cost |
 
 ## Chunked Computation Pattern
 
-FHE operations are gas-heavy. Use the MapReduce pattern:
-1. `startPRS()` initializes a `Job` struct with `partialSum = TFHE.asEuint64(0)`, `nextIndex = 0`
-2. `computeChunk()` processes `chunkSize` elements per transaction, accumulating into `partialSum`
-3. `finalize()` returns the completed encrypted result with ACL grant
+FHE operations have a per-transaction HCU (Homomorphic Compute Unit) budget. Each SNP requires 3 ops (trivial encrypt + mul + add). Mock ceiling: 20 SNPs/tx.
 
-## Integer Overflow Risk
+```
+createPRSJob(modelId, sampleId)
+appendSnpChunk(jobId, externalEuint64[], inputProof)   ← repeat, max 32/call
+finalizeSnpUpload(jobId)
+computeChunk(jobId)                                    ← repeat, max 20/call (mock)
+finalize(jobId) | finalizeAndClassify(jobId, oracle, low, high)
+```
 
-Scaling factor × max SNP dosage (2) × N SNPs must fit in `uint64` (max ~1.8×10^19). For scaling factor 10^8 and 5000 SNPs: max accumulation = 5000 × 2 × 10^8 = 10^12, which is safe. Document safe SNP ceiling for each scaling factor.
+State machine: `PENDING → UPLOADING → READY → COMPUTING → DONE`
 
-## Access Control
+## Overflow Safety
 
-- `FHE.allow(handle, address)` — grants specific address decrypt rights (use for raw scores)
-- `FHE.makePubliclyDecryptable(handle)` — marks for public gateway decryption (use only for coarse categorical outputs)
-- Never make raw PRS scores publicly decryptable — only risk categories
+For `euint64` accumulators: `scale × 2 × N_snps ≤ 2^64 (~1.8×10^19)`.
+At scale `10^8` and 5,000 SNPs: max = `10^12` ✓. Run `npm run advisor:quantization` before publishing any model.
 
-## Mock vs Production
+## Mock vs Sepolia
 
-The local `contracts/fhevm/FHE.sol` performs plaintext arithmetic for Hardhat testing. Tests passing on mock may fail on real fhEVM due to: different gas costs, ciphertext expansion, ACL enforcement, gateway decryption flow. Always confirm on Sepolia with the real fhEVM packages and relayer flow; there is no supported local Docker node path anymore.
+`@fhevm/hardhat-plugin` deploys a mock coprocessor at the same addresses as Sepolia. In mock mode, FHE ops perform plaintext arithmetic. Tests pass in mock does not prove real-FHE correctness — confirm on Sepolia.

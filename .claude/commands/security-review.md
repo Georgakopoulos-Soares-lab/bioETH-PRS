@@ -39,14 +39,16 @@ Read the contracts in `contracts/` and check every category below. For each find
 
 - [ ] `GenomicRegistry`: Can anyone call `grantAccess` or `revokeAccess` for a sample they don't own?
 - [ ] `ModelMarketplace`: Can anyone append chunks to a model they didn't create? Can anyone call `finalizeModel` on someone else's model?
-- [ ] `PRSComputeEngine`: Is `createPRSJob` gated on whether the caller has registry ACL for the sample? (Known gap per architecture-roadmap.md § 7-A — confirm it is documented but flag severity.)
+- [ ] `PRSComputeEngine`: Confirm `createPRSJob` calls `GenomicRegistry.hasAccess(sampleId, msg.sender)` and reverts if the caller lacks registry ACL. This is implemented — verify the guard is actually called.
 - [ ] `computeChunk` permissionless relay: Is it documented that any caller can advance a job's computation? If not intentional, this is a griefing vector.
 - [ ] `ResultOracle.classify()`: Can this be called by anyone, or only by the PRS engine? Check for missing `onlyEngine` / `onlyOwner` modifiers.
 
 ### 5. Differential Privacy — Noise Supply
 
-- [ ] `ResultOracle.classify()` accepts `encryptedNoise` from the caller. A malicious caller can pass `TFHE.asEuint64(0)`, defeating all DP guarantees and enabling model weight extraction. Confirm this is either mitigated (on-chain noise, commitment scheme) or documented as a known risk.
-- [ ] Check that threshold values for categorical classification (Low/Med/High) are not hardcoded in a way that lets an adversary infer the exact boundaries through repeated queries.
+- [ ] `ResultOracle` must generate noise entirely on-chain via `FHE.randEuint64(noiseUpperBound)`. Confirm there is no path for a caller to supply or influence the noise ciphertext — the old caller-supplied noise parameter was removed in April 2026.
+- [ ] `noiseUpperBound` must be immutable. Mutable bounds allow an attacker to set bound=1 (effectively zero noise) before querying.
+- [ ] `expectedNoiseBias()` returns `noiseUpperBound/2`. Confirm callers add this to thresholds before calling `classify` or `finalizeAndClassify`.
+- [ ] Check that threshold values for categorical classification (Low/Med/High) are caller-supplied — confirm the design rationale (generic oracle) is documented and DP noise mitigates threshold probing.
 
 ### 6. Standard Solidity Vulnerabilities
 
@@ -60,8 +62,8 @@ Read the contracts in `contracts/` and check every category below. For each find
 
 ### 7. Mock vs Production Boundary
 
-- [ ] Confirm `contracts/fhevm/FHE.sol` (the mock) is **not** imported directly by production contracts. Production contracts must import `./TFHE.sol` which routes to the real `@fhevm/solidity` package on Sepolia.
-- [ ] In mock mode, `euint64` is `uint64` and all FHE ops are plaintext — this means ACL is not enforced and any test passing in mock does not prove real-FHE security. Note which tests would need Sepolia re-run.
+- [ ] Confirm all production contracts import from `@fhevm/solidity/lib/FHE.sol` and inherit `ZamaEthereumConfig` from `@fhevm/solidity/config/ZamaConfig.sol`. Old transparent mock files are archived in `mock-archive/` and must not be imported.
+- [ ] In mock mode (`@fhevm/hardhat-plugin`), FHE ops perform plaintext arithmetic — ACL grants are tracked but ciphertext confidentiality is not enforced. Tests passing in mock do not prove real-FHE security. Note which behaviors require Sepolia re-validation (see `docs/reference.md § Validation Tiers`).
 
 ### 8. Model Integrity & Marketplace Trust
 

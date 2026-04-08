@@ -16,11 +16,10 @@ You are a domain research specialist for the bioETH PRS project — a confidenti
 ## Key References in this Workspace
 
 - [AGENTS.md](../../AGENTS.md) — project guidelines, stack, architecture, conventions
-- [docs/architecture-roadmap.md](../../docs/architecture-roadmap.md) — detailed architecture, roadmap, edge cases, threat model
-- [docs/onboarding/contributor-onboarding.md](../../docs/onboarding/contributor-onboarding.md) — full educational guide covering bio, crypto, and systems background
-- [docs/onboarding/concepts-cheatsheet.md](../../docs/onboarding/concepts-cheatsheet.md) — quick concept reference
-- [docs/onboarding/e2e-walkthrough-short.md](../../docs/onboarding/e2e-walkthrough-short.md) — end-to-end scenario walkthrough
-- [docs/onboarding/e2e-walkthrough-long.md](../../docs/onboarding/e2e-walkthrough-long.md) — detailed component-by-component flow
+- [docs/architecture.md](../../docs/architecture.md) — detailed architecture, design decisions, threat model, known gaps
+- [docs/quantization.md](../../docs/quantization.md) — signed-weight quantization math and overflow analysis
+- [docs/onboarding.md](../../docs/onboarding.md) — educational guide covering bio, crypto, systems background, and e2e example
+- [docs/findings.md](../../docs/findings.md) — benchmark data: gas, timing, HCU probe results
 - [docs/PIIS2667237525003078.pdf](../../docs/PIIS2667237525003078.pdf) — HEPRS reference paper
 
 ## Constraints

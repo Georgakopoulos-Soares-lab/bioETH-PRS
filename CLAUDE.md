@@ -11,7 +11,7 @@ Confidential on-chain Polygenic Risk Scoring via fhEVM — encrypted dot-product
 ```sh
 npm run build                    # hardhat compile (Solidity 0.8.24, evmVersion cancun)
 npm run test                     # hardhat test via @fhevm/hardhat-plugin mock coprocessor
-npm run profile:heprs            # HEPRS fixture timing + gas (real GWAS data, chunkSize=10)
+npm run profile:heprs            # HEPRS fixture timing + gas (real GWAS data, computeChunkSize=20)
 npm run profile:gas              # gas vs SNP-count curve (synthetic data)
 npm run advisor:quantization     # float-to-uint64 scaling advisor
 npm run advisor:scale-ceilings   # quick uint64 overflow screen

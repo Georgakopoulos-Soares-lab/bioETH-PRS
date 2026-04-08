@@ -25,7 +25,7 @@ No Docker required. The `@fhevm/hardhat-plugin` deploys a mock coprocessor in-pr
 
 ```bash
 npm run profile:gas              # gas vs SNP-count curve (synthetic data)
-npm run profile:heprs            # HEPRS fixture timing + gas (real GWAS data, chunkSize=10)
+npm run profile:heprs            # HEPRS fixture timing + gas (real GWAS data, computeChunkSize=20)
 ```
 
 Override defaults with environment variables:
@@ -113,7 +113,7 @@ Use `npm run advisor:quantization` for exact bounds from the actual weight distr
 | **2 — Sepolia** | Sepolia testnet + Zama coprocessor | Real TFHE | Gas costs, real HCU ceiling, KMS decryption round-trip, real ciphertext handling |
 | **3 — Docker devnet** | Local Zama devnet | Real TFHE | (Not currently available in this repo) |
 
-**Recommendation:** Tier 1 (mock) for correctness; Tier 2 (Sepolia) for performance claims in the paper. All 83 tests pass on Tier 1. Tier 2 is pending.
+**Recommendation:** Tier 1 (mock) for correctness; Tier 2 (Sepolia) for performance claims in the paper. All 94 tests pass on Tier 1. Tier 2 is pending.
 
 **What mock validates:**
 - Correct dot-product results at 100/500/1000 SNPs

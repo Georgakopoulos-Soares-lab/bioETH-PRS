@@ -85,7 +85,7 @@ Scaling is approximately linear: **~165K gas per SNP**.
 
 ### Correctness
 
-All fixture runs verified: on-chain encoded scores match expected values from plaintext dot-product + quantization correction formula. All 83 tests pass.
+All fixture runs verified: on-chain encoded scores match expected values from plaintext dot-product + quantization correction formula. All 94 tests pass.
 
 ---
 
