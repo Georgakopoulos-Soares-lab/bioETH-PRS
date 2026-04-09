@@ -1,109 +1,529 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "encrypted-types/EncryptedTypes.sol";
-import "./TFHE.sol";
+import {FHE, euint8, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import "./ModelMarketplace.sol";
+import "./GenomicRegistry.sol";
 
-/// @title PRSComputeEngine - Chunked PRS dot-product against a model marketplace.
-contract PRSComputeEngine {
-    using TFHE for euint64;
+interface IResultOracle {
+    function classifyPreauthorized(
+        externalEuint64 encryptedScoreHandle,
+        uint64 lowThreshold,
+        uint64 highThreshold
+    ) external returns (euint8);
+}
 
+/// @title PRSComputeEngine - Chunked PRS dot-product against chunk-published models.
+///
+/// SNP upload and compute chunk sizes are independent:
+///   uploadChunkSize  — inherited from the model; governs how many encrypted SNPs are
+///                      accepted per appendSnpChunk call (≤ 32 for fhEVM input-proof budget).
+///   computeChunkSize — inherited from the model; governs how many SNP×weight pairs are
+///                      processed per computeChunk call (HCU-constrained).
+///                      Mock ceiling: 20. Sepolia ceiling: TBD (run `npm run probe:hcu`).
+///
+/// SNPs are stored flat (one contiguous array per job) and sliced by computeChunkSize during compute.
+/// v1 enforces ACL and chunk geometry on-chain, but SNP provenance and hardcall-range
+/// assumptions remain off-chain responsibilities of the caller and manifest workflow.
+contract PRSComputeEngine is ZamaEthereumConfig {
     struct Job {
         uint256 modelId;
-        euint64[] snps;
-        uint256 nextIndex;
-        uint256 chunkSize;
+        uint256 sampleId;
+        uint256 weightCount;
+        uint256 uploadChunkSize; // for SNP upload validation
+        uint256 computeChunkSize; // for compute slicing (HCU-constrained)
+        uint256 chunkCount;
+        uint256 uploadedSnpCount;
+        uint256 nextChunkIndex;
+        uint256 processedWeights;
         euint64 partialSum;
+        euint64 genoSum;
         address requester;
+        bool isPrivate;
+        bool snpsFinalized;
         bool complete;
+        uint64 weightZeroPoint;
+        uint64 scoreOffset;
     }
 
     ModelMarketplace public marketplace;
+    GenomicRegistry public registry;
     Job[] private jobs;
+    // Flat per-job SNP storage — indexed by absolute SNP position.
+    mapping(uint256 => euint64[]) private snpData;
 
-    event JobCreated(uint256 indexed jobId, uint256 indexed modelId, address indexed requester);
-    event ChunkComputed(uint256 indexed jobId, uint256 newNextIndex, bool complete);
+    event JobCreated(
+        uint256 indexed jobId,
+        uint256 indexed modelId,
+        address indexed requester,
+        uint256 weightCount,
+        uint256 computeChunkSize,
+        uint256 sampleId
+    );
+    event SnpChunkAppended(
+        uint256 indexed jobId,
+        uint256 indexed chunkIndex,
+        uint256 chunkLength
+    );
+    event SnpUploadFinalized(uint256 indexed jobId, address indexed requester);
+    event ChunkComputed(
+        uint256 indexed jobId,
+        uint256 indexed chunkIndex,
+        uint256 processedWeights,
+        bool complete
+    );
+    event JobFinalized(
+        uint256 indexed jobId,
+        address indexed requester,
+        euint64 encodedScore
+    );
+    event JobFinalizedFor(
+        uint256 indexed jobId,
+        address indexed requester,
+        address indexed grantee,
+        euint64 encodedScore
+    );
 
-    constructor(address marketplaceAddress) {
+    constructor(address marketplaceAddress, address registryAddress) {
         marketplace = ModelMarketplace(marketplaceAddress);
+        registry = GenomicRegistry(registryAddress);
     }
 
-    function startPRS(uint256 modelId, euint64[] calldata encryptedSnps, uint256 chunkSize) external returns (uint256) {
-        require(chunkSize > 0, "Chunk size must be > 0");
-        require(modelId < marketplace.modelCount(), "Invalid model");
+    function createPRSJob(
+        uint256 modelId,
+        uint256 sampleId
+    ) external returns (uint256) {
+        require(registry.hasAccess(sampleId, msg.sender), "No registry access");
+
+        (
+            bool isPrivate,
+            bool finalized,
+            uint256 weightCount,
+            uint256 uploadChunkSize,
+            uint256 computeChunkSize,
+            uint256 chunkCount,
+            uint64 weightZeroPoint,
+            uint64 scoreOffset
+        ) = marketplace.getModelConfig(modelId);
+
+        require(finalized, "Model not finalized");
+        if (isPrivate) {
+            require(
+                marketplace.canReadPrivateModel(modelId, address(this)),
+                "Engine not authorized"
+            );
+            // Per-requester authorization: model owners must explicitly allow each
+            // requester via setPrivateModelReader(modelId, requesterAddr, true).
+            // This prevents any user from probing a private model simply because
+            // the shared engine contract has been granted reader access.
+            require(
+                marketplace.canReadPrivateModel(modelId, msg.sender),
+                "Requester not authorized for private model"
+            );
+        }
+
+        euint64 zero = FHE.asEuint64(0);
+        FHE.allowThis(zero);
 
         Job memory job = Job({
             modelId: modelId,
-            snps: encryptedSnps,
-            nextIndex: 0,
-            chunkSize: chunkSize,
-            partialSum: TFHE.asEuint64(0),
+            sampleId: sampleId,
+            weightCount: weightCount,
+            uploadChunkSize: uploadChunkSize,
+            computeChunkSize: computeChunkSize,
+            chunkCount: chunkCount,
+            uploadedSnpCount: 0,
+            nextChunkIndex: 0,
+            processedWeights: 0,
+            partialSum: zero,
+            genoSum: zero,
             requester: msg.sender,
-            complete: false
+            isPrivate: isPrivate,
+            snpsFinalized: false,
+            complete: false,
+            weightZeroPoint: weightZeroPoint,
+            scoreOffset: scoreOffset
         });
 
         jobs.push(job);
         uint256 jobId = jobs.length - 1;
-        emit JobCreated(jobId, modelId, msg.sender);
+        emit JobCreated(
+            jobId,
+            modelId,
+            msg.sender,
+            weightCount,
+            computeChunkSize,
+            sampleId
+        );
         return jobId;
+    }
+
+    function appendSnpChunk(
+        uint256 jobId,
+        externalEuint64[] calldata encryptedSnps,
+        bytes calldata inputProof
+    ) external {
+        Job storage job = _requireOwnedPendingUploadJob(jobId);
+
+        uint256 chunkIndex = _nextSnpUploadChunkIndex(job);
+        uint256 expectedLength = _expectedNextSnpUploadChunkLength(job);
+        require(expectedLength > 0, "All SNP chunks uploaded");
+        require(
+            encryptedSnps.length == expectedLength,
+            "Invalid SNP chunk length"
+        );
+
+        require(
+            !(job.nextChunkIndex > 0 && job.uploadedSnpCount == 0),
+            "Streaming path in use"
+        );
+
+        euint64[] storage store = snpData[jobId];
+        for (uint256 i = 0; i < encryptedSnps.length; i++) {
+            euint64 snp = FHE.fromExternal(encryptedSnps[i], inputProof);
+            FHE.allowThis(snp);
+            store.push(snp);
+        }
+
+        job.uploadedSnpCount += encryptedSnps.length;
+        emit SnpChunkAppended(jobId, chunkIndex, encryptedSnps.length);
+    }
+
+    function finalizeSnpUpload(uint256 jobId) external {
+        Job storage job = _requireOwnedPendingUploadJob(jobId);
+        require(
+            job.uploadedSnpCount == job.weightCount,
+            "SNP upload incomplete"
+        );
+
+        job.snpsFinalized = true;
+        emit SnpUploadFinalized(jobId, msg.sender);
     }
 
     function computeChunk(uint256 jobId) external {
         require(jobId < jobs.length, "Invalid job");
         Job storage job = jobs[jobId];
+        require(job.snpsFinalized, "SNP upload not finalized");
         require(!job.complete, "Job already complete");
 
-        (uint64[] memory publicWeights, euint64[] memory encryptedWeights, bool isPrivate,) = marketplace.getModel(job.modelId);
-        if (isPrivate) {
-            require(encryptedWeights.length == job.snps.length, "Length mismatch");
-        } else {
-            require(publicWeights.length == job.snps.length, "Length mismatch");
-        }
+        uint256 chunkIndex = job.nextChunkIndex;
+        require(chunkIndex < job.chunkCount, "Invalid chunk");
 
-        uint256 start = job.nextIndex;
-        uint256 end = start + job.chunkSize;
-        if (end > job.snps.length) {
-            end = job.snps.length;
+        uint256 chunkLen = _computeChunkLength(
+            job.weightCount,
+            job.computeChunkSize,
+            chunkIndex
+        );
+
+        // Load SNP slice from flat storage into memory for FHE ops
+        uint256 start = chunkIndex * job.computeChunkSize;
+        euint64[] memory snps = new euint64[](chunkLen);
+        for (uint256 i = 0; i < chunkLen; i++) {
+            snps[i] = snpData[jobId][start + i];
         }
 
         euint64 acc = job.partialSum;
-        for (uint256 i = start; i < end; i++) {
-            if (isPrivate) {
-                euint64 term = encryptedWeights[i].mul(job.snps[i]);
-                acc = acc.add(term);
-            } else {
-                euint64 term = job.snps[i].mulPlain(publicWeights[i]);
-                acc = acc.add(term);
+        euint64 genoAcc = job.genoSum;
+        if (job.isPrivate) {
+            euint64[] memory encryptedWeights = marketplace
+                .getEncryptedWeightChunk(job.modelId, chunkIndex);
+            require(encryptedWeights.length == chunkLen, "Invalid model chunk");
+            for (uint256 i = 0; i < encryptedWeights.length; i++) {
+                acc = FHE.add(acc, FHE.mul(encryptedWeights[i], snps[i]));
+                genoAcc = FHE.add(genoAcc, snps[i]);
+            }
+        } else {
+            uint64[] memory publicWeights = marketplace.getPublicWeightChunk(
+                job.modelId,
+                chunkIndex
+            );
+            require(publicWeights.length == chunkLen, "Invalid model chunk");
+            for (uint256 i = 0; i < publicWeights.length; i++) {
+                acc = FHE.add(
+                    acc,
+                    FHE.mul(snps[i], FHE.asEuint64(publicWeights[i]))
+                );
+                genoAcc = FHE.add(genoAcc, snps[i]);
             }
         }
 
+        FHE.allowThis(acc);
+        FHE.allowThis(genoAcc);
+
+        uint256 processedWeights = job.processedWeights + chunkLen;
         job.partialSum = acc;
-        job.nextIndex = end;
-        if (end == job.snps.length) {
+        job.genoSum = genoAcc;
+        job.processedWeights = processedWeights;
+        job.nextChunkIndex = chunkIndex + 1;
+        if (job.nextChunkIndex == job.chunkCount) {
             job.complete = true;
         }
 
-        emit ChunkComputed(jobId, end, job.complete);
+        emit ChunkComputed(jobId, chunkIndex, processedWeights, job.complete);
+    }
+
+    /// @notice Streaming variant: upload one compute-chunk of SNPs and immediately
+    ///         accumulate their weighted contribution into partialSum/genoSum in the
+    ///         same transaction.  No SNP handles are written to contract storage —
+    ///         they are consumed by FHE.mul/add and discarded, eliminating all
+    ///         per-SNP SSTORE costs that the classic appendSnpChunk path incurs.
+    ///
+    ///         Chunk size is governed by computeChunkSize (HCU budget) rather than
+    ///         uploadChunkSize.  The fhEVM input-proof budget is 32 euint64s per tx;
+    ///         this is satisfied so long as computeChunkSize <= 32 (mock ceiling: 20).
+    ///
+    ///         This path is mutually exclusive with the classic appendSnpChunk path.
+    ///         Call createPRSJob first, then call this function ceil(N/computeChunkSize)
+    ///         times, then call finalize — no finalizeSnpUpload or computeChunk needed.
+    function appendAndComputeChunk(
+        uint256 jobId,
+        externalEuint64[] calldata encryptedSnps,
+        bytes calldata inputProof
+    ) external {
+        require(jobId < jobs.length, "Invalid job");
+        Job storage job = jobs[jobId];
+        require(job.requester == msg.sender, "Not requester");
+        require(!job.complete, "Job already complete");
+        require(job.uploadedSnpCount == 0, "Classic upload path in use");
+
+        uint256 chunkIndex = job.nextChunkIndex;
+        require(chunkIndex < job.chunkCount, "Invalid chunk");
+
+        uint256 chunkLen = _computeChunkLength(
+            job.weightCount,
+            job.computeChunkSize,
+            chunkIndex
+        );
+        require(encryptedSnps.length == chunkLen, "Invalid SNP chunk length");
+
+        euint64 acc = job.partialSum;
+        euint64 genoAcc = job.genoSum;
+
+        if (job.isPrivate) {
+            euint64[] memory encryptedWeights = marketplace
+                .getEncryptedWeightChunk(job.modelId, chunkIndex);
+            require(encryptedWeights.length == chunkLen, "Invalid model chunk");
+            for (uint256 i = 0; i < chunkLen; i++) {
+                euint64 snp = FHE.fromExternal(encryptedSnps[i], inputProof);
+                // No FHE.allowThis(snp) — handle consumed immediately, not stored
+                acc = FHE.add(acc, FHE.mul(encryptedWeights[i], snp));
+                genoAcc = FHE.add(genoAcc, snp);
+            }
+        } else {
+            uint64[] memory publicWeights = marketplace.getPublicWeightChunk(
+                job.modelId,
+                chunkIndex
+            );
+            require(publicWeights.length == chunkLen, "Invalid model chunk");
+            for (uint256 i = 0; i < chunkLen; i++) {
+                euint64 snp = FHE.fromExternal(encryptedSnps[i], inputProof);
+                // No FHE.allowThis(snp) — handle consumed immediately, not stored
+                acc = FHE.add(acc, FHE.mul(snp, FHE.asEuint64(publicWeights[i])));
+                genoAcc = FHE.add(genoAcc, snp);
+            }
+        }
+
+        FHE.allowThis(acc);
+        FHE.allowThis(genoAcc);
+
+        uint256 processedWeights = job.processedWeights + chunkLen;
+        job.partialSum = acc;
+        job.genoSum = genoAcc;
+        job.processedWeights = processedWeights;
+        job.nextChunkIndex = chunkIndex + 1;
+        if (job.nextChunkIndex == job.chunkCount) {
+            job.complete = true;
+        }
+
+        emit ChunkComputed(jobId, chunkIndex, processedWeights, job.complete);
     }
 
     function readPartial(uint256 jobId) external returns (euint64) {
         require(jobId < jobs.length, "Invalid job");
         Job storage job = jobs[jobId];
-        job.partialSum = TFHE.allow(job.partialSum, msg.sender);
+        require(job.requester == msg.sender, "Not requester");
+        job.partialSum = FHE.allow(job.partialSum, msg.sender);
         return job.partialSum;
     }
 
+    /// @notice Returns the quantization-corrected encrypted PRS score for a completed job.
+    ///
+    /// @dev    The raw encoded score is ACL-granted directly to the requester.  The
+    ///         ResultOracle (classify()) is therefore optional post-processing: the
+    ///         requester can decrypt the raw score without going through the oracle.
+    ///         This means the DP noise layer does not prevent the job requester from
+    ///         learning the exact score.  The oracle's privacy guarantee holds only
+    ///         against third parties who observe the classified output, not against
+    ///         the requester themselves.  Keep this in mind when reasoning about
+    ///         model-weight-extraction attacks via adaptive probing.
     function finalize(uint256 jobId) external returns (euint64) {
+        Job storage job = _requireOwnedCompleteJob(jobId);
+        euint64 encodedScore = _encodeFinalScore(job);
+        encodedScore = FHE.allow(encodedScore, msg.sender);
+
+        emit JobFinalized(jobId, msg.sender, encodedScore);
+        return encodedScore;
+    }
+
+    /// @notice Computes the final encoded score and ACL-grants it to a specific grantee.
+    ///
+    /// @dev    This is a lower-level additive alternative to finalize(): it grants
+    ///         handle access to another address without automatically granting
+    ///         requester decryption.  On fhEVM, follow-up use of that handle still
+    ///         depends on the transaction sender owning the handle, so EOAs cannot
+    ///         complete a `finalizeTo(...)` → `oracle.classifyPreauthorized(...)`
+    ///         flow on behalf of the grantee.  Use finalizeAndClassify(...) for an
+    ///         atomic oracle-only path that avoids requester-side decrypt / re-encrypt.
+    ///         This does not remove the requester's ability to later call
+    ///         finalize(jobId) and grant themselves access via the legacy path.
+    function finalizeTo(
+        uint256 jobId,
+        address grantee
+    ) external returns (euint64) {
+        require(grantee != address(0), "Invalid grantee");
+        Job storage job = _requireOwnedCompleteJob(jobId);
+        euint64 encodedScore = _encodeFinalScore(job);
+        encodedScore = FHE.allow(encodedScore, grantee);
+
+        emit JobFinalizedFor(jobId, msg.sender, grantee, encodedScore);
+        return encodedScore;
+    }
+
+    /// @notice Computes the final encoded score and immediately routes it into an oracle.
+    ///
+    /// @dev    This additive path preserves the existing finalize() flow while giving
+    ///         requesters an oracle-only alternative that avoids client-side
+    ///         decrypt / re-encrypt.  The engine remains the handle owner during the
+    ///         same transaction, so ResultOracle.classifyPreauthorized(...) can import
+    ///         the score without a new input proof.
+    function finalizeAndClassify(
+        uint256 jobId,
+        address oracle,
+        uint64 lowThreshold,
+        uint64 highThreshold
+    ) external returns (euint8) {
+        require(oracle != address(0), "Invalid oracle");
+        Job storage job = _requireOwnedCompleteJob(jobId);
+        euint64 encodedScore = _encodeFinalScore(job);
+
+        emit JobFinalizedFor(jobId, msg.sender, oracle, encodedScore);
+        return
+            IResultOracle(oracle).classifyPreauthorized(
+                externalEuint64.wrap(euint64.unwrap(encodedScore)),
+                lowThreshold,
+                highThreshold
+            );
+    }
+
+    /// @notice View getter for the current partial sum handle (for debug/test decrypt).
+    function getPartialSum(uint256 jobId) external view returns (euint64) {
         require(jobId < jobs.length, "Invalid job");
-        Job storage job = jobs[jobId];
-        require(job.complete, "Job not complete");
-        require(job.requester == msg.sender, "Not requester");
-        job.partialSum = TFHE.allow(job.partialSum, msg.sender);
-        return job.partialSum;
+        return jobs[jobId].partialSum;
     }
 
     function jobCount() external view returns (uint256) {
         return jobs.length;
+    }
+
+    function getJobState(
+        uint256 jobId
+    )
+        external
+        view
+        returns (
+            uint256 modelId,
+            address requester,
+            uint256 weightCount,
+            uint256 uploadChunkSize,
+            uint256 computeChunkSize,
+            uint256 chunkCount,
+            uint256 uploadedSnpCount,
+            bool snpsFinalized,
+            uint256 nextChunkIndex,
+            uint256 processedWeights,
+            bool isPrivate,
+            bool complete,
+            uint256 sampleId
+        )
+    {
+        require(jobId < jobs.length, "Invalid job");
+        Job storage job = jobs[jobId];
+        return (
+            job.modelId,
+            job.requester,
+            job.weightCount,
+            job.uploadChunkSize,
+            job.computeChunkSize,
+            job.chunkCount,
+            job.uploadedSnpCount,
+            job.snpsFinalized,
+            job.nextChunkIndex,
+            job.processedWeights,
+            job.isPrivate,
+            job.complete,
+            job.sampleId
+        );
+    }
+
+    function _requireOwnedPendingUploadJob(
+        uint256 jobId
+    ) internal view returns (Job storage job) {
+        require(jobId < jobs.length, "Invalid job");
+        job = jobs[jobId];
+        require(job.requester == msg.sender, "Not requester");
+        require(!job.snpsFinalized, "SNP upload finalized");
+    }
+
+    function _requireOwnedCompleteJob(
+        uint256 jobId
+    ) internal view returns (Job storage job) {
+        require(jobId < jobs.length, "Invalid job");
+        job = jobs[jobId];
+        require(job.complete, "Job not complete");
+        require(job.requester == msg.sender, "Not requester");
+    }
+
+    function _nextSnpUploadChunkIndex(
+        Job storage job
+    ) internal view returns (uint256) {
+        return job.uploadedSnpCount / job.uploadChunkSize;
+    }
+
+    function _expectedNextSnpUploadChunkLength(
+        Job storage job
+    ) internal view returns (uint256) {
+        uint256 remaining = job.weightCount - job.uploadedSnpCount;
+        return
+            remaining > job.uploadChunkSize ? job.uploadChunkSize : remaining;
+    }
+
+    function _computeChunkLength(
+        uint256 weightCount,
+        uint256 computeChunkSize,
+        uint256 chunkIndex
+    ) internal pure returns (uint256) {
+        uint256 start = chunkIndex * computeChunkSize;
+        uint256 remaining = weightCount - start;
+        return remaining > computeChunkSize ? computeChunkSize : remaining;
+    }
+
+    function _encodeFinalScore(
+        Job storage job
+    ) internal returns (euint64 encodedScore) {
+        // V1 quantization correction (avoids negative intermediate):
+        //   encoded_score = (weighted_sum + score_offset) - (weight_zero_point * geno_sum)
+        // Rearranged so the subtraction never underflows: weighted_sum + score_offset
+        // is guaranteed >= weight_zero_point * geno_sum when score_offset = -raw_min.
+        euint64 withOffset = FHE.add(
+            job.partialSum,
+            FHE.asEuint64(job.scoreOffset)
+        );
+        euint64 correction = FHE.mul(
+            job.genoSum,
+            FHE.asEuint64(job.weightZeroPoint)
+        );
+        encodedScore = FHE.sub(withOffset, correction);
+        FHE.allowThis(encodedScore);
     }
 }

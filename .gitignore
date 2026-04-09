@@ -1,5 +1,11 @@
+# === Personal notes ===
+notes.md
+
 # === Dependencies ===
 node_modules/
+
+# === Session context ===
+SESSION_CONTEXT.md
 
 # === Hardhat / Solidity build artifacts ===
 artifacts/
@@ -30,6 +36,9 @@ Desktop.ini
 *.swo
 *~
 
+# === Claude Code (machine-specific permissions — do not commit) ===
+.claude/settings.local.json
+
 # === Logs ===
 *.log
 npm-debug.log*
@@ -39,12 +48,14 @@ yarn-error.log*
 # === Docker (local fhEVM node) ===
 docker-compose.override.yml
 
-# === Vendor library (large, cloned separately) ===
-vendor/fhevm/
-
 # === Gas profiling output ===
 gas-report.txt
 gas-report.json
+
+# === Deployments — network-specific address files ===
+# The deployments/ directory is tracked; individual JSON files are not because
+# they contain chain-specific addresses and results that change per deployment.
+deployments/*.json
 
 # === Misc ===
 *.tgz

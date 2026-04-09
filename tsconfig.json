@@ -1,13 +1,22 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-  "module": "Node16",
-  "moduleResolution": "node16",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "outDir": "dist"
   },
-  "include": ["hardhat.config.ts", "test/**/*.ts", "scripts/**/*.ts"]
+  "ts-node": {
+    "swc": true,
+    "files": true
+  },
+  "include": [
+    "hardhat.config.ts",
+    "test/**/*.ts",
+    "scripts/**/*.ts",
+    "typechain-types/**/*.ts"
+  ]
 }

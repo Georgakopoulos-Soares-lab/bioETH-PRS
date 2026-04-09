@@ -3,19 +3,33 @@
   "version": "0.1.0",
   "private": true,
   "description": "bioETH PRS — High-performance confidential GWAS PRS prototype on Ethereum/fhEVM.",
+  "engines": {
+    "node": ">=20 <23"
+  },
   "scripts": {
+    "advisor:quantization": "ts-node scripts/quantization_advisor.ts",
+    "advisor:scale-ceilings": "ts-node scripts/scale_ceiling_reference.ts",
     "build": "hardhat compile",
+    "profile:heprs": "hardhat test scripts/heprs_fixture_profile.ts",
     "test": "hardhat test",
-    "profile:gas": "hardhat run scripts/gas_profile.ts"
+    "profile:gas": "hardhat test scripts/gas_profile.ts",
+    "validate:local": "npm run build && npm test && npm run validate:mock && npm run profile:gas && npm run profile:heprs && npm run probe:hcu:mock && npm run advisor:scale-ceilings && npm run advisor:quantization -- test/fixtures/heprs/beta_100SNP_phenotype0.csv test/fixtures/heprs/genotype_100SNP_50individual.csv && npm run advisor:quantization -- test/fixtures/heprs/beta_500SNP_phenotype0.csv test/fixtures/heprs/genotype_500SNP_50individual.csv && npm run advisor:quantization -- test/fixtures/heprs/beta_1000SNP_phenotype0.csv test/fixtures/heprs/genotype_1000SNP_50individual.csv && npm run advisor:quantization -- test/fixtures/heprs/beta_5000SNP_phenotype0.csv test/fixtures/heprs/genotype_5000SNP_50individual.csv",
+    "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
+    "validate:sepolia": "hardhat test scripts/sepolia_validation.ts --network sepolia",
+    "validate:mock": "hardhat test scripts/sepolia_validation.ts",
+    "probe:hcu": "hardhat test scripts/probe_hcu_ceiling.ts --network sepolia",
+    "probe:hcu:mock": "hardhat test scripts/probe_hcu_ceiling.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@swc/core": "^1.15.18",
     "hardhat": "^2.22.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.7.3"
   },
   "dependencies": {
-    "encrypted-types": "^0.0.4",
+    "@fhevm/hardhat-plugin": "^0.4.2",
+    "@fhevm/solidity": "^0.11.1",
     "fhevmjs": "^0.6.2"
   }
 }

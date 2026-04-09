@@ -17,10 +17,11 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 5. [Building](#building)
 6. [Running Tests](#running-tests)
 7. [Gas Profiling](#gas-profiling)
-8. [Configuration Reference](#configuration-reference)
-9. [Troubleshooting](#troubleshooting)
-10. [Contributing](#contributing)
-11. [License](#license)
+8. [HEPRS Profiling](#heprs-profiling)
+9. [Configuration Reference](#configuration-reference)
+10. [Troubleshooting](#troubleshooting)
+11. [Contributing](#contributing)
+12. [License](#license)
 
 ---
 
@@ -40,7 +41,7 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
                                              │
                                              ▼
                             ┌────────────────────────────┐
-                            │  PRSComputeEngine / HEPRS  │
+                            │  PRSComputeEngine           │
                             │  Chunked FHE dot product    │
                             └────────────┬───────────────┘
                                          │
@@ -54,12 +55,12 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 | Contract | Role |
 |----------|------|
 | **GenomicRegistry** | Stores IPFS/Arweave URIs of encrypted SNP data with per-address access control. |
-| **ModelMarketplace** | Lists GWAS weight vectors — **public** (`uint64[]`, cheaper `mulPlain`) or **private** (`euint64[]`, full FHE `mul`). |
-| **PRSComputeEngine** | Reads models from the marketplace and computes the encrypted dot product in configurable chunks to stay within block gas limits. |
-| **HEPRS** | Standalone variant that embeds models directly (useful for quick experiments). |
-| **ResultOracle** | Adds encrypted DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
+| **ModelMarketplace** | Lists GWAS weight vectors — **public** (`uint64[]`, cheaper C×P via `FHE.asEuint64`) or **private** (`euint64[]`, full C×C `FHE.mul`). |
+| **PRSComputeEngine** | Creates PRS job shells, ingests SNPs in model-aligned chunks, and computes the encrypted dot product chunk by chunk. |
+| **ResultOracle** | Adds on-chain random DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
+| **BioETHPRS** (`contracts/legacy/HEPRS.sol`) | Legacy standalone prototype — embeds model directly, no marketplace dependency. Retained for onboarding and comparison. |
 
-For the full theory, edge cases, and roadmap, see [INSTRUCTIONS.md](INSTRUCTIONS.md).
+Docs: [design](docs/design.md) · [onboarding](docs/onboarding.md) · [reference & commands](docs/reference.md) · [roadmap](docs/roadmap.md)
 
 ---
 
@@ -70,20 +71,21 @@ contracts/
   GenomicRegistry.sol        Data layer — sample URIs + ACL
   ModelMarketplace.sol       Public & private GWAS model listing
   PRSComputeEngine.sol       Marketplace-aware chunked PRS engine
-  HEPRS.sol (contains `BioETHPRS`)   Standalone chunked PRS engine
+  legacy/HEPRS.sol               BioETHPRS — legacy standalone prototype (no marketplace)
   ResultOracle.sol           DP noise + categorical classification
-  TFHE.sol                   Thin wrapper forwarding to Zama FHE
-  fhevm/
-    FHE.sol                  Local plaintext mock of FHE for Hardhat
-    EncryptedTypes.sol       UDVTs (ebool, euint8, euint64)
 test/
-  bioeth_prs_test.ts         Chunked PRS unit test
+  bioeth_prs_test.ts         Standalone HEPRS prototype tests
+  model_marketplace_chunked_test.ts     Model marketplace unit tests
+  prs_compute_engine_chunked_snp_test.ts PRS job-upload unit tests
   registry_marketplace_oracle_test.ts   End-to-end integration test
-  utils/fhevm.ts             fhevmjs helpers (encrypt64Array, getInstance)
+  heprs_fixture_test.ts      HEPRS fixture integration + overflow tests
+  quantization_advisor_test.ts          Advisor recommendation tests
+  scale_ceiling_reference_test.ts       Overflow-screen reference tests
+  utils/fhevm-helpers.ts     fhevmjs helpers (encryptUint64Array, debugDecrypt)
 scripts/
-  gas_profile.ts             Gas vs. SNP-count profiling script
-vendor/
-  fhevm/                     Zama fhEVM repo checkout (git-cloned)
+  gas_profile.ts             Gas vs. SNP-count profiling (synthetic data)
+  heprs_fixture_profile.ts   HEPRS fixture timing + gas profiling
+mock-archive/                Archived old transparent mocks (not imported)
 ```
 
 ---
@@ -92,12 +94,11 @@ vendor/
 
 | Tool | Version | Notes |
 |------|---------|-------|
-| **Node.js** | ≥ 20 LTS | `node -v` |
+| **Node.js** | 20.x or 22.x LTS | `node -v` — run `nvm use` to match the repo's supported range |
 | **npm** (or **yarn / pnpm**) | ≥ 9 | Ships with Node.js |
-| **Docker** | ≥ 24 | Only needed for a local fhEVM node |
-| **Git** | any | For cloning `vendor/fhevm` |
+| **Git** | any | For cloning the repo |
 
-> **Apple Silicon note:** Make sure Docker is running with Rosetta or native ARM images. Zama's fhEVM Docker images may require `--platform linux/amd64`.
+> **No Docker needed** for mock-mode development. The full local suite runs entirely in Hardhat's in-process EVM with a plaintext FHE mock — no external node required.
 
 ---
 
@@ -113,33 +114,11 @@ cd blockchain_prs
 ### 2. Install npm dependencies
 
 ```bash
+nvm use   # if you use nvm; repo pins Node 22 in .nvmrc
 npm install
 ```
 
-This pulls in `hardhat`, `@nomicfoundation/hardhat-toolbox`, `encrypted-types`, `fhevmjs`, and TypeScript tooling.
-
-### 3. Clone the Zama fhEVM vendor library (if not already present)
-
-```bash
-git clone https://github.com/zama-ai/fhevm vendor/fhevm
-```
-
-Make sure the following path exists after cloning:
-
-```
-vendor/fhevm/library-solidity/lib/FHE.sol
-```
-
-### 4. Verify remappings
-
-`remappings.txt` should contain:
-
-```
-encrypted-types/=node_modules/encrypted-types/
-fhevm/=vendor/fhevm/library-solidity/lib/
-```
-
-Hardhat does not natively consume `remappings.txt`, but IDE tooling (e.g., Solidity extension in VS Code) uses it for resolution. Actual path resolution is handled by the `encrypted-types` npm package and the `contracts/fhevm/` local mock during Hardhat compilation.
+This pulls in `hardhat`, `@nomicfoundation/hardhat-toolbox`, `fhevmjs`, TypeScript tooling, and the official fhEVM packages `@fhevm/solidity` plus `@fhevm/hardhat-plugin`.
 
 ---
 
@@ -159,46 +138,16 @@ Expected output: ABI + bytecode in `artifacts/contracts/`.
 
 | Error | Fix |
 |-------|-----|
-| `Source not found: encrypted-types/…` | Run `npm install` — the `encrypted-types` package must be in `node_modules`. |
-| `Source not found: vendor/fhevm/…` | Clone the Zama repo into `vendor/fhevm` (see step 3 above). |
+| `Source not found: @fhevm/solidity/…` | Run `npm install` — the `@fhevm/solidity` and `@fhevm/hardhat-plugin` packages must be present in `node_modules/`. |
 | Solidity version mismatch | Ensure `0.8.24` in `hardhat.config.ts` and all `.sol` files. |
 
 ---
 
 ## Running Tests
 
-### Local Hardhat simulation (mock FHE — no Docker needed)
+### Mock FHE — Hardhat in-process (no Docker, no external node)
 
-The tests guard behind `FHEVM=1`. To run them against the **local plaintext mock** you need to either:
-
-1. **Remove or skip the guard** in the test files, or
-2. Set the env var — but note that `fhevmjs` calls will fail without a real node.
-
-For quick Hardhat-only simulation you can create a wrapper that bypasses the `fhevmjs` path. This is documented in the test files as a TODO.
-
-### Full fhEVM tests (Docker node required)
-
-1. **Start the local fhEVM node** (see Zama's docs for the Docker Compose setup):
-
-```bash
-cd vendor/fhevm
-docker compose up -d
-```
-
-2. **Export the required environment variables:**
-
-```bash
-export FHEVM=1
-export FHEVM_NETWORK_URL=http://localhost:8545
-export FHEVM_GATEWAY_URL=http://localhost:7077
-export FHEVM_ACL_ADDRESS=0x...       # from the fhEVM deployment output
-export FHEVM_KMS_ADDRESS=0x...       # from the fhEVM deployment output
-export FHEVM_CHAIN_ID=9000           # default for local fhEVM
-```
-
-> **Tip:** Create a `.env` file (git-ignored) and source it: `source .env`
-
-3. **Run the test suite:**
+All tests use the **`@fhevm/hardhat-plugin` mock coprocessor**, which validates handles, ACL, and input proofs while performing plaintext arithmetic. Contracts import from `@fhevm/solidity` (the real Zama library) — the same code deploys to Sepolia for real FHE. Tests run directly:
 
 ```bash
 npm test
@@ -206,24 +155,48 @@ npm test
 npx hardhat test
 ```
 
+Expected output: the full mock-mode suite passes.
+
+For the full offline verification bundle, including the mock end-to-end validation script, gas/fixture profilers, HCU probe, and quantization CLI runs across all shipped HEPRS fixtures, run:
+
+```bash
+npm run validate:local
+```
+
+For a fuller command cookbook, including single-file test runs, `--grep` usage, advisor commands, and profiling commands, see [docs/reference.md](docs/reference.md).
+
 ### Test files
 
 | File | What it covers |
 |------|---------------|
-| `test/bioeth_prs_test.ts` | Uploads a 3-weight model, starts a job with chunk size 2, computes two chunks, finalises, and reads the encrypted result. |
-| `test/registry_marketplace_oracle_test.ts` | Registers a sample, grants access, lists a public model, runs PRS via the compute engine, and classifies the result through the oracle. |
+| `test/model_marketplace_chunked_test.ts` | Focused `ModelMarketplace v1` unit coverage for shells, chunk appends, finalization, permissions, and edge cases. |
+| `test/prs_compute_engine_chunked_snp_test.ts` | Focused `PRSComputeEngine` unit coverage for job shells, SNP upload, readiness, compute relays, and requester-only outputs. |
+| `test/registry_marketplace_oracle_test.ts` | Cross-contract integration test covering registry ACL, marketplace-backed PRS, and oracle classification. |
+| `test/heprs_fixture_test.ts` | HEPRS-backed integration coverage using fixed advisor recommendations across the staged job-upload flow. |
+| `test/bioeth_prs_test.ts` | Legacy `BioETHPRS` prototype behavior using the older embedded-model path (`contracts/legacy/HEPRS.sol`). |
+| `test/quantization_advisor_test.ts` | Advisor recommendation ranking and CLI-summary behavior. |
+| `test/scale_ceiling_reference_test.ts` | Quick overflow-screen reference logic. |
+
+### Real FHE — Sepolia testnet
+
+Zama's local Docker node approach has been discontinued. Real FHE encryption is only available on the **Sepolia testnet**. Contracts already import from `@fhevm/solidity` and inherit `ZamaEthereumConfig`, so the same code runs locally (mock) and on Sepolia (real FHE). Deploying to Sepolia requires:
+
+1. Sepolia ETH (free from a faucet) and an Infura/Alchemy RPC key.
+2. A network entry in `hardhat.config.ts` pointing to the Sepolia RPC.
+3. Deploying through `npx hardhat test --network sepolia`.
+
+The mock coprocessor covers 100% of contract logic and protocol-level validation (handles, ACL, input proofs). Real TFHE ciphertext correctness is only confirmable on Sepolia.
 
 ---
 
 ## Gas Profiling
 
-The profiling script deploys `ModelMarketplace` + `PRSComputeEngine` and iterates over several SNP counts measuring gas per phase (model listing, job start, chunk computation).
+The profiling script deploys `ModelMarketplace` + `PRSComputeEngine` with synthetic data and measures gas per phase (model listing, job creation, SNP upload, chunk computation). Runs as a Hardhat test with the `@fhevm/hardhat-plugin` mock coprocessor.
 
 ```bash
-# Requires FHEVM=1 + a running fhEVM node
 npm run profile:gas
 # or:
-npx hardhat run scripts/gas_profile.ts
+npx hardhat test scripts/gas_profile.ts
 ```
 
 ### Environment variable overrides
@@ -231,15 +204,53 @@ npx hardhat run scripts/gas_profile.ts
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SNP_COUNTS` | `100,300,600` | Comma-separated SNP vector sizes to profile. |
-| `CHUNK_SIZE` | `100` | Number of SNPs processed per `computeChunk` call. |
+| `UPLOAD_CHUNK_SIZE` | `32` | SNPs per `appendSnpChunk` call (fhEVM input-proof limit). |
+| `COMPUTE_CHUNK_SIZE` | `20` | SNPs per `computeChunk` call (HCU-constrained; mock ceiling is 20). |
 | `GAS_PRICE_GWEI` | `30` | Assumed gas price for ETH cost estimation. |
-| `BLOCK_TIME_SEC` | `12` | Assumed block time for wall-time estimation. |
 
 Example:
 
 ```bash
-SNP_COUNTS=100,500,1000,5000 CHUNK_SIZE=50 npx hardhat run scripts/gas_profile.ts
+SNP_COUNTS=100,500,1000,5000 npx hardhat test scripts/gas_profile.ts
 ```
+
+For gas profiling with **real HEPRS fixture data** (including timing breakdowns), use `npm run profile:heprs` instead.
+
+---
+
+## HEPRS Profiling
+
+For the copied HEPRS fixtures, use the dedicated profiling harness:
+
+```bash
+npm run profile:heprs
+```
+
+This script runs the current mock contract flow with the HEPRS fixture data and reports:
+
+* total runtime per fixture
+* load / quantization / publication / job-upload / finalize timings
+* per-chunk timing summary
+* how the staged job shell + SNP chunk upload flow behaves on the copied HEPRS fixtures
+
+Default behavior:
+
+* fixtures: `100`, `500`, `1000`, `5000`
+* `uploadChunkSize=32` (fhEVM input-proof limit), `computeChunkSize=20` (mock HCU ceiling — see [reports/classic-gas.md](reports/classic-gas.md))
+
+Common examples:
+
+```bash
+npm run profile:heprs -- --fixture 1000
+npm run profile:heprs -- --fixture 5000 --upload-chunk-size 32 --compute-chunk-size 20 --verbose
+npm run profile:heprs -- --json-out /tmp/heprs-profile.json
+```
+
+These timings are local Hardhat mock timings. They are useful for collaborator discussion and regression tracking, but they are not real fhEVM/Sepolia timings and not gas costs.
+
+See also:
+
+* historical baseline and advisor findings: [reports/classic-gas.md](reports/classic-gas.md) · [reports/streaming-gas.md](reports/streaming-gas.md)
 
 ---
 
@@ -281,12 +292,12 @@ npx hardhat test --network fhevm
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
-| `Set FHEVM=1 …` error in tests | The env guard in `before()` fired | Export `FHEVM=1` or remove the guard for mock-only runs. |
-| `Missing required env var: FHEVM_NETWORK_URL` | `fhevmjs` helper needs connection info | Set all `FHEVM_*` env vars (see above). |
-| Docker container crashes on Apple Silicon | Image is x86-only | Run with `--platform linux/amd64` or use Rosetta. |
-| `out of gas` during `computeChunk` | Chunk size too large for the chain's gas limit | Lower `chunkSize` in `startPRS()` or increase `blockGasLimit` for Hardhat. |
-| Compilation OK but test reverts with unexpected value | Mock FHE (plaintext math) behaves differently from real TFHE | Run against a real fhEVM Docker node to validate. |
+| `Error: Debug Failure. Output generation failed` | ts-node incompatible with TypeScript ≥ 5.8 | Ensure `tsconfig.json` has `"ts-node": { "swc": true }` and `@swc/core` is installed (`npm install --save-dev @swc/core`). |
+| `Module '"hardhat"' has no exported member 'ethers'` | Wrong `module`/`moduleResolution` in tsconfig | Set `"module": "CommonJS"` and `"moduleResolution": "node"` in `tsconfig.json`. |
+| `out of gas` during `computeChunk` | `computeChunkSize` is too large for the chain's HCU/gas limit | Publish the model with a smaller `computeChunkSize` or increase `blockGasLimit` in `hardhat.config.ts`. Mock ceiling is 20. |
+| `out of gas` during `appendSnpChunk` | `uploadChunkSize` exceeds the fhEVM input-proof budget | Reduce `uploadChunkSize`; the hard limit is 32 `euint64` values per input proof. |
 | `typechain-types` out of date | Generated types stale after contract edits | Run `npx hardhat compile` to regenerate. |
+| `Source not found: @fhevm/solidity/…` | Missing npm packages | Run `npm install` to restore `@fhevm/solidity` and `@fhevm/hardhat-plugin`. |
 
 ---
 
@@ -301,5 +312,4 @@ npx hardhat test --network fhevm
 
 ## License
 
-MIT — see individual file headers for details.  
-Zama fhEVM vendor code is under its own license (BSD-3-Clause-Clear); see `vendor/fhevm/LICENSE`.
+MIT — see individual file headers for details.
