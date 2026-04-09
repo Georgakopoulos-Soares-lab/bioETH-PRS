@@ -29,7 +29,7 @@ The fhEVM coprocessor enforces a per-transaction FHE operation budget (HCU). Sys
 | 25 | 75 | Fail — `HCUTransactionLimitExceeded` |
 | 32 | 96 | Fail |
 
-**Mock HCU budget: 60–74 ops/tx. Safe ceiling: computeChunkSize = 20.**
+**Mock HCU budget: 60-74 ops/tx. Safe ceiling: computeChunkSize = 20.**
 
 Each `computeChunk` call with N SNPs uses 3N + 2 FHE ops (mul + add + genoAdd per SNP, plus two `allowThis`). At N=20: 62 ops.
 
@@ -88,7 +88,7 @@ Upload consistently uses ~1.77× more gas than compute. The cause is two persist
 
 | Operation | Where | Gas (approx) | Notes |
 |-----------|-------|-------------|-------|
-| `FHE.fromExternal()` → `FHEVMExecutor.verifyInput()` | upload | ~40–60K | External call; validates input proof |
+| `FHE.fromExternal()` → `FHEVMExecutor.verifyInput()` | upload | ~40-60K | External call; validates input proof |
 | `ACL.allowTransient()` | upload | cheap | EIP-1153 `tstore`; tx-scoped, no SSTORE |
 | `FHE.allowThis()` → `ACL.allow()` | upload | ~25K | External call + **SSTORE** `persistedAllowedPairs[handle][contract]` |
 | `snpData[jobId].push(snp)` | upload | ~25K | **SSTORE** handle into flat array — new storage slot |
@@ -97,7 +97,8 @@ Upload consistently uses ~1.77× more gas than compute. The cause is two persist
 | `FHE.add(acc, term)` | compute | ~27K | FHE operation via coprocessor |
 
 **Per-SNP summary:**
-- Upload: ~100–110K gas (dominated by 2× SSTORE = ~50K)
+
+- Upload: ~100-110K gas (dominated by 2× SSTORE = ~50K)
 - Compute: ~56K gas (SLOAD + FHE mul + FHE add)
 
 The two extra SSTOREs in upload exist because SNP handles must be persisted across transactions: `computeChunk` is called later and needs to read the handles back from `snpData[jobId]`.
@@ -109,11 +110,12 @@ The two extra SSTOREs in upload exist because SNP handles must be persisted acro
 No. The mock coprocessor's off-chain component (`FhevmDB`) stores handle→plaintext mappings in a Node.js in-memory map for test decryption. This is purely off-chain — zero on-chain gas cost.
 
 The on-chain operations are identical between mock and real network:
+
 - `FHEVMExecutor.verifyInput()` — same contract pattern, different address
 - `ACL.allow()` → `persistedAllowedPairs[handle][account] = true` — same SSTORE cost
 - `snpData[jobId]` writes — same SSTORE cost
 
-Gas on Sepolia is expected to be within 10–20% of these mock numbers.
+Gas on Sepolia is expected to be within 10-20% of these mock numbers.
 
 ---
 

@@ -15,7 +15,7 @@
 - ACL revocation mid-compute documented and tested
 - 94 tests passing (mock FHE)
 - HEPRS fixture profiling — all four fixture sizes (100/500/1000/5000) confirmed on-chain
-- Mock HCU ceiling measured: 20 SNPs/tx (60–74 ops/tx budget)
+- Mock HCU ceiling measured: 20 SNPs/tx (60-74 ops/tx budget)
 - `appendAndComputeChunk` streaming path implemented — 37% gas savings vs classic
 - Sepolia tooling ready: `deploy.ts`, `sepolia_validation.ts`, `probe_hcu_ceiling.ts`
 - Gas cost and deployment viability analysis complete (see `reports/`)
@@ -41,16 +41,19 @@ After completion: update `reports/classic-gas.md` Sepolia table with real HCU ce
 ## Future Engineering
 
 **Marketplace:**
+
 - Model versioning and deprecation semantics
 - ERC-20 fee mechanism (incentivize quality researchers)
 - Commitment-based storage for very large models
 
 **Job lifecycle:**
+
 - Job cancellation (requester-initiated)
 - Expiry for abandoned jobs (never `finalizeSnpUpload`)
 - `JobFinalized` event for off-chain indexers
 
 **Quantization & types:**
+
 - `euint16` intermediate accumulators (cheaper FHE ops for models with bounded weights)
 - Decimal dosage support (imputed genotypes; requires dosage quantization)
 - Threshold validation: `expectedNoiseBias()` now exposes the bias; tests should verify callers use it correctly
@@ -60,18 +63,22 @@ After completion: update `reports/classic-gas.md` Sepolia table with real HCU ce
 ## Research / Paper Work
 
 **Feasibility benchmark:**
+
 - Mock baseline: ✓ (see `reports/classic-gas.md`, `reports/streaming-gas.md`, `reports/deployment-cost.md`)
 - Real Sepolia: pending
 - Cost estimate: ~$150 naive → ~$45 optimized (trivial encryption, larger chunks)
 
 **Scientific validation:**
+
 - De-quantization comparison: on-chain encoded score vs PLINK/PRSice reference
 - DP calibration: empirical backing for `noiseUpperBound` choice
 
 **Security analysis:**
+
 - Formalize threat model (who can learn what, under what assumptions)
 - Prove DP noise calibration + categorical bucketing prevent weight extraction
 - Analyze model probing attack surface (garbage SNP inputs)
 
 **Cross-chain:**
+
 - Evaluate Fhenix L2 and Inco Network as deployment targets

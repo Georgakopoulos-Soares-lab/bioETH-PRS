@@ -82,6 +82,7 @@ URI-based sample registry with per-address ACL. No FHE operations.
 **Storage:** `sampleId → (uri, owner, mapping(address → bool))`
 
 **Key functions:**
+
 - `registerSample(uri)` → `sampleId`
 - `grantAccess(sampleId, grantee)` / `revokeAccess(sampleId, grantee)`
 - `getSample(sampleId)` → `(uri, owner)` — ACL-gated view
@@ -98,6 +99,7 @@ Chunked publication of GWAS weight arrays, public or encrypted. Stores models; d
 **Key design decision:** `uploadChunkSize` (publication batch, max 32, fhEVM proof budget) and `computeChunkSize` (HCU-safe retrieval slice, ≤20 on mock) are independent. Weights are stored flat and sliced on read.
 
 **`ModelHeader` fields:**
+
 - `owner`, `isPrivate`, `finalized`
 - `weightCount`, `uploadChunkSize`, `computeChunkSize`, `chunkCount`
 - `uploadedWeightCount` (progress during publication)
@@ -105,11 +107,13 @@ Chunked publication of GWAS weight arrays, public or encrypted. Stores models; d
 - `weightZeroPoint`, `scoreOffset` (quantization correction metadata — see [§5](#5-quantization))
 
 **Publication lifecycle:**
+
 1. `createModelShell(isPrivate, weightCount, uploadChunkSize, computeChunkSize, manifestURI, ..., weightZeroPoint, scoreOffset)` → draft model
 2. `appendPublicModelChunk(modelId, uint64[] weights)` — or `appendEncryptedModelChunk(modelId, externalEuint64[], inputProof)` for private; max 32 per call
 3. `finalizeModel(modelId)` → immutable; compute jobs may now reference it
 
 **Compute paths:**
+
 - Public weights → `FHE.mul(snp, FHE.asEuint64(weight))` — trivially encrypted C×P, coprocessor-optimised (~60% cheaper than C×C)
 - Private weights → `FHE.mul(encryptedWeight, snp)` — C×C, full FHE multiply
 
@@ -126,12 +130,14 @@ Chunked dot-product with a job state machine. This is the main computation contr
 **Job states:** `PENDING → UPLOADING → READY → COMPUTING → DONE`
 
 State transitions:
+
 - `createPRSJob` → UPLOADING
 - `finalizeSnpUpload` → READY
 - Each `computeChunk` advances COMPUTING
 - Last `computeChunk` → DONE (also set by `appendAndComputeChunk` in streaming path)
 
 **Key functions:**
+
 - `createPRSJob(modelId, sampleId)` — checks registry ACL + model finalization + private model auth; initialises job shell with model geometry
 - `appendSnpChunk(jobId, externalEuint64[], inputProof)` — requester-only; stores SNP handles in `snpData[jobId]`; max `uploadChunkSize` values/call
 - `finalizeSnpUpload(jobId)` — requester-only; gates compute start
@@ -143,11 +149,13 @@ State transitions:
 - `readPartial(jobId)` — requester-only; returns running encrypted partial sum
 
 **Quantization correction in `finalize`:**
+
 ```solidity
 euint64 withOffset  = FHE.add(job.partialSum, FHE.asEuint64(job.scoreOffset));
 euint64 correction  = FHE.mul(job.genoSum, FHE.asEuint64(job.weightZeroPoint));
 euint64 encodedScore = FHE.sub(withOffset, correction);
 ```
+
 The rearrangement `(partialSum + scoreOffset) - (weightZeroPoint × genoSum)` avoids unsigned underflow when the signed dot-product would otherwise be negative. See [§5](#5-quantization) for the full derivation.
 
 **Why permissionless compute:** Relayers pay gas to advance computation but learn no plaintext — they only see encrypted handles. The requester controls SNP upload, output ACL, and finalization. This enables meta-transactions and relay services.
@@ -165,12 +173,14 @@ Differential Privacy noise injection + categorical classification. All operation
 **DP mechanism:** `noiseUpperBound` set at construction (must be a positive power of 2 — fhEVM requirement for `randEuint64`). Each call generates `noise = FHE.randEuint64(noiseUpperBound)` — unknowable to caller before the transaction mines.
 
 **Key functions:**
+
 - `classify(externalEuint64 encryptedScore, bytes inputProof, uint64 low, uint64 high)` — user submits re-encrypted score
 - `classifyPreauthorized(externalEuint64 handle, uint64 low, uint64 high)` — engine-mediated handoff (called by `finalizeAndClassify`)
 
 **Output:** `euint8` category (0=Low, 1=Medium, 2=High), made publicly decryptable via `FHE.makePubliclyDecryptable`. **Never applied to `euint64` scores.**
 
 **Classification logic (all encrypted):**
+
 ```solidity
 euint64 noisy    = FHE.add(score, noise);
 ebool   isLow    = FHE.lt(noisy, lowThreshold);
@@ -178,12 +188,15 @@ ebool   belowHi  = FHE.lt(noisy, highThreshold);
 ebool   isMedium = FHE.and(FHE.not(isLow), belowHi);
 euint8  category = FHE.select(isLow, Low, FHE.select(isMedium, Medium, High));
 ```
+
 `FHE.select` is used instead of `if` because branching on an encrypted boolean would reveal plaintext information.
 
 **Bias correction:** Uniform noise ∈ [0, noiseUpperBound) introduces an expected upward bias of `noiseUpperBound/2`. Call `expectedNoiseBias()` to get this value. Callers must add it to each threshold:
+
 ```
 adjustedThreshold = intendedThreshold + oracle.expectedNoiseBias()
 ```
+
 This is a deterministic, correctable bias. Privacy comes from the noise variance, not the mean.
 
 ---
@@ -273,10 +286,10 @@ Each `appendAndComputeChunk` call accepts exactly `computeChunkSize` SNPs, calls
 | Parameter | Value | Constraint |
 |---|---|---|
 | `uploadChunkSize` | 32 | fhEVM input-proof budget: 2048 bits / 64 bits per euint64 |
-| `computeChunkSize` | 20 (mock) | HCU budget: ~60–74 ops/tx; each SNP = 3 ops (mul + add + genoAdd) |
+| `computeChunkSize` | 20 (mock) | HCU budget: ~60-74 ops/tx; each SNP = 3 ops (mul + add + genoAdd) |
 | `computeChunkSize` | TBD (Sepolia) | Run `npm run probe:hcu` after first Sepolia deployment |
 
-HCU ops per `computeChunk` call with N SNPs: `3N + 2` (3 FHE ops per SNP plus 2 `allowThis` on accumulator handles). At N=20: 62 ops — within the 60–74 mock budget.
+HCU ops per `computeChunk` call with N SNPs: `3N + 2` (3 FHE ops per SNP plus 2 `allowThis` on accumulator handles). At N=20: 62 ops — within the 60-74 mock budget.
 
 ---
 
@@ -285,6 +298,7 @@ HCU ops per `computeChunk` call with N SNPs: `3N + 2` (3 FHE ops per SNP plus 2 
 ### 5.1 The problem
 
 Three constraints must hold simultaneously:
+
 1. PRS weights (`beta_i`) are signed floats (can be negative)
 2. fhEVM arithmetic operates on unsigned encrypted integers (`euint64`)
 3. On-chain arithmetic must stay within safe bounds — overflow silently wraps
@@ -326,12 +340,14 @@ encoded_score = raw_score_q + scoreOffset
 The encoded score is always non-negative and lives in `[0, encoded_range]`.
 
 **Decoding after decryption:**
+
 ```
 raw_score_q = encoded_score - scoreOffset
 final_score  = raw_score_q / scale
 ```
 
 **On-chain implementation** (in `PRSComputeEngine._encodeFinalScore`):
+
 ```solidity
 euint64 withOffset   = FHE.add(job.partialSum, FHE.asEuint64(job.scoreOffset));
 euint64 correction   = FHE.mul(job.genoSum, FHE.asEuint64(job.weightZeroPoint));
@@ -380,6 +396,7 @@ where:
 ```
 
 At scale 10⁸ and 5,000 SNPs with max single-weight magnitude 1.0:
+
 - `raw_max ≈ 2 × 10⁸ × 5,000 = 10¹²` — well within `uint64` range
 
 Do not use `scale × 2 × N_snps` as the only check — compute exact bounds from the actual quantized weight vector. The quantization advisor does this automatically and is faster.
@@ -393,9 +410,10 @@ npm run advisor:quantization
 ```
 
 Three tiers:
+
 - **baseline** (~10²) — lowest gas, ~15% MAE on HEPRS fixtures. Not suitable for clinical use.
 - **balanced** (~10⁶) — machine-epsilon error on HEPRS fixtures. **Default for all models.**
-- **max_precision** (~10⁸–10¹⁰) — no improvement over balanced on current fixtures.
+- **max_precision** (~10⁸-10¹⁰) — no improvement over balanced on current fixtures.
 
 Use **balanced**. The gas bottleneck is SNP upload transaction count, not scale precision. See `reports/quantization-advisor.md` for full results across all fixture sizes.
 
@@ -440,30 +458,38 @@ Never violate these:
 ## 7. Known Gaps & Risks
 
 ### SNP→sample linkage (open research problem)
+
 `createPRSJob` verifies registry ACL but cannot verify that submitted SNP ciphertexts match the registered sample's off-chain data. A malicious requester can submit arbitrary SNP values. The DP noise layer partially mitigates weight extraction via model probing. This remains unresolved in v1.
 
 ### Requester sees raw score before oracle
+
 `finalize()` gives the requester a raw `euint64` handle. The DP noise layer does not protect against the job requester (who initiated it) learning their exact score. The `finalizeAndClassify()` path is the mitigation — it bypasses requester-side decrypt entirely. Use `finalizeAndClassify` over `finalize` where possible; it is a user-level choice, not protocol enforcement.
 
 ### DP noise upward bias
+
 Uniform noise from `[0, noiseUpperBound)` introduces an expected upward bias of `noiseUpperBound/2`. Callers who don't adjust thresholds see systematic score inflation. Call `oracle.expectedNoiseBias()` and add the result to each classification threshold.
 
 ### ACL revocation mid-job
+
 - Registry revocation: in-flight job continues (ACL checked only at creation)
 - Private model reader revocation: in-flight job fails on next `computeChunk` (each chunk re-checks model reader auth)
 
 Both behaviours are intentional for v1 and tested.
 
 ### Incomplete jobs
+
 No cancellation or expiry. Jobs with partial SNP uploads that are never finalised persist indefinitely. Storage gap, not a security risk.
 
 ### URI observability
+
 `GenomicRegistry` stores sample URIs in contract storage. Any node can read via `eth_getStorageAt`. URIs are no longer emitted in events (patched April 2026), but storage values remain plaintext. True confidentiality requires storing only a hash or commitment.
 
 ### Marketplace model quality
+
 No mechanism prevents listing garbage weights. Models cannot be updated after finalisation. No fee layer incentivises quality. Off-chain DAO curation is the v1 mitigant.
 
 ### Sepolia HCU ceiling unknown
+
 Mock `computeChunkSize=20` is a local constraint. Sepolia may allow much larger chunks. Run `npm run probe:hcu` after first Sepolia deployment and update `computeChunkSize` in any new model shells.
 
 ---
@@ -490,8 +516,8 @@ The contracts target Zama's fhEVM stack (`ZamaEthereumConfig`). Production deplo
 
 ### References
 
-- PGS Catalog scoring conventions: https://www.pgscatalog.org/downloads/
-- PLINK 2.0 scoring: https://www.cog-genomics.org/plink/2.0/score
-- Zama fhEVM types: https://docs.zama.org/protocol/solidity-guides/smart-contract/types
-- Zama HCU cost guide: https://docs.zama.org/protocol/solidity-guides/development-guide/hcu
+- PGS Catalog scoring conventions: <https://www.pgscatalog.org/downloads/>
+- PLINK 2.0 scoring: <https://www.cog-genomics.org/plink/2.0/score>
+- Zama fhEVM types: <https://docs.zama.org/protocol/solidity-guides/smart-contract/types>
+- Zama HCU cost guide: <https://docs.zama.org/protocol/solidity-guides/development-guide/hcu>
 - HEPRS reference paper: `docs/PIIS2667237525003078.pdf`

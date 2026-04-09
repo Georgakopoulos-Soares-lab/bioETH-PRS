@@ -92,6 +92,7 @@ This walks through a complete PRS computation using the actual contract API.
 Weights (CardioLab's GWAS output): `[-0.30, 0.10, 0.25, -0.05, 0.40]`
 
 Quantization (scale=100, computed by advisor):
+
 - Quantized: `[-30, 10, 25, -5, 40]`
 - `weightZeroPoint = 30` (shift of `+30` to all weights)
 - Stored unsigned weights `u`: `[0, 40, 55, 25, 70]`
@@ -142,11 +143,13 @@ Alice calls:
 ```
 
 Engine checks:
+
 - `GenomicRegistry.hasAccess(7, Alice)` → true ✓
 - model 1 is finalized ✓
 - model 1 is public (no private reader check needed)
 
 Engine stores:
+
 ```
 Job {
   jobId: 42, modelId: 1, sampleId: 7,
@@ -161,6 +164,7 @@ Job {
 ### Phase 4: Alice uploads her SNPs
 
 Alice's client (using fhevmjs) encrypts the genotype vector:
+
 ```
 encrypt([2, 1, 0, 1, 2]) → { handles: [h0, h1, h2, h3, h4], inputProof: proof }
 ```
@@ -191,6 +195,7 @@ Anyone calls:
 ```
 
 Engine:
+
 1. Loads model chunk 0: `[0, 40, 55, 25, 70]` (public weights)
 2. Loads SNP chunk 0: `[h0, h1, h2, h3, h4]` (encrypted)
 3. For each pair:
@@ -199,6 +204,7 @@ Engine:
 4. After all SNPs: marks job DONE
 
 Computation in the encrypted domain:
+
 ```
 partialSum = Enc(2×0 + 1×40 + 0×55 + 1×25 + 2×70) = Enc(205)
 genoSum    = Enc(2+1+0+1+2)                           = Enc(6)
@@ -222,6 +228,7 @@ Alice calls:
 ```
 
 Engine applies quantization correction:
+
 ```
 withOffset   = Enc(205) + Enc(70) = Enc(275)
 correction   = Enc(6) × 30       = Enc(180)
@@ -235,6 +242,7 @@ Engine hands the score handle to `ResultOracle.classifyPreauthorized`.
 Oracle generates noise: `noise = FHE.randEuint64(64)` → Enc(noise), unknowable until mined.
 
 Oracle classifies `Enc(95 + noise)` against thresholds:
+
 ```
 Enc(category) = Enc(0) if noisyScore < low
               = Enc(2) if noisyScore > high
@@ -354,6 +362,7 @@ The old transparent plaintext mock files (`FHE.mock.sol`, `TFHE.mock.sol`, `Encr
 **What to trace while reading:**
 
 *Model side:*
+
 - `Model` struct: `weights` (always `euint64[]`), `owner`, `isPrivate`
 - `uploadModel` → pushes to `models[]`
 
@@ -483,12 +492,12 @@ Runs the marketplace + engine against multiple SNP counts and prints gas used pe
 
 | Concept | Where it lives |
 |---------|---------------|
-| FHE type system (ebool / euint8 / euint64) | Files 4–6 |
+| FHE type system (ebool / euint8 / euint64) | Files 4-6 |
 | How mock FHE maps to real FHE | File 5 |
 | Patient data access control | File 7 |
 | GWAS model storage (public vs private) | File 8 |
-| Chunked dot-product state machine (classic + streaming) | Files 9–10 |
+| Chunked dot-product state machine (classic + streaming) | Files 9-10 |
 | Encrypted classification without branching | File 11 |
-| Test patterns (staticCall, bigint, Chai matchers) | Files 12–13 |
+| Test patterns (staticCall, bigint, Chai matchers) | Files 12-13 |
 | What real fhEVM encryption looks like | File 14 |
-| Build / TS toolchain quirks | Files 15–16 |
+| Build / TS toolchain quirks | Files 15-16 |

@@ -67,12 +67,13 @@ The advisor is a decision-support tool, not a mandatory gate. The bottleneck on 
 | Parameter | Value | Constraint | Notes |
 |---|---|---|---|
 | `uploadChunkSize` | **32** | fhEVM input-proof budget: 2048 bits / 64 bits per euint64 | Same on mock and Sepolia |
-| `computeChunkSize` | **20** (mock) | Mock HCU ~60–74 ops/tx; each SNP = 3 ops | Sepolia ceiling unknown — run `probe:hcu` |
+| `computeChunkSize` | **20** (mock) | Mock HCU ~60-74 ops/tx; each SNP = 3 ops | Sepolia ceiling unknown — run `probe:hcu` |
 | Private model upload | **≤ 32** | Same input-proof budget | Public model upload has no practical limit |
 
 The two chunk sizes are independent. Upload uses 32-value batches; compute uses 20-value slices. Both index into the same flat storage array.
 
 For a 100-SNP model:
+
 - Upload transactions: `ceil(100/32) = 4`
 - Compute transactions: `ceil(100/20) = 5`
 
@@ -116,6 +117,7 @@ Use `npm run advisor:quantization` for exact bounds from the actual weight distr
 **Recommendation:** Tier 1 (mock) for correctness; Tier 2 (Sepolia) for performance claims in the paper. All 94 tests pass on Tier 1. Tier 2 is pending.
 
 **What mock validates:**
+
 - Correct dot-product results at 100/500/1000 SNPs
 - ACL enforcement at job creation
 - State machine transitions (PENDING → UPLOADING → READY → COMPUTING → DONE)
@@ -124,6 +126,7 @@ Use `npm run advisor:quantization` for exact bounds from the actual weight distr
 - Per-requester private model authorization
 
 **What mock cannot validate:**
+
 - Real gas costs (coprocessor precompile pricing differs)
 - Real HCU ceiling (mock allows 20 SNPs/tx; Sepolia may allow more)
 - KMS round-trip latency for user decryption
@@ -140,7 +143,7 @@ npx hardhat vars set MNEMONIC          # deployer wallet mnemonic
 npx hardhat vars set INFURA_API_KEY    # or another RPC provider key
 ```
 
-Deployer wallet needs Sepolia ETH. Estimate ~0.05–0.1 ETH for deploy + 100-SNP validation.
+Deployer wallet needs Sepolia ETH. Estimate ~0.05-0.1 ETH for deploy + 100-SNP validation.
 
 ### Execution
 
@@ -157,9 +160,11 @@ npm run probe:hcu                      # find real HCU ceiling → update comput
 On mock, tests use `debugDecryptEuint64(handle)` — direct plaintext bypass, ~0 ms.
 
 On Sepolia, decryption requires a KMS re-encryption round-trip:
+
 ```typescript
 const decryptedValue = await userDecryptEuint(handle, contractAddress, signer);
 ```
+
 This is async and takes seconds. The `sepolia_validation.ts` script handles the wait automatically.
 
 ### After deployment
@@ -178,4 +183,4 @@ This is async and takes seconds. The `sepolia_validation.ts` script handles the 
 | `No registry access` | Sample ACL not set | Call `grantAccess` before `createPRSJob` |
 | `Model not finalized` | Forgot `finalizeModel` | Call `finalizeModel(modelId)` |
 | `Not authorized for private model` | Missing reader auth | Call `setPrivateModelReader(modelId, requester, true)` |
-| Decryption times out | KMS round-trip | Increase timeout in test/script; Sepolia KMS can take 10–30s |
+| Decryption times out | KMS round-trip | Increase timeout in test/script; Sepolia KMS can take 10-30s |

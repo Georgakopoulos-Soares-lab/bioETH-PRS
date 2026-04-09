@@ -66,10 +66,10 @@ const address = await instance.getAddress();
 
 ## Typical Integration Test Flow (Streaming Path)
 
-Steps 1–4 same as classic. Then:
+Steps 1-4 same as classic. Then:
 
-5. Encrypt SNP chunk and call `appendAndComputeChunk` × N (each call is both upload + compute)
-6. Finalize: `finalizeAndClassify(jobId, oracle, low, high)`
+1. Encrypt SNP chunk and call `appendAndComputeChunk` × N (each call is both upload + compute)
+2. Finalize: `finalizeAndClassify(jobId, oracle, low, high)`
 
 No `finalizeSnpUpload` or separate `computeChunk` calls needed.
 

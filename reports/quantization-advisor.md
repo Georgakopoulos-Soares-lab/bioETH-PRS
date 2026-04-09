@@ -17,7 +17,7 @@ GWAS beta weights are signed floating-point values (~−0.5 to +0.5). TFHE opera
 5. Checks whether `scale × 2 × N_snps` overflows `uint64` (max ~1.8×10¹⁹)
 6. Recommends `baseline` / `balanced` / `max_precision` tiers
 
-Runtime: 0.2–0.26 s across all fixture sizes. Safe to run before every model publication.
+Runtime: 0.2-0.26 s across all fixture sizes. Safe to run before every model publication.
 
 ---
 
@@ -27,9 +27,9 @@ Consistent across all four fixture sizes:
 
 | Tier | Scale | Error vs plaintext | Recommended for |
 |------|-------|-------------------|-----------------|
-| `baseline` | ~10² | 1–15% MAE | Proof-of-concept only; too lossy for clinical use |
+| `baseline` | ~10² | 1-15% MAE | Proof-of-concept only; too lossy for clinical use |
 | `balanced` | ~10⁶ (3×10⁶ for 100/500 SNP; 10⁶ for 1,000/5,000 SNP) | Machine epsilon | **Default for all production models** |
-| `max_precision` | ~10⁸–10¹⁰ | Machine epsilon | No improvement over `balanced` on HEPRS fixtures |
+| `max_precision` | ~10⁸-10¹⁰ | Machine epsilon | No improvement over `balanced` on HEPRS fixtures |
 
 **Use `balanced`.** The bottleneck is SNP upload transaction count and gas cost — not scale precision. Increasing beyond `balanced` adds no clinical benefit and raises the risk of approaching overflow ceilings.
 

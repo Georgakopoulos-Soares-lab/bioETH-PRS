@@ -19,6 +19,7 @@
 **No `snpData` mapping writes. No per-SNP `FHE.allowThis`. No `finalizeSnpUpload` step.**
 
 The optimisation targets the two persistent SSTOREs per SNP that the classic path requires:
+
 - `snpData[jobId].push(snp)` — 32-byte handle SSTORE (~25K gas)
 - `ACL.persistedAllowedPairs[handle][contract] = true` — ACL SSTORE (~25K gas)
 
@@ -26,7 +27,7 @@ Both are eliminated because SNP handles are only needed within the current trans
 
 ### HCU compatibility
 
-Each streaming call with N SNPs uses: N `FHE.fromExternal` (proof ops, not HCU-counted) + N `FHE.mul` + N `FHE.add` + N `FHE.add` (genoSum) + 2 `FHE.allowThis` (for acc and genoAcc) = 3N + 2 HCU ops. At N=20: 62 ops — same as classic `computeChunk`, within the 60–74 mock budget.
+Each streaming call with N SNPs uses: N `FHE.fromExternal` (proof ops, not HCU-counted) + N `FHE.mul` + N `FHE.add` + N `FHE.add` (genoSum) + 2 `FHE.allowThis` (for acc and genoAcc) = 3N + 2 HCU ops. At N=20: 62 ops — same as classic `computeChunk`, within the 60-74 mock budget.
 
 ### Input proof constraint
 
@@ -63,7 +64,7 @@ Savings stabilise at ~37% above 500 SNPs. Both paths produce identical scores (v
 |-----------|-------------------|----------------------|-------|
 | SNP handle SSTORE (`snpData.push`) | ~25K | 0 | −25K |
 | ACL persistent SSTORE (`allowThis`) | ~25K | 0 | −25K |
-| `FHE.fromExternal` (proof verify) | ~40–60K | ~40–60K | ~0 |
+| `FHE.fromExternal` (proof verify) | ~40-60K | ~40-60K | ~0 |
 | `FHE.mul` | ~27K | ~27K | ~0 |
 | `FHE.add` | ~27K | ~27K | ~0 |
 | SLOAD (`snpData[jobId][i]`) | ~2K | 0 | −2K |
@@ -75,11 +76,11 @@ The ~62K savings per SNP are entirely from eliminating on-chain handle persisten
 
 ## What Cannot Be Optimised Further
 
-After streaming, the irreducible floor per SNP is ~95–96K gas — the FHE coprocessor operations themselves:
+After streaming, the irreducible floor per SNP is ~95-96K gas — the FHE coprocessor operations themselves:
 
 | Operation | Gas | Reducible? |
 |-----------|-----|-----------|
-| `FHE.fromExternal` + proof verify | ~40–60K | Only if proof scheme changes |
+| `FHE.fromExternal` + proof verify | ~40-60K | Only if proof scheme changes |
 | `FHE.mul` (euint64 × euint64) | ~27K | Only if coprocessor changes |
 | `FHE.add` (euint64 + euint64) | ~27K | Only if coprocessor changes |
 
