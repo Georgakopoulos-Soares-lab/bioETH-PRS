@@ -60,7 +60,7 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 | **ResultOracle** | Adds on-chain random DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
 | **BioETHPRS** (`contracts/legacy/HEPRS.sol`) | Legacy standalone prototype — embeds model directly, no marketplace dependency. Retained for onboarding and comparison. |
 
-Docs: [architecture](docs/architecture.md) · [quantization](docs/quantization.md) · [onboarding](docs/onboarding.md) · [reference & commands](docs/reference.md) · [findings](docs/findings.md) · [roadmap](docs/roadmap.md)
+Docs: [design](docs/design.md) · [onboarding](docs/onboarding.md) · [reference & commands](docs/reference.md) · [roadmap](docs/roadmap.md)
 
 ---
 
@@ -236,7 +236,7 @@ This script runs the current mock contract flow with the HEPRS fixture data and 
 Default behavior:
 
 * fixtures: `100`, `500`, `1000`, `5000`
-* `uploadChunkSize=32` (fhEVM input-proof limit), `computeChunkSize=20` (mock HCU ceiling — see [docs/findings.md](docs/findings.md))
+* `uploadChunkSize=32` (fhEVM input-proof limit), `computeChunkSize=20` (mock HCU ceiling — see [reports/classic-gas.md](reports/classic-gas.md))
 
 Common examples:
 
@@ -250,7 +250,7 @@ These timings are local Hardhat mock timings. They are useful for collaborator d
 
 See also:
 
-* historical baseline and advisor findings: [docs/findings.md](docs/findings.md)
+* historical baseline and advisor findings: [reports/classic-gas.md](reports/classic-gas.md) · [reports/streaming-gas.md](reports/streaming-gas.md)
 
 ---
 

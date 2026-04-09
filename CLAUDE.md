@@ -1,7 +1,5 @@
 # bioETH PRS — Claude Code Guide
 
-> Full project context lives in [AGENTS.md](AGENTS.md). This file adds Claude-specific guidance on top.
-
 ## Project in One Line
 
 Confidential on-chain Polygenic Risk Scoring via fhEVM — encrypted dot-product of genotype vectors × GWAS weights, no plaintext DNA ever touches validators.
@@ -42,9 +40,10 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 
 - **Encrypted types**: `euint64` for SNP values and weights, `euint8` for categorical outputs, `ebool` for comparisons.
 - **Multiplication**: Public weights use `FHE.mul(snp, FHE.asEuint64(weight))` (trivially encrypted — coprocessor optimizes C×P internally). Private weights use `FHE.mul(weight, snp)` (C×C).
-- **Chunked pattern**: `createPRSJob → appendSnpChunk (×N) → finalizeSnpUpload → computeChunk (×N) → finalize`. Each step is a separate transaction.
+- **Classic chunked pattern**: `createPRSJob → appendSnpChunk (×N) → finalizeSnpUpload → computeChunk (×N) → finalize`. Each step is a separate transaction. SNP handles persisted in `snpData[]`.
+- **Streaming pattern**: `createPRSJob → appendAndComputeChunk (×N) → finalize`. Upload and compute combined per chunk; no SNP handle storage. Saves ~37% gas. Preferred for single-requester flows.
 - **Import path**: Contracts import directly from `@fhevm/solidity/lib/FHE.sol` and inherit `ZamaEthereumConfig` from `@fhevm/solidity/config/ZamaConfig.sol`.
-- **Encrypted inputs**: Functions receiving user-encrypted data accept `externalEuint64` + `bytes inputProof`, then call `FHE.fromExternal()` + `FHE.allowThis()` before storing.
+- **Encrypted inputs**: Functions receiving user-encrypted data accept `externalEuint64` + `bytes inputProof`, then call `FHE.fromExternal()` + `FHE.allowThis()` before storing. Streaming path skips `allowThis` on intermediate handles.
 - **ACL discipline**: Call `FHE.allowThis(handle)` on every new handle stored in contract state. Call `FHE.allow(handle, user)` before returning handles to users.
 
 ## Slash Commands
@@ -53,15 +52,34 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 |---|---|
 | `/security-review` | FHE + blockchain security audit of contracts |
 | `/gas-profile` | Run gas profiling and interpret results |
+| `/research` | Domain research on FHE, PRS, GWAS, genomic privacy, quantization |
+
+## Coding Conventions
+
+When writing contracts or tests, read the relevant instruction file:
+
+| Working on | Read |
+|---|---|
+| Solidity contracts / FHE operations | [`.claude/instructions/solidity-fhevm.md`](.claude/instructions/solidity-fhevm.md) |
+| Hardhat tests / test utilities | [`.claude/instructions/hardhat-tests.md`](.claude/instructions/hardhat-tests.md) |
 
 ## Where to Look
 
+**Design & reference (`docs/`):**
+
 | Question | Go to |
 |---|---|
-| Architecture, design decisions, threat model | [docs/architecture.md](docs/architecture.md) |
-| Quantization math & overflow | [docs/quantization.md](docs/quantization.md) |
+| Architecture, design decisions, threat model, quantization | [docs/design.md](docs/design.md) |
 | Dev workflow commands, chunk sizes, validation tiers, Sepolia deployment | [docs/reference.md](docs/reference.md) |
 | New contributor onboarding & e2e example | [docs/onboarding.md](docs/onboarding.md) |
-| Benchmark findings & gas data | [docs/findings.md](docs/findings.md) |
 | Roadmap & active work | [docs/roadmap.md](docs/roadmap.md) |
 | HEPRS reference paper | [docs/PIIS2667237525003078.pdf](docs/PIIS2667237525003078.pdf) |
+
+**Empirical findings (`reports/`):**
+
+| Question | Go to |
+|---|---|
+| Classic path gas profile — HCU ceiling, phase breakdown, mock vs Sepolia | [reports/classic-gas.md](reports/classic-gas.md) |
+| Streaming path gas profile — 37% savings, trade-offs | [reports/streaming-gas.md](reports/streaming-gas.md) |
+| Quantization advisor — scale tiers, overflow safety | [reports/quantization-advisor.md](reports/quantization-advisor.md) |
+| Deployment cost — ETH/USD costs, network scenarios, when the math works | [reports/deployment-cost.md](reports/deployment-cost.md) |

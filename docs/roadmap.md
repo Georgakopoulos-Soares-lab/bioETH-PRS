@@ -14,9 +14,11 @@
 - `finalizeAndClassify` path — oracle-only finalization, no raw score exposed to requester
 - ACL revocation mid-compute documented and tested
 - 94 tests passing (mock FHE)
-- HEPRS fixture profiling (100/500/1000 SNPs on-chain; 5000 off-chain)
+- HEPRS fixture profiling — all four fixture sizes (100/500/1000/5000) confirmed on-chain
 - Mock HCU ceiling measured: 20 SNPs/tx (60–74 ops/tx budget)
+- `appendAndComputeChunk` streaming path implemented — 37% gas savings vs classic
 - Sepolia tooling ready: `deploy.ts`, `sepolia_validation.ts`, `probe_hcu_ceiling.ts`
+- Gas cost and deployment viability analysis complete (see `reports/`)
 
 ---
 
@@ -32,7 +34,7 @@ npm run validate:sepolia
 npm run probe:hcu
 ```
 
-After completion: update `docs/findings.md` with real HCU ceiling and gas costs. Update `computeChunkSize` in new model shells if ceiling changes.
+After completion: update `reports/classic-gas.md` Sepolia table with real HCU ceiling and gas costs. Update `computeChunkSize` in new model shells if ceiling changes.
 
 ---
 
@@ -58,7 +60,7 @@ After completion: update `docs/findings.md` with real HCU ceiling and gas costs.
 ## Research / Paper Work
 
 **Feasibility benchmark:**
-- Mock baseline: ✓ (see `docs/findings.md`)
+- Mock baseline: ✓ (see `reports/classic-gas.md`, `reports/streaming-gas.md`, `reports/deployment-cost.md`)
 - Real Sepolia: pending
 - Cost estimate: ~$150 naive → ~$45 optimized (trivial encryption, larger chunks)
 

@@ -56,4 +56,4 @@ If costs are too high, suggest in order of impact:
 
 ## Reference
 
-See [docs/reference.md](../../docs/reference.md) for the full workflow guide and [.github/skills/gas-profile/SKILL.md](../../.github/skills/gas-profile/SKILL.md) for the detailed skill definition.
+See [docs/reference.md](../../docs/reference.md) for the full workflow guide and [reports/classic-gas.md](../../reports/classic-gas.md) / [reports/streaming-gas.md](../../reports/streaming-gas.md) for empirical baseline data.

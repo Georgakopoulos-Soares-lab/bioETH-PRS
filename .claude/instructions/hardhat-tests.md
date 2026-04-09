@@ -1,8 +1,6 @@
----
-description: "Use when writing or modifying Hardhat tests, test utilities, or TypeScript test files for the bioETH PRS contracts."
-applyTo: "test/**"
----
 # Hardhat Test Patterns
+
+When writing or modifying Hardhat tests, test utilities, or TypeScript test files for the bioETH PRS contracts.
 
 ## Framework
 
@@ -55,7 +53,7 @@ const instance = (await Factory.deploy(constructorArgs)) as any;
 const address = await instance.getAddress();
 ```
 
-## Typical Integration Test Flow
+## Typical Integration Test Flow (Classic Path)
 
 1. Deploy GenomicRegistry, ModelMarketplace, PRSComputeEngine (with marketplace address), ResultOracle
 2. Register sample in registry, grant access
@@ -63,8 +61,17 @@ const address = await instance.getAddress();
 4. Create job: `createPRSJob(modelId, sampleId)`
 5. Encrypt SNP values with `encryptUint64Array`, call `appendSnpChunk` × N, then `finalizeSnpUpload`
 6. Relay compute: `computeChunk` × N (permissionless; anyone can call)
-7. Finalize: `finalize(jobId)` for raw score handle, or `finalizeAndClassify(jobId, oracle, low, high)` for oracle-only path
+7. Finalize: `finalizeAndClassify(jobId, oracle, low, high)`
 8. Assert results with `debugDecryptUint64` (mock) or `decryptUint64` (Sepolia)
+
+## Typical Integration Test Flow (Streaming Path)
+
+Steps 1–4 same as classic. Then:
+
+5. Encrypt SNP chunk and call `appendAndComputeChunk` × N (each call is both upload + compute)
+6. Finalize: `finalizeAndClassify(jobId, oracle, low, high)`
+
+No `finalizeSnpUpload` or separate `computeChunk` calls needed.
 
 ## Noise Bias in Oracle Tests
 

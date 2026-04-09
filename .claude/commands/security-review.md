@@ -2,17 +2,22 @@
 
 You are performing a security audit of the bioETH PRS smart contracts. This project uses Fully Homomorphic Encryption (fhEVM / TFHE) on Ethereum, so the threat model covers both standard Solidity vulnerabilities **and** FHE-specific attack vectors.
 
-Read the contracts in `contracts/` and check every category below. For each finding, report:
+Read **all** contracts before producing findings:
 
-- **Severity**: Critical / High / Medium / Low / Info
-- **Location**: file + line number
-- **Issue**: what the vulnerability is
-- **Impact**: what an attacker can do
-- **Mitigation**: concrete fix or next step
+- [`contracts/GenomicRegistry.sol`](../../contracts/GenomicRegistry.sol)
+- [`contracts/ModelMarketplace.sol`](../../contracts/ModelMarketplace.sol)
+- [`contracts/PRSComputeEngine.sol`](../../contracts/PRSComputeEngine.sol)
+- [`contracts/ResultOracle.sol`](../../contracts/ResultOracle.sol)
+- [`contracts/legacy/HEPRS.sol`](../../contracts/legacy/HEPRS.sol) — legacy standalone (no marketplace)
+
+Supporting context (read as needed):
+
+- [`docs/design.md`](../../docs/design.md) — threat model, state machine spec, quantization math, known gaps
+- [`CLAUDE.md`](../../CLAUDE.md) — security invariants section
 
 ---
 
-## Checklist
+## Audit Checklist
 
 ### 1. FHE Access Control (ACL)
 
@@ -32,6 +37,7 @@ Read the contracts in `contracts/` and check every category below. For each find
 - [ ] Verify that `computeChunk` cannot be called before `finalizeSnpUpload` sets the job to READY.
 - [ ] Verify that `appendSnpChunk` cannot be called after `finalizeSnpUpload` (no double-upload).
 - [ ] Verify that `finalize` cannot be called before all compute chunks are processed (`nextComputeIndex == totalChunks`).
+- [ ] Verify streaming vs classic path mutual exclusion: `appendAndComputeChunk` rejects if `uploadedSnpCount > 0`; `appendSnpChunk` rejects if streaming has started.
 - [ ] Check for integer underflow in chunk index arithmetic — e.g., if `totalChunks` is 0, does the state machine get stuck or allow premature finalization?
 - [ ] Check for job ID collision or enumeration attacks: can a user interfere with another user's job by guessing the job ID?
 
@@ -73,16 +79,47 @@ Read the contracts in `contracts/` and check every category below. For each find
 
 ---
 
+## Severity Definitions
+
+| Severity | Definition |
+|---|---|
+| Critical | Direct loss of funds, complete bypass of access control, or plaintext genomic data exposure |
+| High | Decryption of another user's score or weight without authorization; DP noise fully bypassable |
+| Medium | Access control bypass that grants elevated read/write permissions; state machine skippable |
+| Low | Missing guard that has no current exploit path but creates risk under certain conditions |
+| Info | Design notes, documentation gaps, or recommendations that do not constitute vulnerabilities |
+
+---
+
 ## Output Format
 
-For each issue found, use:
+For each finding:
 
 ```
-### [SEVERITY] Short title
-**Location**: contracts/Foo.sol:42
-**Issue**: ...
-**Impact**: ...
-**Mitigation**: ...
+[SEVERITY] Contract.function (file:line)
+Description: what the vulnerability is and why it matters in the FHE/genomic context.
+Exploit path: how an attacker would trigger it.
+Recommendation: specific code or design change to fix it.
 ```
 
-Group findings by severity (Critical → High → Medium → Low → Info). At the end, provide a one-paragraph summary of the overall security posture and the top 3 highest-priority fixes.
+After all findings, provide:
+
+1. **Summary table** — one row per finding with severity and contract
+2. **Key security properties confirmed** — list each invariant from `CLAUDE.md § Security Invariants` and state whether it holds
+3. **Comparison to current standards** — reference relevant audit standards:
+   - [Trail of Bits FHE Security](https://github.com/trailofbits/publications)
+   - [Zama fhEVM Security Model](https://docs.zama.ai/fhevm)
+   - [OpenZeppelin Contracts audit best practices](https://docs.openzeppelin.com/contracts)
+   - [SWC Registry](https://swcregistry.io/) for standard Solidity issues
+   - NIST SP 800-188 (De-identification of genomic data) for genomic privacy context
+
+---
+
+## Context: Known Accepted Risks
+
+These are documented design decisions that should be noted but not re-flagged as new findings unless the implementation deviates from the documented intent:
+
+- **Permissionless `computeChunk`**: Any address may relay computation. Documented in `docs/design.md`. Griefing impact is limited (no state corruption possible; only wasted compute gas for the relayer).
+- **Caller-supplied thresholds in `ResultOracle.classify()`**: `lowThreshold` and `highThreshold` are caller-supplied. This enables threshold probing but is mitigated by DP noise and intentional — the oracle is a generic classifier.
+- **Uniform noise (not Laplacian)**: `FHE.randEuint64(noiseUpperBound)` produces uniform noise. Formal DP calibration is future work. Documented in `docs/design.md §7-D`.
+- **No job expiry**: Abandoned jobs are a known storage griefing vector. Documented in `docs/design.md §7-F`.

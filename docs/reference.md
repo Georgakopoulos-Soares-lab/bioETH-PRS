@@ -167,8 +167,8 @@ This is async and takes seconds. The `sepolia_validation.ts` script handles the 
 1. Record deployed contract addresses
 2. Run `npm run probe:hcu` and note the real `computeChunkSize` ceiling
 3. Update `computeChunkSize` in any new `createModelShell` calls accordingly
-4. Fill in the "Sepolia" column in `docs/findings.md`
-5. Create `docs/findings.md § Sepolia Validation` with full results
+4. Fill in the "Sepolia" column in `reports/classic-gas.md`
+5. Add a `§ Sepolia Validation` section to `reports/classic-gas.md` with full results
 
 ### Troubleshooting
 

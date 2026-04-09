@@ -1,8 +1,6 @@
----
-description: "Use when writing or modifying Solidity contracts, especially with FHE encrypted types, TFHE operations, homomorphic computation, access control, or chunked computation patterns."
-applyTo: "**/*.sol"
----
 # Solidity + fhEVM Patterns
+
+When writing or modifying Solidity contracts, especially with FHE encrypted types, TFHE operations, homomorphic computation, access control, or chunked computation patterns.
 
 ## Import Paths
 
@@ -76,6 +74,8 @@ FHE.allow(score, requester);   // grant requester decrypt rights
 return score;
 ```
 
+**Streaming path exception:** In `appendAndComputeChunk`, intermediate SNP handles are consumed immediately and never stored — skip `FHE.allowThis` on them. Only call `FHE.allowThis` on the accumulated `partialSum` and `genoSum`.
+
 ## Multiplication Strategy
 
 | Model type | Weight storage | Operation | Gas |
@@ -87,12 +87,20 @@ return score;
 
 FHE operations have a per-transaction HCU (Homomorphic Compute Unit) budget. Each SNP requires 3 ops (trivial encrypt + mul + add). Mock ceiling: 20 SNPs/tx.
 
+**Classic path** (SNPs stored between transactions):
 ```
 createPRSJob(modelId, sampleId)
 appendSnpChunk(jobId, externalEuint64[], inputProof)   ← repeat, max 32/call
 finalizeSnpUpload(jobId)
 computeChunk(jobId)                                    ← repeat, max 20/call (mock)
-finalize(jobId) | finalizeAndClassify(jobId, oracle, low, high)
+finalizeAndClassify(jobId, oracle, low, high)
+```
+
+**Streaming path** (no SNP storage, ~37% cheaper):
+```
+createPRSJob(modelId, sampleId)
+appendAndComputeChunk(jobId, externalEuint64[], inputProof)  ← repeat, max 20/call
+finalizeAndClassify(jobId, oracle, low, high)
 ```
 
 State machine: `PENDING → UPLOADING → READY → COMPUTING → DONE`

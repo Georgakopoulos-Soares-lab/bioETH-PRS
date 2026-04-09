@@ -43,6 +43,15 @@ interface GasSummary {
   total: bigint;
 }
 
+// Streaming path collapses upload + compute into a single phase (no snpData storage).
+interface StreamingGasSummary {
+  publishModel: bigint;   // shared — model published once for both paths
+  createJob: bigint;
+  uploadAndCompute: bigint; // appendAndComputeChunk calls; replaces uploadSnps + compute
+  finalize: bigint;
+  total: bigint;
+}
+
 interface SuccessfulFixtureProfile {
   fixtureSize: HeprsFixtureSize;
   vectorLength: number;
@@ -51,6 +60,7 @@ interface SuccessfulFixtureProfile {
   recommendation: HeprsAdvisorRecommendation;
   chunkTiming: ChunkTimingSummary;
   gas: GasSummary;
+  streamingGas: StreamingGasSummary;
   status: "full_flow";
   timingsMs: {
     total: number;
@@ -65,6 +75,8 @@ interface SuccessfulFixtureProfile {
     finalizeSnpUpload: number;
     readPartial: number;
     finalize: number;
+    streamingUploadAndCompute: number;
+    streamingFinalize: number;
   };
 }
 
@@ -323,6 +335,47 @@ async function profileFixture(
     throw new Error(`Fixture ${fixtureSize} final score mismatch`);
   }
 
+  // --- Streaming path: appendAndComputeChunk (one call per compute chunk, no snpData storage) ---
+  // A second job is created against the same already-deployed engine and marketplace.
+  let streamingCreateJobGas = 0n;
+  await timed(async () => {
+    const tx = await engine.createPRSJob(modelId, sampleId);
+    streamingCreateJobGas = (await tx.wait())?.gasUsed ?? 0n;
+  });
+  const streamingJobId = await engine.jobCount() - 1n;
+
+  let streamingUploadAndComputeGas = 0n;
+  // Streaming chunks must match computeChunkSize (HCU budget), NOT uploadChunkSize.
+  // computeChunkSize=20 < 32 (fhEVM input-proof budget), so this is safe.
+  const streamingUploadAndComputeResult = await timed(async () => {
+    for (const chunk of chunkBigIntVector(snps, computeChunkSize)) {
+      const input = fhevm.createEncryptedInput(engineAddr, signer.address);
+      for (const v of chunk) input.add64(v);
+      const { handles, inputProof } = await input.encrypt();
+      const tx = await engine.appendAndComputeChunk(streamingJobId, handles, inputProof);
+      streamingUploadAndComputeGas += (await tx.wait())?.gasUsed ?? 0n;
+    }
+  });
+
+  let streamingFinalizeGas = 0n;
+  const streamingFinalizeResult = await timed(async () => {
+    const tx = await engine.finalize(streamingJobId);
+    const receipt = await tx.wait();
+    streamingFinalizeGas = receipt?.gasUsed ?? 0n;
+    const finalEvent = receipt!.logs.find(
+      (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
+    );
+    const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+    return fhevm.debugger.decryptEuint(FhevmType.euint64, scoreHandle);
+  });
+
+  if (streamingFinalizeResult.value !== expected) {
+    throw new Error(`Fixture ${fixtureSize} streaming score mismatch — expected ${expected}, got ${streamingFinalizeResult.value}`);
+  }
+
+  const streamingTotal = publishModelGas + streamingCreateJobGas + streamingUploadAndComputeGas + streamingFinalizeGas;
+  // --- end streaming path ---
+
   const chunkTotal = chunkTimes.reduce((sum, value) => sum + value, 0);
   const totalGas = publishModelGas + createJobGas + uploadSnpsGas + finalizeSnpUploadGas + computeGas + finalizeGas;
   return {
@@ -339,6 +392,13 @@ async function profileFixture(
       compute: computeGas,
       finalize: finalizeGas,
       total: totalGas
+    },
+    streamingGas: {
+      publishModel: publishModelGas,
+      createJob: streamingCreateJobGas,
+      uploadAndCompute: streamingUploadAndComputeGas,
+      finalize: streamingFinalizeGas,
+      total: streamingTotal
     },
     chunkTiming: {
       chunkCount: chunkTimes.length,
@@ -361,7 +421,9 @@ async function profileFixture(
       uploadSnps: uploadSnpsResult.ms,
       finalizeSnpUpload: finalizeSnpUploadResult.ms,
       readPartial: readPartialResult.ms,
-      finalize: finalizeResult.ms
+      finalize: finalizeResult.ms,
+      streamingUploadAndCompute: streamingUploadAndComputeResult.ms,
+      streamingFinalize: streamingFinalizeResult.ms
     }
   };
 }
@@ -380,10 +442,14 @@ function summarizeProfile(profile: FixtureProfile, verbose: boolean): string {
     `advisor: tier=${profile.recommendation.tier}, scale=${profile.recommendation.scale}, bits=${profile.recommendation.requiredWeightBits}/${profile.recommendation.requiredAccumulatorBits}`
   );
 
+  const gasSavings = profile.gas.total - profile.streamingGas.total;
+  const savingsPct = ((Number(gasSavings) / Number(profile.gas.total)) * 100).toFixed(1);
   lines.push(
-    `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, publishModel=${formatMs(profile.timingsMs.publishModel)}, createJob=${formatMs(profile.timingsMs.createJob)}, uploadSnps=${formatMs(profile.timingsMs.uploadSnps)}, finalizeSnpUpload=${formatMs(profile.timingsMs.finalizeSnpUpload)}, chunkTotal=${formatMs(profile.chunkTiming.totalMs)}, finalize=${formatMs(profile.timingsMs.finalize)}`,
+    `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, publishModel=${formatMs(profile.timingsMs.publishModel)}, createJob=${formatMs(profile.timingsMs.createJob)}, uploadSnps=${formatMs(profile.timingsMs.uploadSnps)}, finalizeSnpUpload=${formatMs(profile.timingsMs.finalizeSnpUpload)}, chunkTotal=${formatMs(profile.chunkTiming.totalMs)}, finalize=${formatMs(profile.timingsMs.finalize)}, stream.uploadAndCompute=${formatMs(profile.timingsMs.streamingUploadAndCompute)}, stream.finalize=${formatMs(profile.timingsMs.streamingFinalize)}`,
     `chunks: count=${profile.chunkTiming.chunkCount}, avg=${formatMs(profile.chunkTiming.averageMs)}, min=${formatMs(profile.chunkTiming.minMs)}, max=${formatMs(profile.chunkTiming.maxMs)}`,
-    `gas: total=${profile.gas.total}, publishModel=${profile.gas.publishModel}, createJob=${profile.gas.createJob}, uploadSnps=${profile.gas.uploadSnps}, finalizeSnpUpload=${profile.gas.finalizeSnpUpload}, compute=${profile.gas.compute}, finalize=${profile.gas.finalize}`
+    `gas (classic):  total=${profile.gas.total}, publishModel=${profile.gas.publishModel}, createJob=${profile.gas.createJob}, uploadSnps=${profile.gas.uploadSnps}, finalizeSnpUpload=${profile.gas.finalizeSnpUpload}, compute=${profile.gas.compute}, finalize=${profile.gas.finalize}`,
+    `gas (streaming): total=${profile.streamingGas.total}, publishModel=${profile.streamingGas.publishModel}, createJob=${profile.streamingGas.createJob}, uploadAndCompute=${profile.streamingGas.uploadAndCompute}, finalize=${profile.streamingGas.finalize}`,
+    `gas savings (streaming vs classic): ${gasSavings} (${savingsPct}%)`
   );
   if (verbose) {
     lines.push(`perChunkMs=${profile.chunkTiming.perChunkMs.map((value) => value.toFixed(2)).join(", ")}`);

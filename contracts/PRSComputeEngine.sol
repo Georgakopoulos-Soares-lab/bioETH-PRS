@@ -174,6 +174,11 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             "Invalid SNP chunk length"
         );
 
+        require(
+            !(job.nextChunkIndex > 0 && job.uploadedSnpCount == 0),
+            "Streaming path in use"
+        );
+
         euint64[] storage store = snpData[jobId];
         for (uint256 i = 0; i < encryptedSnps.length; i++) {
             euint64 snp = FHE.fromExternal(encryptedSnps[i], inputProof);
@@ -240,6 +245,82 @@ contract PRSComputeEngine is ZamaEthereumConfig {
                     FHE.mul(snps[i], FHE.asEuint64(publicWeights[i]))
                 );
                 genoAcc = FHE.add(genoAcc, snps[i]);
+            }
+        }
+
+        FHE.allowThis(acc);
+        FHE.allowThis(genoAcc);
+
+        uint256 processedWeights = job.processedWeights + chunkLen;
+        job.partialSum = acc;
+        job.genoSum = genoAcc;
+        job.processedWeights = processedWeights;
+        job.nextChunkIndex = chunkIndex + 1;
+        if (job.nextChunkIndex == job.chunkCount) {
+            job.complete = true;
+        }
+
+        emit ChunkComputed(jobId, chunkIndex, processedWeights, job.complete);
+    }
+
+    /// @notice Streaming variant: upload one compute-chunk of SNPs and immediately
+    ///         accumulate their weighted contribution into partialSum/genoSum in the
+    ///         same transaction.  No SNP handles are written to contract storage —
+    ///         they are consumed by FHE.mul/add and discarded, eliminating all
+    ///         per-SNP SSTORE costs that the classic appendSnpChunk path incurs.
+    ///
+    ///         Chunk size is governed by computeChunkSize (HCU budget) rather than
+    ///         uploadChunkSize.  The fhEVM input-proof budget is 32 euint64s per tx;
+    ///         this is satisfied so long as computeChunkSize <= 32 (mock ceiling: 20).
+    ///
+    ///         This path is mutually exclusive with the classic appendSnpChunk path.
+    ///         Call createPRSJob first, then call this function ceil(N/computeChunkSize)
+    ///         times, then call finalize — no finalizeSnpUpload or computeChunk needed.
+    function appendAndComputeChunk(
+        uint256 jobId,
+        externalEuint64[] calldata encryptedSnps,
+        bytes calldata inputProof
+    ) external {
+        require(jobId < jobs.length, "Invalid job");
+        Job storage job = jobs[jobId];
+        require(job.requester == msg.sender, "Not requester");
+        require(!job.complete, "Job already complete");
+        require(job.uploadedSnpCount == 0, "Classic upload path in use");
+
+        uint256 chunkIndex = job.nextChunkIndex;
+        require(chunkIndex < job.chunkCount, "Invalid chunk");
+
+        uint256 chunkLen = _computeChunkLength(
+            job.weightCount,
+            job.computeChunkSize,
+            chunkIndex
+        );
+        require(encryptedSnps.length == chunkLen, "Invalid SNP chunk length");
+
+        euint64 acc = job.partialSum;
+        euint64 genoAcc = job.genoSum;
+
+        if (job.isPrivate) {
+            euint64[] memory encryptedWeights = marketplace
+                .getEncryptedWeightChunk(job.modelId, chunkIndex);
+            require(encryptedWeights.length == chunkLen, "Invalid model chunk");
+            for (uint256 i = 0; i < chunkLen; i++) {
+                euint64 snp = FHE.fromExternal(encryptedSnps[i], inputProof);
+                // No FHE.allowThis(snp) — handle consumed immediately, not stored
+                acc = FHE.add(acc, FHE.mul(encryptedWeights[i], snp));
+                genoAcc = FHE.add(genoAcc, snp);
+            }
+        } else {
+            uint64[] memory publicWeights = marketplace.getPublicWeightChunk(
+                job.modelId,
+                chunkIndex
+            );
+            require(publicWeights.length == chunkLen, "Invalid model chunk");
+            for (uint256 i = 0; i < chunkLen; i++) {
+                euint64 snp = FHE.fromExternal(encryptedSnps[i], inputProof);
+                // No FHE.allowThis(snp) — handle consumed immediately, not stored
+                acc = FHE.add(acc, FHE.mul(snp, FHE.asEuint64(publicWeights[i])));
+                genoAcc = FHE.add(genoAcc, snp);
             }
         }
 
