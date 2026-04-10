@@ -446,9 +446,7 @@ contract ModelMarketplace is ZamaEthereumConfig {
         emit OracleRequirementSet(modelId, required);
     }
 
-    function isOracleRequired(
-        uint256 modelId
-    ) external view returns (bool) {
+    function isOracleRequired(uint256 modelId) external view returns (bool) {
         require(modelId < modelHeaders.length, "Invalid model");
         return oracleRequired[modelId];
     }
