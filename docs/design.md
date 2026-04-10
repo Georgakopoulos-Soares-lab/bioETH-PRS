@@ -459,6 +459,10 @@ Never violate these:
 
 9. **Minimum threshold gap.** `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound`. Prevents attackers from choosing thresholds so narrow that classification becomes deterministic, defeating the DP noise.
 
+10. **Approved oracle enforcement.** When `oracleRequired` is true, `finalizeAndClassify()` validates that the caller-supplied oracle address matches the one registered via `setApprovedOracle(modelId, oracle)`. Without this check, the oracle-required flag could be trivially bypassed by passing a no-op oracle that skips DP noise. Attempting `finalizeAndClassify` without an approved oracle set reverts with "No approved oracle set for model".
+
+11. **Single-finalize per job.** `finalize()`, `finalizeTo()`, and `finalizeAndClassify()` each set a `finalized` flag on the job and revert on any subsequent call. Prevents a requester from issuing multiple score handles for the same job, which would generate redundant FHE ops and could be exploited to probe the oracle multiple times per rate-limit slot.
+
 ---
 
 ## 7. Known Gaps & Risks
@@ -490,9 +494,15 @@ Block-based windows (`block.number`) are used instead of timestamps (`block.time
 
 Both behaviours are intentional for v1 and tested.
 
-### Incomplete jobs
+### Job cancellation
 
-No cancellation or expiry. Jobs with partial SNP uploads that are never finalised persist indefinitely. Storage gap, not a security risk.
+`cancelJob(jobId)` allows the requester to abandon any non-complete job. Cancellation is permanent — all subsequent operations (upload, compute, finalize) revert. SNP storage (`snpData[jobId]`) is deleted on cancel to reclaim gas from classic-path uploads. The rate limit slot consumed at creation is refunded if the current block window is still active, allowing an immediate replacement job.
+
+Complete jobs cannot be cancelled — the requester can simply choose not to finalize.
+
+### `computeChunk` is permissionless (by design)
+
+`computeChunk(jobId)` (classic path) has no `require(job.requester == msg.sender)` guard — any address may advance the compute for any job. This is intentional: compute is deterministic and non-interactive, so a third party advancing a job does not affect correctness or confidentiality. The gas cost falls on whoever calls it, which is a disincentive for griefing but not a hard restriction. `appendAndComputeChunk` (streaming path) does require the requester because upload and compute are coupled in the same call.
 
 ### URI observability
 

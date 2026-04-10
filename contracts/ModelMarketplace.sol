@@ -49,6 +49,12 @@ contract ModelMarketplace is ZamaEthereumConfig {
     // --- Oracle-required mode (DP hardening) ---
     mapping(uint256 => bool) private oracleRequired;
 
+    // --- Approved oracles (oracle-required enforcement) ---
+    // When oracleRequired[modelId] is true, finalizeAndClassify() enforces that
+    // the caller-supplied oracle address matches this value — preventing bypass
+    // of the DP noise layer via a custom no-op oracle contract.
+    mapping(uint256 => address) private approvedOracles;
+
     event ModelShellCreated(
         uint256 indexed modelId,
         address indexed owner,
@@ -79,6 +85,7 @@ contract ModelMarketplace is ZamaEthereumConfig {
         uint256 windowBlocks
     );
     event OracleRequirementSet(uint256 indexed modelId, bool required);
+    event ApprovedOracleSet(uint256 indexed modelId, address oracle);
 
     function createModelShell(
         bool isPrivate,
@@ -449,6 +456,25 @@ contract ModelMarketplace is ZamaEthereumConfig {
     function isOracleRequired(uint256 modelId) external view returns (bool) {
         require(modelId < modelHeaders.length, "Invalid model");
         return oracleRequired[modelId];
+    }
+
+    // --- Approved oracle registry ---
+
+    /// @notice Register a trusted oracle for this model.  When oracle-required mode
+    ///         is enabled, PRSComputeEngine.finalizeAndClassify() enforces that the
+    ///         oracle argument matches this address — preventing callers from routing
+    ///         output through a no-op oracle that skips DP noise.
+    ///         Set to address(0) to clear the approved oracle.
+    function setApprovedOracle(uint256 modelId, address oracle) external {
+        require(modelId < modelHeaders.length, "Invalid model");
+        require(modelHeaders[modelId].owner == msg.sender, "Not owner");
+        approvedOracles[modelId] = oracle;
+        emit ApprovedOracleSet(modelId, oracle);
+    }
+
+    function getApprovedOracle(uint256 modelId) external view returns (address) {
+        require(modelId < modelHeaders.length, "Invalid model");
+        return approvedOracles[modelId];
     }
 
     function modelCount() external view returns (uint256) {

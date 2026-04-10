@@ -364,6 +364,9 @@ describe("DP Hardening — oracle-required mode", function () {
     const oracle = await Oracle.deploy(128n);
     const oracleAddr = await oracle.getAddress();
 
+    // Register the oracle so the engine's oracle-required validation passes
+    await marketplace.setApprovedOracle(modelId, oracleAddr);
+
     const jobId = await runCompleteJob(
       engine, marketplace, modelId, sampleId,
       [4n, 5n], 2, signer

@@ -500,17 +500,18 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       const oracle = await Oracle.deploy(128n);
       const oracleAddr = await oracle.getAddress();
 
-      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
+      // --- Part 1: finalizeTo path — oracle gets the handle, but direct EOA call fails ---
+      const jobId1 = await engine.createPRSJob.staticCall(modelId, sampleId);
       await engine.createPRSJob(modelId, sampleId);
       for (const chunk of chunkArray([4n, 5n, 6n], 2)) {
         const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
-        await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
+        await engine.appendSnpChunk(jobId1, enc.handles, enc.inputProof);
       }
-      await engine.finalizeSnpUpload(jobId);
-      await engine.computeChunk(jobId);
-      await engine.computeChunk(jobId);
+      await engine.finalizeSnpUpload(jobId1);
+      await engine.computeChunk(jobId1);
+      await engine.computeChunk(jobId1);
 
-      const tx = await engine.finalizeTo(jobId, oracleAddr);
+      const tx = await engine.finalizeTo(jobId1, oracleAddr);
       const receipt = await tx.wait();
       const finalEvent = receipt!.logs.find(
         (log: any) => engine.interface.parseLog(log)?.name === "JobFinalizedFor"
@@ -529,7 +530,19 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
         oracle.classifyPreauthorized(scoreHandle, 200n, 400n)
       ).to.be.reverted;
 
-      const oracleTx = await engine.finalizeAndClassify(jobId, oracleAddr, 200n, 400n);
+      // --- Part 2: finalizeAndClassify path — atomic engine→oracle handoff ---
+      // Uses a second job because finalizeTo above already finalised jobId1.
+      const jobId2 = await engine.createPRSJob.staticCall(modelId, sampleId);
+      await engine.createPRSJob(modelId, sampleId);
+      for (const chunk of chunkArray([4n, 5n, 6n], 2)) {
+        const enc = await encryptUint64Array(engineAddr, signer.address, chunk);
+        await engine.appendSnpChunk(jobId2, enc.handles, enc.inputProof);
+      }
+      await engine.finalizeSnpUpload(jobId2);
+      await engine.computeChunk(jobId2);
+      await engine.computeChunk(jobId2);
+
+      const oracleTx = await engine.finalizeAndClassify(jobId2, oracleAddr, 200n, 400n);
       const oracleReceipt = await oracleTx.wait();
       const classifyEvent = oracleReceipt!.logs.find(
         (log: any) => oracle.interface.parseLog(log)?.name === "ResultClassified"

@@ -45,6 +45,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         bool complete;
         uint64 weightZeroPoint;
         uint64 scoreOffset;
+        bool finalized; // true after any finalize path — prevents double-finalize
+        bool cancelled; // true after cancelJob — blocks all further operations
     }
 
     ModelMarketplace public marketplace;
@@ -92,6 +94,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         address indexed grantee,
         euint64 encodedScore
     );
+    event JobCancelled(uint256 indexed jobId, address indexed requester);
 
     constructor(address marketplaceAddress, address registryAddress) {
         marketplace = ModelMarketplace(marketplaceAddress);
@@ -154,7 +157,9 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             snpsFinalized: false,
             complete: false,
             weightZeroPoint: weightZeroPoint,
-            scoreOffset: scoreOffset
+            scoreOffset: scoreOffset,
+            finalized: false,
+            cancelled: false
         });
 
         jobs.push(job);
@@ -217,6 +222,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         Job storage job = jobs[jobId];
         require(job.snpsFinalized, "SNP upload not finalized");
         require(!job.complete, "Job already complete");
+        require(!job.cancelled, "Job cancelled");
 
         uint256 chunkIndex = job.nextChunkIndex;
         require(chunkIndex < job.chunkCount, "Invalid chunk");
@@ -296,6 +302,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         Job storage job = jobs[jobId];
         require(job.requester == msg.sender, "Not requester");
         require(!job.complete, "Job already complete");
+        require(!job.cancelled, "Job cancelled");
         require(job.uploadedSnpCount == 0, "Classic upload path in use");
 
         uint256 chunkIndex = job.nextChunkIndex;
@@ -354,6 +361,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         require(jobId < jobs.length, "Invalid job");
         Job storage job = jobs[jobId];
         require(job.requester == msg.sender, "Not requester");
+        require(!job.cancelled, "Job cancelled");
         require(
             !marketplace.isOracleRequired(job.modelId),
             "Model requires oracle finalization"
@@ -374,12 +382,14 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     ///         model-weight-extraction attacks via adaptive probing.
     function finalize(uint256 jobId) external returns (euint64) {
         Job storage job = _requireOwnedCompleteJob(jobId);
+        require(!job.finalized, "Job already finalized");
         require(
             !marketplace.isOracleRequired(job.modelId),
             "Model requires oracle finalization"
         );
         euint64 encodedScore = _encodeFinalScore(job);
         encodedScore = FHE.allow(encodedScore, msg.sender);
+        job.finalized = true;
 
         emit JobFinalized(jobId, msg.sender, encodedScore);
         return encodedScore;
@@ -402,12 +412,14 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     ) external returns (euint64) {
         require(grantee != address(0), "Invalid grantee");
         Job storage job = _requireOwnedCompleteJob(jobId);
+        require(!job.finalized, "Job already finalized");
         require(
             !marketplace.isOracleRequired(job.modelId),
             "Model requires oracle finalization"
         );
         euint64 encodedScore = _encodeFinalScore(job);
         encodedScore = FHE.allow(encodedScore, grantee);
+        job.finalized = true;
 
         emit JobFinalizedFor(jobId, msg.sender, grantee, encodedScore);
         return encodedScore;
@@ -428,11 +440,23 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     ) external returns (euint8) {
         require(oracle != address(0), "Invalid oracle");
         Job storage job = _requireOwnedCompleteJob(jobId);
+        require(!job.finalized, "Job already finalized");
+
+        // When oracle-required mode is active, the oracle must match the address
+        // approved by the model owner — otherwise callers could pass a no-op oracle
+        // contract that skips DP noise, defeating the oracle-required protection.
+        if (marketplace.isOracleRequired(job.modelId)) {
+            address approved = marketplace.getApprovedOracle(job.modelId);
+            require(approved != address(0), "No approved oracle set for model");
+            require(oracle == approved, "Oracle not approved for model");
+        }
+
         euint64 encodedScore = _encodeFinalScore(job);
 
         // Grant the oracle contract ACL access so classifyPreauthorized can
         // import the handle via FHE.fromExternal(handle, hex"").
         FHE.allow(encodedScore, oracle);
+        job.finalized = true;
 
         emit JobFinalizedFor(jobId, msg.sender, oracle, encodedScore);
         return
@@ -447,6 +471,52 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     function getPartialSum(uint256 jobId) external view returns (euint64) {
         require(jobId < jobs.length, "Invalid job");
         return jobs[jobId].partialSum;
+    }
+
+    /// @notice Cancel an incomplete job, reclaim SNP storage, and refund the rate
+    ///         limit slot if the current window is still active.
+    ///
+    /// @dev    Cancellation is permanent — all subsequent operations on the job revert.
+    ///         Complete jobs cannot be cancelled; the requester may simply not call
+    ///         finalize if they want to abandon a completed job.
+    ///
+    ///         SNP storage (`snpData[jobId]`) is deleted to reclaim gas on classic-path
+    ///         jobs.  The rate limit slot consumed at creation is refunded if the block
+    ///         window has not yet expired, allowing an immediate replacement job.
+    function cancelJob(uint256 jobId) external {
+        require(jobId < jobs.length, "Invalid job");
+        Job storage job = jobs[jobId];
+        require(job.requester == msg.sender, "Not requester");
+        require(!job.complete, "Job already complete");
+        require(!job.cancelled, "Already cancelled");
+
+        job.cancelled = true;
+        delete snpData[jobId];
+
+        // Refund the rate limit slot if the window is still open.
+        (uint256 maxJobs, uint256 windowBlocks) = marketplace.getRateLimitConfig(
+            job.modelId
+        );
+        if (maxJobs > 0) {
+            RequesterWindow storage w = requesterWindows[job.modelId][msg.sender];
+            if (
+                block.number < w.windowStart + windowBlocks && w.jobCount > 0
+            ) {
+                w.jobCount -= 1;
+            }
+        }
+
+        emit JobCancelled(jobId, msg.sender);
+    }
+
+    function isJobFinalized(uint256 jobId) external view returns (bool) {
+        require(jobId < jobs.length, "Invalid job");
+        return jobs[jobId].finalized;
+    }
+
+    function isJobCancelled(uint256 jobId) external view returns (bool) {
+        require(jobId < jobs.length, "Invalid job");
+        return jobs[jobId].cancelled;
     }
 
     function jobCount() external view returns (uint256) {
@@ -499,6 +569,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         require(jobId < jobs.length, "Invalid job");
         job = jobs[jobId];
         require(job.requester == msg.sender, "Not requester");
+        require(!job.cancelled, "Job cancelled");
         require(!job.snpsFinalized, "SNP upload finalized");
     }
 

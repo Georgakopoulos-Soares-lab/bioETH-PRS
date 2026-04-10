@@ -38,6 +38,8 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 7. **Rate limiting** — `createPRSJob` enforces per-model, per-wallet, block-windowed job count limits when configured via `ModelMarketplace.setRateLimit`. Default is unlimited (backwards-compatible).
 8. **Oracle-required mode** — when `ModelMarketplace.setOracleRequired(modelId, true)` is set, `finalize()`, `finalizeTo()`, and `readPartial()` revert. Only `finalizeAndClassify()` (oracle path with DP noise) is allowed.
 9. **Minimum threshold gap** — `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound` to prevent threshold probing that defeats DP noise.
+10. **Approved oracle enforcement** — when `oracleRequired` is true, `finalizeAndClassify()` validates the oracle address against `ModelMarketplace.getApprovedOracle(modelId)`. Model owner must call `setApprovedOracle(modelId, oracleAddr)` before enabling oracle-required mode. Prevents bypass via a custom no-op oracle.
+11. **Single-finalize per job** — `finalize()`, `finalizeTo()`, and `finalizeAndClassify()` set `job.finalized = true` and revert on any second call. Prevents redundant FHE ops and multiple oracle invocations per rate-limit slot.
 
 ## Key Conventions
 
