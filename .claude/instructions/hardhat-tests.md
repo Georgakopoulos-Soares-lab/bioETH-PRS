@@ -75,9 +75,33 @@ No `finalizeSnpUpload` or separate `computeChunk` calls needed.
 
 ## Noise Bias in Oracle Tests
 
-ResultOracle adds `[0, noiseUpperBound)` uniform noise. Call `oracle.expectedNoiseBias()` to get `noiseUpperBound/2` and add it to thresholds:
+ResultOracle adds `[0, noiseUpperBound)` uniform noise. Call `oracle.expectedNoiseBias()` to get `noiseUpperBound/2` and add it to thresholds. Thresholds must satisfy the minimum gap: `highThreshold - lowThreshold >= noiseUpperBound`.
 
 ```typescript
 const bias = await oracle.expectedNoiseBias();
-await engine.finalizeAndClassify(jobId, oracle.target, intendedLow + bias, intendedHigh + bias);
+const low = intendedLow + bias;
+const high = low + BigInt(noiseUpperBound); // minimum gap = noiseUpperBound
+await engine.finalizeAndClassify(jobId, oracle.target, low, high);
+```
+
+## Rate Limiting in Tests
+
+Models default to unlimited (no rate limit). To test rate-limited flows:
+
+```typescript
+// Set rate limit: max 3 jobs per 1000-block window
+await marketplace.setRateLimit(modelId, 3n, 1000n);
+
+// Mine blocks to expire window
+await network.provider.send("hardhat_mine", ["0x3E8"]); // 1000 blocks in hex
+```
+
+## Oracle-Required Mode in Tests
+
+When testing `oracleRequired` models, `finalize()` and `finalizeTo()` will revert. Use `finalizeAndClassify()` instead:
+
+```typescript
+await marketplace.setOracleRequired(modelId, true);
+// finalize(jobId) → reverts with "Model requires oracle finalization"
+// finalizeAndClassify(jobId, oracle, low, high) → works
 ```

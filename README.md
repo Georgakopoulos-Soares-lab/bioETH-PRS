@@ -80,6 +80,7 @@ test/
   registry_marketplace_oracle_test.ts   End-to-end integration test
   heprs_fixture_test.ts      HEPRS fixture integration + overflow tests
   quantization_advisor_test.ts          Advisor recommendation tests
+  rate_limit_dp_test.ts      Rate limiting + DP hardening tests
   scale_ceiling_reference_test.ts       Overflow-screen reference tests
   utils/fhevm-helpers.ts     fhevmjs helpers (encryptUint64Array, debugDecrypt)
 scripts/
@@ -174,6 +175,7 @@ For a fuller command cookbook, including single-file test runs, `--grep` usage, 
 | `test/registry_marketplace_oracle_test.ts` | Cross-contract integration test covering registry ACL, marketplace-backed PRS, and oracle classification. |
 | `test/heprs_fixture_test.ts` | HEPRS-backed integration coverage using fixed advisor recommendations across the staged job-upload flow. |
 | `test/bioeth_prs_test.ts` | Legacy `BioETHPRS` prototype behavior using the older embedded-model path (`contracts/legacy/HEPRS.sol`). |
+| `test/rate_limit_dp_test.ts` | Rate limiting (windowed per-model per-wallet), oracle-required mode, and minimum threshold gap enforcement. |
 | `test/quantization_advisor_test.ts` | Advisor recommendation ranking and CLI-summary behavior. |
 | `test/scale_ceiling_reference_test.ts` | Quick overflow-screen reference logic. |
 

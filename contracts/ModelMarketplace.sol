@@ -39,6 +39,16 @@ contract ModelMarketplace is ZamaEthereumConfig {
     mapping(uint256 => euint64[]) private encryptedWeightData;
     mapping(uint256 => mapping(address => bool)) private privateChunkReaders;
 
+    // --- Rate limiting (anti-probing) ---
+    struct RateLimitConfig {
+        uint256 maxJobsPerWindow; // 0 = unlimited (default)
+        uint256 windowBlocks; // window size in blocks
+    }
+    mapping(uint256 => RateLimitConfig) private rateLimitConfigs;
+
+    // --- Oracle-required mode (DP hardening) ---
+    mapping(uint256 => bool) private oracleRequired;
+
     event ModelShellCreated(
         uint256 indexed modelId,
         address indexed owner,
@@ -63,6 +73,12 @@ contract ModelMarketplace is ZamaEthereumConfig {
         address indexed reader,
         bool allowed
     );
+    event RateLimitSet(
+        uint256 indexed modelId,
+        uint256 maxJobsPerWindow,
+        uint256 windowBlocks
+    );
+    event OracleRequirementSet(uint256 indexed modelId, bool required);
 
     function createModelShell(
         bool isPrivate,
@@ -383,6 +399,58 @@ contract ModelMarketplace is ZamaEthereumConfig {
             result[i] = encryptedWeightData[modelId][start + i];
         }
         return result;
+    }
+
+    // --- Rate limiting ---
+
+    /// @notice Configure per-wallet query limits for a model.  Model owner can
+    ///         tighten (or loosen) limits at any time, even after finalization.
+    /// @param maxJobsPerWindow  Maximum jobs any single wallet may create within
+    ///                          one window.  Set to 0 to disable rate limiting.
+    /// @param windowBlocks      Window size in blocks.  On Sepolia (~12 s/block),
+    ///                          1000 blocks ≈ 3.3 hours.
+    function setRateLimit(
+        uint256 modelId,
+        uint256 maxJobsPerWindow,
+        uint256 windowBlocks
+    ) external {
+        require(modelId < modelHeaders.length, "Invalid model");
+        require(modelHeaders[modelId].owner == msg.sender, "Not owner");
+        if (maxJobsPerWindow > 0) {
+            require(windowBlocks > 0, "Window must be > 0 when limit is set");
+        }
+        rateLimitConfigs[modelId] = RateLimitConfig(
+            maxJobsPerWindow,
+            windowBlocks
+        );
+        emit RateLimitSet(modelId, maxJobsPerWindow, windowBlocks);
+    }
+
+    function getRateLimitConfig(
+        uint256 modelId
+    ) external view returns (uint256 maxJobsPerWindow, uint256 windowBlocks) {
+        require(modelId < modelHeaders.length, "Invalid model");
+        RateLimitConfig storage cfg = rateLimitConfigs[modelId];
+        return (cfg.maxJobsPerWindow, cfg.windowBlocks);
+    }
+
+    // --- Oracle-required mode ---
+
+    /// @notice When enabled, finalize() / finalizeTo() / readPartial() revert
+    ///         for this model — forcing all output through the oracle's DP noise
+    ///         layer via finalizeAndClassify().
+    function setOracleRequired(uint256 modelId, bool required) external {
+        require(modelId < modelHeaders.length, "Invalid model");
+        require(modelHeaders[modelId].owner == msg.sender, "Not owner");
+        oracleRequired[modelId] = required;
+        emit OracleRequirementSet(modelId, required);
+    }
+
+    function isOracleRequired(
+        uint256 modelId
+    ) external view returns (bool) {
+        require(modelId < modelHeaders.length, "Invalid model");
+        return oracleRequired[modelId];
     }
 
     function modelCount() external view returns (uint256) {

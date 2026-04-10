@@ -12,6 +12,7 @@ npm run test                     # run all tests via mock coprocessor
 npx hardhat test test/prs_compute_engine_chunked_snp_test.ts
 npx hardhat test test/registry_marketplace_oracle_test.ts
 npx hardhat test test/heprs_fixture_test.ts
+npx hardhat test test/rate_limit_dp_test.ts
 
 # Full offline validation bundle (build + test + profile + advisors)
 npm run validate:local

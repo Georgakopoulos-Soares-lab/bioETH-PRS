@@ -30,11 +30,14 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 ## Security Invariants — Never Violate
 
 1. **No raw scores publicly decryptable** — `FHE.makePubliclyDecryptable` only on risk categories (`euint8`), never on `partialSum` or final PRS scores (`euint64`).
-2. **ACL on every encrypted output** — every `euint64` returned to a user must have `FHE.allow(handle, userAddress)` before the function returns.
+2. **ACL on every encrypted output** — every `euint64` returned to a user must have `FHE.allow(handle, userAddress)` before the function returns. `finalizeAndClassify` must call `FHE.allow(encodedScore, oracle)` before the oracle handoff.
 3. **Quantization ceiling** — `scale × 2 × N_snps` must fit in `uint64` (max ~1.8×10^19). At scale 10^8 and 5000 SNPs: 10^12 ✓. Run `npm run advisor:quantization` before deploying new models.
 4. **On-chain noise only** — `ResultOracle` generates noise via `FHE.randEuint64(noiseUpperBound)`. The old caller-supplied noise parameter has been removed. Zero-noise calls are impossible.
 5. **Registry ACL enforced** — `PRSComputeEngine.createPRSJob` checks `GenomicRegistry.hasAccess(sampleId, msg.sender)`. Do not assume compute chunks also re-check (they don't).
 6. **State machine integrity** — PRS job transitions: `PENDING → UPLOADING → READY → COMPUTING → DONE`. Never allow compute calls before `finalizeSnpUpload` completes.
+7. **Rate limiting** — `createPRSJob` enforces per-model, per-wallet, block-windowed job count limits when configured via `ModelMarketplace.setRateLimit`. Default is unlimited (backwards-compatible).
+8. **Oracle-required mode** — when `ModelMarketplace.setOracleRequired(modelId, true)` is set, `finalize()`, `finalizeTo()`, and `readPartial()` revert. Only `finalizeAndClassify()` (oracle path with DP noise) is allowed.
+9. **Minimum threshold gap** — `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound` to prevent threshold probing that defeats DP noise.
 
 ## Key Conventions
 

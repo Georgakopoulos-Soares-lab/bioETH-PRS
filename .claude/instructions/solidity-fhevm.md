@@ -76,6 +76,8 @@ return score;
 
 **Streaming path exception:** In `appendAndComputeChunk`, intermediate SNP handles are consumed immediately and never stored — skip `FHE.allowThis` on them. Only call `FHE.allowThis` on the accumulated `partialSum` and `genoSum`.
 
+**Oracle handoff:** In `finalizeAndClassify`, call `FHE.allow(encodedScore, oracle)` before the `classifyPreauthorized` call so the oracle contract can import the handle.
+
 ## Multiplication Strategy
 
 | Model type | Weight storage | Operation | Gas |
@@ -104,6 +106,18 @@ finalizeAndClassify(jobId, oracle, low, high)
 ```
 
 State machine: `PENDING → UPLOADING → READY → COMPUTING → DONE`
+
+## Rate Limiting
+
+Model owners configure per-wallet query limits via `ModelMarketplace.setRateLimit(modelId, maxJobsPerWindow, windowBlocks)`. Enforced at `createPRSJob`. Default is unlimited.
+
+## Oracle-Required Mode
+
+Model owners can enforce DP noise on all output: `ModelMarketplace.setOracleRequired(modelId, true)`. When set, `finalize()`, `finalizeTo()`, and `readPartial()` revert — only `finalizeAndClassify()` is allowed.
+
+## Minimum Threshold Gap
+
+`ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound` to prevent threshold probing.
 
 ## Overflow Safety
 

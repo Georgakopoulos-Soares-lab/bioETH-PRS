@@ -53,6 +53,14 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     // Flat per-job SNP storage — indexed by absolute SNP position.
     mapping(uint256 => euint64[]) private snpData;
 
+    // --- Rate limiting (anti-probing) ---
+    struct RequesterWindow {
+        uint256 windowStart; // block number when current window began
+        uint256 jobCount; // jobs created in current window
+    }
+    mapping(uint256 => mapping(address => RequesterWindow))
+        private requesterWindows;
+
     event JobCreated(
         uint256 indexed jobId,
         uint256 indexed modelId,
@@ -122,6 +130,9 @@ contract PRSComputeEngine is ZamaEthereumConfig {
                 "Requester not authorized for private model"
             );
         }
+
+        // Rate limit enforcement — prevents weight-extraction probing attacks.
+        _enforceRateLimit(modelId, msg.sender);
 
         euint64 zero = FHE.asEuint64(0);
         FHE.allowThis(zero);
@@ -343,6 +354,10 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         require(jobId < jobs.length, "Invalid job");
         Job storage job = jobs[jobId];
         require(job.requester == msg.sender, "Not requester");
+        require(
+            !marketplace.isOracleRequired(job.modelId),
+            "Model requires oracle finalization"
+        );
         job.partialSum = FHE.allow(job.partialSum, msg.sender);
         return job.partialSum;
     }
@@ -359,6 +374,10 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     ///         model-weight-extraction attacks via adaptive probing.
     function finalize(uint256 jobId) external returns (euint64) {
         Job storage job = _requireOwnedCompleteJob(jobId);
+        require(
+            !marketplace.isOracleRequired(job.modelId),
+            "Model requires oracle finalization"
+        );
         euint64 encodedScore = _encodeFinalScore(job);
         encodedScore = FHE.allow(encodedScore, msg.sender);
 
@@ -383,6 +402,10 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     ) external returns (euint64) {
         require(grantee != address(0), "Invalid grantee");
         Job storage job = _requireOwnedCompleteJob(jobId);
+        require(
+            !marketplace.isOracleRequired(job.modelId),
+            "Model requires oracle finalization"
+        );
         euint64 encodedScore = _encodeFinalScore(job);
         encodedScore = FHE.allow(encodedScore, grantee);
 
@@ -406,6 +429,10 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         require(oracle != address(0), "Invalid oracle");
         Job storage job = _requireOwnedCompleteJob(jobId);
         euint64 encodedScore = _encodeFinalScore(job);
+
+        // Grant the oracle contract ACL access so classifyPreauthorized can
+        // import the handle via FHE.fromExternal(handle, hex"").
+        FHE.allow(encodedScore, oracle);
 
         emit JobFinalizedFor(jobId, msg.sender, oracle, encodedScore);
         return
@@ -496,6 +523,25 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         uint256 remaining = job.weightCount - job.uploadedSnpCount;
         return
             remaining > job.uploadChunkSize ? job.uploadChunkSize : remaining;
+    }
+
+    function _enforceRateLimit(
+        uint256 modelId,
+        address requester
+    ) internal {
+        (uint256 maxJobs, uint256 windowBlocks) = marketplace
+            .getRateLimitConfig(modelId);
+        if (maxJobs == 0) return; // unlimited
+
+        RequesterWindow storage w = requesterWindows[modelId][requester];
+        if (block.number >= w.windowStart + windowBlocks) {
+            // Window expired — reset
+            w.windowStart = block.number;
+            w.jobCount = 1;
+        } else {
+            require(w.jobCount < maxJobs, "Rate limit exceeded");
+            w.jobCount += 1;
+        }
     }
 
     function _computeChunkLength(

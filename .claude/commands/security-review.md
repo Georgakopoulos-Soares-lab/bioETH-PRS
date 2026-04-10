@@ -120,6 +120,7 @@ After all findings, provide:
 These are documented design decisions that should be noted but not re-flagged as new findings unless the implementation deviates from the documented intent:
 
 - **Permissionless `computeChunk`**: Any address may relay computation. Documented in `docs/design.md`. Griefing impact is limited (no state corruption possible; only wasted compute gas for the relayer).
-- **Caller-supplied thresholds in `ResultOracle.classify()`**: `lowThreshold` and `highThreshold` are caller-supplied. This enables threshold probing but is mitigated by DP noise and intentional — the oracle is a generic classifier.
-- **Uniform noise (not Laplacian)**: `FHE.randEuint64(noiseUpperBound)` produces uniform noise. Formal DP calibration is future work. Documented in `docs/design.md §7-D`.
-- **No job expiry**: Abandoned jobs are a known storage griefing vector. Documented in `docs/design.md §7-F`.
+- **Caller-supplied thresholds in `ResultOracle.classify()`**: `lowThreshold` and `highThreshold` are caller-supplied. Threshold probing is mitigated by the minimum threshold gap check (`highThreshold - lowThreshold >= noiseUpperBound`) and DP noise.
+- **Uniform noise (not Laplacian)**: `FHE.randEuint64(noiseUpperBound)` produces uniform noise. Formal DP calibration is future work. Documented in `docs/design.md §7`.
+- **No job expiry**: Abandoned jobs are a known storage griefing vector. Documented in `docs/design.md §7`.
+- **Sybil attacks bypass per-wallet rate limiting**: Rate limiting is enforced per wallet per model. Multiple wallets circumvent it. The trust boundary is the authorization layer (private model reader approval). Documented in `docs/design.md §7`.

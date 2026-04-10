@@ -19,6 +19,11 @@
 - `appendAndComputeChunk` streaming path implemented — 37% gas savings vs classic
 - Sepolia tooling ready: `deploy.ts`, `sepolia_validation.ts`, `probe_hcu_ceiling.ts`
 - Gas cost and deployment viability analysis complete (see `reports/`)
+- Per-model per-wallet rate limiting — windowed block-based query limits (`setRateLimit`)
+- Oracle-required mode — `setOracleRequired` blocks `finalize`/`finalizeTo`/`readPartial`, forcing DP oracle path
+- Minimum threshold gap in `ResultOracle` — `highThreshold - lowThreshold >= noiseUpperBound`
+- Bug fix: `finalizeAndClassify` now grants oracle ACL access before handoff (`FHE.allow(score, oracle)`)
+- 116 tests passing (mock FHE)
 
 ---
 
@@ -50,7 +55,12 @@ After completion: update `reports/classic-gas.md` Sepolia table with real HCU ce
 
 - Job cancellation (requester-initiated)
 - Expiry for abandoned jobs (never `finalizeSnpUpload`)
-- `JobFinalized` event for off-chain indexers
+- SNP reuse across models (sample-keyed storage instead of job-keyed)
+
+**Anti-probing:**
+
+- Formal ε-δ DP calibration for the uniform noise mechanism
+- Staking/deposit mechanism as economic Sybil deterrent
 
 **Quantization & types:**
 

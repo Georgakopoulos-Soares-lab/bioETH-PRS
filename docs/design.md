@@ -453,21 +453,35 @@ Never violate these:
 
 6. **Registry ACL checked at job creation.** `createPRSJob` checks `GenomicRegistry.hasAccess(sampleId, msg.sender)`. Individual compute chunks do not re-check. Registry revocation after job creation does not stop in-flight computation.
 
+7. **Rate limiting enforced at job creation.** When a model owner configures a rate limit (`setRateLimit`), `createPRSJob` enforces a per-model, per-wallet, block-windowed job count limit. Prevents weight-extraction probing via repeated queries. Default is unlimited (backwards-compatible). Block-based windows (not timestamps) prevent miner manipulation.
+
+8. **Oracle-required mode.** When a model owner enables `setOracleRequired(modelId, true)`, `finalize()`, `finalizeTo()`, and `readPartial()` revert — forcing all output through `finalizeAndClassify()` and the oracle's DP noise layer. Prevents requesters from bypassing noise by decrypting raw scores directly.
+
+9. **Minimum threshold gap.** `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound`. Prevents attackers from choosing thresholds so narrow that classification becomes deterministic, defeating the DP noise.
+
 ---
 
 ## 7. Known Gaps & Risks
 
 ### SNP→sample linkage (open research problem)
 
-`createPRSJob` verifies registry ACL but cannot verify that submitted SNP ciphertexts match the registered sample's off-chain data. A malicious requester can submit arbitrary SNP values. The DP noise layer partially mitigates weight extraction via model probing. This remains unresolved in v1.
+`createPRSJob` verifies registry ACL but cannot verify that submitted SNP ciphertexts match the registered sample's off-chain data. A malicious requester can submit arbitrary SNP values. Rate limiting + DP noise + categorical bucketing mitigate weight extraction via model probing but do not eliminate it. This remains unresolved in v1.
 
-### Requester sees raw score before oracle
+### Requester sees raw score before oracle (mitigated)
 
-`finalize()` gives the requester a raw `euint64` handle. The DP noise layer does not protect against the job requester (who initiated it) learning their exact score. The `finalizeAndClassify()` path is the mitigation — it bypasses requester-side decrypt entirely. Use `finalizeAndClassify` over `finalize` where possible; it is a user-level choice, not protocol enforcement.
+`finalize()` gives the requester a raw `euint64` handle, bypassing DP noise. **Mitigation (v1):** Model owners can set `oracleRequired=true`, which blocks `finalize()`, `finalizeTo()`, and `readPartial()` — forcing all output through `finalizeAndClassify()` and the oracle's DP noise layer. This is now protocol-enforced per model, not just a user-level recommendation.
 
 ### DP noise upward bias
 
 Uniform noise from `[0, noiseUpperBound)` introduces an expected upward bias of `noiseUpperBound/2`. Callers who don't adjust thresholds see systematic score inflation. Call `oracle.expectedNoiseBias()` and add the result to each classification threshold.
+
+### Probing attack cost (rate limiting)
+
+With rate limit R queries per W-block window, DP noise bound B, and K=3 categorical buckets, each query reveals at most ~log2(K) = 1.58 bits minus noise entropy. At suggested private-model defaults (R=3, W=1000, B=128), extracting a 20-bit weight requires ~2000/3 windows (~2800 hours at 12s/block). Sybil attacks (multiple wallets) bypass per-wallet limits — the authorization layer (private model reader approval) is the trust boundary.
+
+### Rate limiting window design
+
+Block-based windows (`block.number`) are used instead of timestamps (`block.timestamp`) because validators can manipulate timestamps within bounds. Alternative: time-based windows are more intuitive but marginally less secure. The current design is deterministic.
 
 ### ACL revocation mid-job
 

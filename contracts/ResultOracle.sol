@@ -111,6 +111,10 @@ contract ResultOracle is ZamaEthereumConfig {
             lowThreshold < highThreshold,
             "lowThreshold must be less than highThreshold"
         );
+        require(
+            highThreshold - lowThreshold >= noiseUpperBound,
+            "Threshold gap must be >= noise bound"
+        );
         FHE.allowThis(score);
 
         // Generate noise entirely on-chain — caller cannot control or predict this value.
