@@ -7,8 +7,9 @@
 - Chunked model publication (uploadChunkSize decoupled from computeChunkSize)
 - Staged SNP ingestion state machine (PENDING → UPLOADING → READY → COMPUTING → DONE)
 - V1 quantization correction: `(partialSum + scoreOffset) − (weightZeroPoint × genoSum)`
-- On-chain DP noise via `FHE.randEuint64(noiseUpperBound)` — removes zero-noise bypass
+- On-chain noisy categorical release via `FHE.randEuint64(noiseUpperBound)` — removes zero-noise bypass
 - `ResultOracle.expectedNoiseBias()` view — exposes `noiseUpperBound/2` for caller threshold adjustment
+- Sample manifest hash anchor via `GenomicRegistry.registerSampleWithManifest`
 - Registry ACL enforced at job creation
 - Per-requester private model authorization
 - `finalizeAndClassify` path — oracle-only finalization, no raw score exposed to requester
@@ -19,8 +20,8 @@
 - `appendAndComputeChunk` streaming path implemented — 37% gas savings vs classic
 - Sepolia tooling ready: `deploy.ts`, `sepolia_validation.ts`, `probe_hcu_ceiling.ts`
 - Gas cost and deployment viability analysis complete (see `reports/`)
-- Per-model per-wallet rate limiting — windowed block-based query limits (`setRateLimit`)
-- Oracle-required mode — `setOracleRequired` blocks `finalize`/`finalizeTo`/`readPartial`, forcing DP oracle path
+- Per-model per-wallet and per-sample rate limiting — windowed block-based query limits (`setRateLimit`)
+- Oracle-required mode — `setOracleRequired` blocks `finalize`/`finalizeTo`/`readPartial`, forcing the noisy oracle path
 - Minimum threshold gap in `ResultOracle` — `highThreshold - lowThreshold >= noiseUpperBound`
 - Bug fix: `finalizeAndClassify` now grants oracle ACL access before handoff (`FHE.allow(score, oracle)`)
 - 116 tests passing (mock FHE)
@@ -33,7 +34,8 @@ Tooling is complete. Blocked on: testnet ETH + credentials.
 
 ```bash
 npx hardhat vars set MNEMONIC
-npx hardhat vars set INFURA_API_KEY
+npx hardhat vars set SEPOLIA_RPC_URL   # optional; defaults to PublicNode
+npx hardhat vars set INFURA_API_KEY    # optional alternative to SEPOLIA_RPC_URL
 npm run deploy:sepolia
 npm run validate:sepolia
 npm run probe:hcu
@@ -59,7 +61,7 @@ After completion: update `reports/classic-gas.md` Sepolia table with real HCU ce
 
 **Anti-probing:**
 
-- Formal ε-δ DP calibration for the uniform noise mechanism
+- Formal ε-δ DP calibration for a two-sided calibrated noise mechanism
 - Staking/deposit mechanism as economic Sybil deterrent
 
 **Quantization & types:**
@@ -81,12 +83,12 @@ After completion: update `reports/classic-gas.md` Sepolia table with real HCU ce
 **Scientific validation:**
 
 - De-quantization comparison: on-chain encoded score vs PLINK/PRSice reference
-- DP calibration: empirical backing for `noiseUpperBound` choice
+- Formal DP calibration or empirical backing for `noiseUpperBound` choice
 
 **Security analysis:**
 
 - Formalize threat model (who can learn what, under what assumptions)
-- Prove DP noise calibration + categorical bucketing prevent weight extraction
+- Prove or quantify how noisy categorical bucketing and rate limits affect weight extraction
 - Analyze model probing attack surface (garbage SNP inputs)
 
 **Cross-chain:**

@@ -127,7 +127,10 @@ The model is now immutable and usable by compute jobs.
 
 ```
 Alice calls:
-  GenomicRegistry.registerSample(uri="ipfs://Qm_alice_snps...")
+  GenomicRegistry.registerSampleWithManifest(
+    uri="ipfs://Qm_alice_snps...",
+    manifestHash=0xabc...              // sample file hash, lab signature metadata, build, SNP order
+  )
   → sampleId = 7
 ```
 
@@ -413,13 +416,13 @@ It no longer stores the whole SNP vector in the job header. Instead it uses a st
 
 #### 11. `contracts/ResultOracle.sol` (~53 lines)
 
-**What it does:** Takes a final encrypted PRS score, adds differential privacy noise, and classifies into Low / Medium / High — all without decrypting.
+**What it does:** Takes a final encrypted PRS score, adds DP-inspired on-chain noise, and classifies into Low / Medium / High — all without decrypting. This is a noisy categorical release, not a formal `(epsilon, delta)`-DP guarantee.
 
 **What to trace in `classify`:**
 
 ```
 score = FHE.fromExternal(encryptedScore, inputProof)
-noise = FHE.randEuint64(noiseUpperBound)            ← on-chain DP noise
+noise = FHE.randEuint64(noiseUpperBound)            ← on-chain encrypted noise
 noisy = FHE.add(score, noise)
 isLow    = FHE.lt(noisy, lowThreshold)
 belowHigh = FHE.lt(noisy, highThreshold)

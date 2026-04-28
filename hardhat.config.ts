@@ -12,6 +12,13 @@ const MNEMONIC = vars.get(
   "test test test test test test test test test test test junk"
 );
 const INFURA_API_KEY = vars.get("INFURA_API_KEY", "");
+const SEPOLIA_RPC_URL = vars.get(
+  "SEPOLIA_RPC_URL",
+  process.env.SEPOLIA_RPC_URL ??
+    (INFURA_API_KEY
+      ? `https://sepolia.infura.io/v3/${INFURA_API_KEY}`
+      : "https://ethereum-sepolia-rpc.publicnode.com")
+);
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -33,9 +40,7 @@ const config: HardhatUserConfig = {
       // ZamaEthereumConfig auto-configures the fhEVM coprocessor, KMS, and
       // gateway contracts by detecting chainId 11155111 at runtime — no manual
       // gateway addresses required here.
-      url: INFURA_API_KEY
-        ? `https://sepolia.infura.io/v3/${INFURA_API_KEY}`
-        : "https://rpc.ankr.com/eth_sepolia",
+      url: SEPOLIA_RPC_URL,
       chainId: 11155111,
       accounts: {
         mnemonic: MNEMONIC,

@@ -48,7 +48,7 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
                                          ▼
                             ┌────────────────────────────┐
                             │  ResultOracle              │
-                            │  DP noise + Low/Med/High   │
+                            │  Noise + Low/Med/High      │
                             └────────────────────────────┘
 ```
 
@@ -57,10 +57,10 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 | **GenomicRegistry** | Stores IPFS/Arweave URIs of encrypted SNP data with per-address access control. |
 | **ModelMarketplace** | Lists GWAS weight vectors — **public** (`uint64[]`, cheaper C×P via `FHE.asEuint64`) or **private** (`euint64[]`, full C×C `FHE.mul`). |
 | **PRSComputeEngine** | Creates PRS job shells, ingests SNPs in model-aligned chunks, and computes the encrypted dot product chunk by chunk. |
-| **ResultOracle** | Adds on-chain random DP noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). |
+| **ResultOracle** | Adds on-chain random noise, compares against two thresholds, and emits an encrypted risk category (Low / Medium / High). This is a DP-inspired noisy categorical release, not a formal `(epsilon, delta)`-DP mechanism. |
 | **BioETHPRS** (`contracts/legacy/HEPRS.sol`) | Legacy standalone prototype — embeds model directly, no marketplace dependency. Retained for onboarding and comparison. |
 
-Docs: [design](docs/design.md) · [onboarding](docs/onboarding.md) · [reference & commands](docs/reference.md) · [roadmap](docs/roadmap.md)
+Docs: [design](docs/design.md) · [onboarding](docs/onboarding.md) · [reference & commands](docs/reference.md) · [roadmap](docs/roadmap.md) · [reviewer responses](docs/reviewer-questions-assessment.md)
 
 ---
 
@@ -72,7 +72,7 @@ contracts/
   ModelMarketplace.sol       Public & private GWAS model listing
   PRSComputeEngine.sol       Marketplace-aware chunked PRS engine
   legacy/HEPRS.sol               BioETHPRS — legacy standalone prototype (no marketplace)
-  ResultOracle.sol           DP noise + categorical classification
+  ResultOracle.sol           Noisy categorical classification
 test/
   bioeth_prs_test.ts         Standalone HEPRS prototype tests
   model_marketplace_chunked_test.ts     Model marketplace unit tests
@@ -80,7 +80,7 @@ test/
   registry_marketplace_oracle_test.ts   End-to-end integration test
   heprs_fixture_test.ts      HEPRS fixture integration + overflow tests
   quantization_advisor_test.ts          Advisor recommendation tests
-  rate_limit_dp_test.ts      Rate limiting + DP hardening tests
+  rate_limit_dp_test.ts      Rate limiting + noisy-release hardening tests
   scale_ceiling_reference_test.ts       Overflow-screen reference tests
   utils/fhevm-helpers.ts     fhevmjs helpers (encryptUint64Array, debugDecrypt)
 scripts/
@@ -175,7 +175,7 @@ For a fuller command cookbook, including single-file test runs, `--grep` usage, 
 | `test/registry_marketplace_oracle_test.ts` | Cross-contract integration test covering registry ACL, marketplace-backed PRS, and oracle classification. |
 | `test/heprs_fixture_test.ts` | HEPRS-backed integration coverage using fixed advisor recommendations across the staged job-upload flow. |
 | `test/bioeth_prs_test.ts` | Legacy `BioETHPRS` prototype behavior using the older embedded-model path (`contracts/legacy/HEPRS.sol`). |
-| `test/rate_limit_dp_test.ts` | Rate limiting (windowed per-model per-wallet), oracle-required mode, and minimum threshold gap enforcement. |
+| `test/rate_limit_dp_test.ts` | Rate limiting (windowed per-model per-wallet and per-sample), oracle-required mode, and minimum threshold gap enforcement. |
 | `test/quantization_advisor_test.ts` | Advisor recommendation ranking and CLI-summary behavior. |
 | `test/scale_ceiling_reference_test.ts` | Quick overflow-screen reference logic. |
 

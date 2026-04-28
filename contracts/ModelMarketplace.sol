@@ -46,13 +46,13 @@ contract ModelMarketplace is ZamaEthereumConfig {
     }
     mapping(uint256 => RateLimitConfig) private rateLimitConfigs;
 
-    // --- Oracle-required mode (DP hardening) ---
+    // --- Oracle-required mode (noisy-release hardening) ---
     mapping(uint256 => bool) private oracleRequired;
 
     // --- Approved oracles (oracle-required enforcement) ---
     // When oracleRequired[modelId] is true, finalizeAndClassify() enforces that
     // the caller-supplied oracle address matches this value — preventing bypass
-    // of the DP noise layer via a custom no-op oracle contract.
+    // of the noise layer via a custom no-op oracle contract.
     mapping(uint256 => address) private approvedOracles;
 
     event ModelShellCreated(
@@ -410,10 +410,12 @@ contract ModelMarketplace is ZamaEthereumConfig {
 
     // --- Rate limiting ---
 
-    /// @notice Configure per-wallet query limits for a model.  Model owner can
-    ///         tighten (or loosen) limits at any time, even after finalization.
-    /// @param maxJobsPerWindow  Maximum jobs any single wallet may create within
-    ///                          one window.  Set to 0 to disable rate limiting.
+    /// @notice Configure per-wallet and per-sample query limits for a model.
+    ///         Model owner can tighten (or loosen) limits at any time, even
+    ///         after finalization.
+    /// @param maxJobsPerWindow  Maximum jobs any single wallet or registered
+    ///                          sample may create within one window. Set to 0
+    ///                          to disable rate limiting.
     /// @param windowBlocks      Window size in blocks.  On Sepolia (~12 s/block),
     ///                          1000 blocks ≈ 3.3 hours.
     function setRateLimit(
@@ -444,7 +446,7 @@ contract ModelMarketplace is ZamaEthereumConfig {
     // --- Oracle-required mode ---
 
     /// @notice When enabled, finalize() / finalizeTo() / readPartial() revert
-    ///         for this model — forcing all output through the oracle's DP noise
+    ///         for this model — forcing all output through the oracle's noise
     ///         layer via finalizeAndClassify().
     function setOracleRequired(uint256 modelId, bool required) external {
         require(modelId < modelHeaders.length, "Invalid model");
@@ -463,7 +465,7 @@ contract ModelMarketplace is ZamaEthereumConfig {
     /// @notice Register a trusted oracle for this model.  When oracle-required mode
     ///         is enabled, PRSComputeEngine.finalizeAndClassify() enforces that the
     ///         oracle argument matches this address — preventing callers from routing
-    ///         output through a no-op oracle that skips DP noise.
+    ///         output through a no-op oracle that skips noise.
     ///         Set to address(0) to clear the approved oracle.
     function setApprovedOracle(uint256 modelId, address oracle) external {
         require(modelId < modelHeaders.length, "Invalid model");

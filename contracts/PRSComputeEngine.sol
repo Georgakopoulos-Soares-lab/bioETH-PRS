@@ -56,12 +56,14 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     mapping(uint256 => euint64[]) private snpData;
 
     // --- Rate limiting (anti-probing) ---
-    struct RequesterWindow {
+    struct RateLimitWindow {
         uint256 windowStart; // block number when current window began
         uint256 jobCount; // jobs created in current window
     }
-    mapping(uint256 => mapping(address => RequesterWindow))
+    mapping(uint256 => mapping(address => RateLimitWindow))
         private requesterWindows;
+    mapping(uint256 => mapping(uint256 => RateLimitWindow))
+        private sampleWindows;
 
     event JobCreated(
         uint256 indexed jobId,
@@ -134,8 +136,9 @@ contract PRSComputeEngine is ZamaEthereumConfig {
             );
         }
 
-        // Rate limit enforcement — prevents weight-extraction probing attacks.
-        _enforceRateLimit(modelId, msg.sender);
+        // Rate limit enforcement — throttles adaptive probing by wallet and by
+        // registered sample. It is not a full Sybil-resistant identity layer.
+        _enforceRateLimit(modelId, sampleId, msg.sender);
 
         euint64 zero = FHE.asEuint64(0);
         FHE.allowThis(zero);
@@ -375,11 +378,11 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     /// @dev    The raw encoded score is ACL-granted directly to the requester.  The
     ///         ResultOracle (classify()) is therefore optional post-processing: the
     ///         requester can decrypt the raw score without going through the oracle.
-    ///         This means the DP noise layer does not prevent the job requester from
-    ///         learning the exact score.  The oracle's privacy guarantee holds only
-    ///         against third parties who observe the classified output, not against
-    ///         the requester themselves.  Keep this in mind when reasoning about
-    ///         model-weight-extraction attacks via adaptive probing.
+    ///         This means the noisy categorical release layer does not prevent the
+    ///         job requester from learning the exact score.  The oracle path is
+    ///         meaningful only when model owners enable oracle-required mode so
+    ///         raw-score release is blocked.  Keep this in mind when reasoning
+    ///         about model-weight-extraction attacks via adaptive probing.
     function finalize(uint256 jobId) external returns (euint64) {
         Job storage job = _requireOwnedCompleteJob(jobId);
         require(!job.finalized, "Job already finalized");
@@ -444,7 +447,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
 
         // When oracle-required mode is active, the oracle must match the address
         // approved by the model owner — otherwise callers could pass a no-op oracle
-        // contract that skips DP noise, defeating the oracle-required protection.
+        // contract that skips noise, defeating the oracle-required protection.
         if (marketplace.isOracleRequired(job.modelId)) {
             address approved = marketplace.getApprovedOracle(job.modelId);
             require(approved != address(0), "No approved oracle set for model");
@@ -493,17 +496,20 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         job.cancelled = true;
         delete snpData[jobId];
 
-        // Refund the rate limit slot if the window is still open.
+        // Refund the wallet and sample rate limit slots if their windows are
+        // still open.
         (uint256 maxJobs, uint256 windowBlocks) = marketplace.getRateLimitConfig(
             job.modelId
         );
         if (maxJobs > 0) {
-            RequesterWindow storage w = requesterWindows[job.modelId][msg.sender];
-            if (
-                block.number < w.windowStart + windowBlocks && w.jobCount > 0
-            ) {
-                w.jobCount -= 1;
-            }
+            _refundRateLimitWindow(
+                requesterWindows[job.modelId][msg.sender],
+                windowBlocks
+            );
+            _refundRateLimitWindow(
+                sampleWindows[job.modelId][job.sampleId],
+                windowBlocks
+            );
         }
 
         emit JobCancelled(jobId, msg.sender);
@@ -598,13 +604,30 @@ contract PRSComputeEngine is ZamaEthereumConfig {
 
     function _enforceRateLimit(
         uint256 modelId,
+        uint256 sampleId,
         address requester
     ) internal {
         (uint256 maxJobs, uint256 windowBlocks) = marketplace
             .getRateLimitConfig(modelId);
         if (maxJobs == 0) return; // unlimited
 
-        RequesterWindow storage w = requesterWindows[modelId][requester];
+        _consumeRateLimitWindow(
+            requesterWindows[modelId][requester],
+            maxJobs,
+            windowBlocks
+        );
+        _consumeRateLimitWindow(
+            sampleWindows[modelId][sampleId],
+            maxJobs,
+            windowBlocks
+        );
+    }
+
+    function _consumeRateLimitWindow(
+        RateLimitWindow storage w,
+        uint256 maxJobs,
+        uint256 windowBlocks
+    ) internal {
         if (block.number >= w.windowStart + windowBlocks) {
             // Window expired — reset
             w.windowStart = block.number;
@@ -612,6 +635,15 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         } else {
             require(w.jobCount < maxJobs, "Rate limit exceeded");
             w.jobCount += 1;
+        }
+    }
+
+    function _refundRateLimitWindow(
+        RateLimitWindow storage w,
+        uint256 windowBlocks
+    ) internal {
+        if (block.number < w.windowStart + windowBlocks && w.jobCount > 0) {
+            w.jobCount -= 1;
         }
     }
 

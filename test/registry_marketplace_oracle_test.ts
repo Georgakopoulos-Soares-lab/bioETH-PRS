@@ -29,6 +29,45 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       const [uri, sampleOwner] = await registry.getSample(sampleId);
       expect(uri).to.equal("ipfs://sample");
       expect(sampleOwner).to.equal(owner.address);
+      expect(await registry.getSampleManifestHash(sampleId)).to.equal(
+        ethers.ZeroHash
+      );
+    });
+
+    it("can anchor sample provenance with a manifest hash", async function () {
+      const [owner] = await ethers.getSigners();
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+      const manifestHash = ethers.keccak256(
+        ethers.toUtf8Bytes("sample-manifest-v1")
+      );
+
+      const sampleId =
+        await registry.registerSampleWithManifest.staticCall(
+          "ipfs://sample",
+          manifestHash
+        );
+      await expect(
+        registry.registerSampleWithManifest("ipfs://sample", manifestHash)
+      )
+        .to.emit(registry, "SampleManifestHashSet")
+        .withArgs(sampleId, manifestHash);
+
+      const [uri, sampleOwner] = await registry.getSample(sampleId);
+      expect(uri).to.equal("ipfs://sample");
+      expect(sampleOwner).to.equal(owner.address);
+      expect(await registry.getSampleManifestHash(sampleId)).to.equal(
+        manifestHash
+      );
+    });
+
+    it("rejects manifest-aware registration with an empty hash", async function () {
+      const Registry = await ethers.getContractFactory("GenomicRegistry");
+      const registry = await Registry.deploy();
+
+      await expect(
+        registry.registerSampleWithManifest("ipfs://sample", ethers.ZeroHash)
+      ).to.be.revertedWith("Manifest hash required");
     });
 
     it("stranger is denied before access is granted", async function () {

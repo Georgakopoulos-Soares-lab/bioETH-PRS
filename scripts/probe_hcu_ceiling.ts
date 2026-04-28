@@ -35,6 +35,8 @@ import path from "path";
 import { ethers, fhevm } from "hardhat";
 
 const CANDIDATE_CHUNK_SIZES = [10, 15, 20, 25, 32];
+const DEFAULT_HARDHAT_DEPLOYER =
+  "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
 
 interface ProbeResult {
   chunkSize: number;
@@ -161,6 +163,16 @@ describe("HCU ceiling probe", function () {
   it("probes computeChunk HCU ceiling across candidate chunk sizes", async function () {
     const network = await ethers.provider.getNetwork();
     const chainId = network.chainId;
+    const [signer] = await ethers.getSigners();
+    if (
+      chainId === 11155111n &&
+      signer.address.toLowerCase() === DEFAULT_HARDHAT_DEPLOYER
+    ) {
+      throw new Error(
+        "Refusing Sepolia HCU probe with the public Hardhat test mnemonic. " +
+          "Set a funded private mnemonic with `npx hardhat vars set MNEMONIC`."
+      );
+    }
     const networkKey =
       chainId === 11155111n ? "sepolia"
       : chainId === 1n ? "mainnet"

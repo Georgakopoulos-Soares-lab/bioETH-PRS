@@ -141,7 +141,8 @@ Use `npm run advisor:quantization` for exact bounds from the actual weight distr
 
 ```bash
 npx hardhat vars set MNEMONIC          # deployer wallet mnemonic
-npx hardhat vars set INFURA_API_KEY    # or another RPC provider key
+npx hardhat vars set SEPOLIA_RPC_URL   # optional; defaults to PublicNode
+npx hardhat vars set INFURA_API_KEY    # optional alternative to SEPOLIA_RPC_URL
 ```
 
 Deployer wallet needs Sepolia ETH. Estimate ~0.05-0.1 ETH for deploy + 100-SNP validation.

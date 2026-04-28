@@ -16,6 +16,9 @@ import path from "path";
 
 import { ethers } from "hardhat";
 
+const DEFAULT_HARDHAT_DEPLOYER =
+  "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
+
 async function main(): Promise<void> {
   const [deployer] = await ethers.getSigners();
   const network = await ethers.provider.getNetwork();
@@ -25,6 +28,15 @@ async function main(): Promise<void> {
   console.log(`Network  : ${network.name} (chainId=${chainId})`);
   const balance = await ethers.provider.getBalance(deployer.address);
   console.log(`Balance  : ${ethers.formatEther(balance)} ETH`);
+  if (
+    chainId === 11155111n &&
+    deployer.address.toLowerCase() === DEFAULT_HARDHAT_DEPLOYER
+  ) {
+    throw new Error(
+      "Refusing Sepolia deployment with the public Hardhat test mnemonic. " +
+        "Set a funded private mnemonic with `npx hardhat vars set MNEMONIC`."
+    );
+  }
   if (chainId === 11155111n && balance < ethers.parseEther("0.05")) {
     console.warn("WARNING: balance is low — consider topping up via the Sepolia faucet");
   }
@@ -54,7 +66,7 @@ async function main(): Promise<void> {
   const engineAddress = await engine.getAddress();
   console.log(engineAddress);
 
-  // 4. ResultOracle — noiseUpperBound sets the DP noise scale.
+  // 4. ResultOracle — noiseUpperBound sets the noisy-release scale.
   //    Noise drawn on-chain from [0, noiseUpperBound) per classify() call.
   //    Must be a power of two (fhEVM randBounded requirement).
   //    2^20 = 1_048_576 ≈ 0.35 on the decoded float scale at scale=3,000,000 (100-SNP models).

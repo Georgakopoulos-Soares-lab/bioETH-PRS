@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {FHE, euint64, euint8, ebool, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
-/// @title ResultOracle - Applies on-chain DP noise and returns categorical PRS risk.
+/// @title ResultOracle - Applies on-chain noise and returns categorical PRS risk.
 ///
 /// @notice Noise is generated entirely on-chain via FHE.randEuint64(noiseUpperBound).
 ///         The caller supplies the encrypted score but has no influence over the noise
@@ -13,8 +13,10 @@ import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 ///
 /// @dev    noiseUpperBound is set at construction and is immutable.  It defines the
 ///         exclusive upper bound for the uniform random noise: noise ∈ [0, noiseUpperBound).
-///         Callers choose a bound appropriate for their model's score range to preserve
-///         clinical utility while preventing weight extraction via repeated queries.
+///         This is a DP-inspired noisy categorical release, not a formal
+///         (epsilon, delta)-DP mechanism.  Callers choose a bound appropriate for
+///         their model's score range to preserve clinical utility while making
+///         repeated probing less informative.
 ///         A bound of zero is rejected at construction time.
 contract ResultOracle is ZamaEthereumConfig {
     enum RiskCategory {
@@ -23,7 +25,7 @@ contract ResultOracle is ZamaEthereumConfig {
         High
     }
 
-    /// @notice Upper bound (exclusive) for the on-chain DP noise applied to every
+    /// @notice Upper bound (exclusive) for the on-chain noise applied to every
     ///         classify() call.  Noise is drawn from [0, noiseUpperBound) uniformly.
     uint64 public immutable noiseUpperBound;
 
@@ -33,7 +35,7 @@ contract ResultOracle is ZamaEthereumConfig {
         euint8 category
     );
 
-    /// @param _noiseUpperBound Exclusive upper bound for uniform DP noise.
+    /// @param _noiseUpperBound Exclusive upper bound for uniform noise.
     ///                         Must be a positive power of two — required by the
     ///                         fhEVM coprocessor's randBounded precompile.
     ///                         Examples: 128 (2^7), 1048576 (2^20), 4294967296 (2^32).
@@ -55,7 +57,7 @@ contract ResultOracle is ZamaEthereumConfig {
     ///             adjustedThreshold = intendedThreshold + expectedNoiseBias()
     ///
     ///         This is a deterministic, correctable bias — not a source of unpredictability.
-    ///         The privacy guarantee comes from the noise variance, not its mean.
+    ///         This helper does not imply a formal differential-privacy guarantee.
     function expectedNoiseBias() external view returns (uint64) {
         return noiseUpperBound / 2;
     }
@@ -70,8 +72,9 @@ contract ResultOracle is ZamaEthereumConfig {
     ///
     /// @dev    Noise is uniform on [0, noiseUpperBound), which introduces an upward bias
     ///         of noiseUpperBound/2 on average.  For a scientifically unbiased mechanism,
-    ///         adjust thresholds upward by noiseUpperBound/2 or use centered noise once
-    ///         fhEVM supports signed arithmetic.
+    ///         adjust thresholds upward by noiseUpperBound/2. A formal DP mechanism
+    ///         would require a calibrated two-sided distribution and a PRS
+    ///         sensitivity/composition analysis.
     ///
     /// @return category  Encrypted risk category (euint8: 0=Low, 1=Medium, 2=High).
     ///                   Made publicly decryptable via FHE.makePubliclyDecryptable.

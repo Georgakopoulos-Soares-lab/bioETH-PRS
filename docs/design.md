@@ -68,10 +68,10 @@ ModelMarketplace  ←── weight chunks, public or encrypted
       ↓
 PRSComputeEngine  ←── chunked dot-product state machine
       ↓
-ResultOracle      ←── DP noise + categorical classification
+ResultOracle      ←── noise + categorical classification
 ```
 
-**Why four contracts:** Each layer has a different trust surface and upgrade lifecycle. Registry ACL is patient data. Marketplace is researcher data. Engine is computation logic. Oracle is DP policy. Separating them keeps each contract independently auditable and upgradeable.
+**Why four contracts:** Each layer has a different trust surface and upgrade lifecycle. Registry ACL is patient data. Marketplace is researcher data. Engine is computation logic. Oracle is noisy-release policy. Separating them keeps each contract independently auditable and upgradeable.
 
 ---
 
@@ -83,12 +83,14 @@ URI-based sample registry with per-address ACL. No FHE operations.
 
 **Key functions:**
 
-- `registerSample(uri)` → `sampleId`
+- `registerSample(uri)` → `sampleId` — legacy path with no manifest hash
+- `registerSampleWithManifest(uri, manifestHash)` → `sampleId` — anchors off-chain sample provenance metadata
 - `grantAccess(sampleId, grantee)` / `revokeAccess(sampleId, grantee)`
 - `getSample(sampleId)` → `(uri, owner)` — ACL-gated view
+- `getSampleManifestHash(sampleId)` → `bytes32` — public provenance anchor
 - `hasAccess(sampleId, caller)` → `bool` — called by PRSComputeEngine at job creation
 
-**Design note:** URIs are stored as plaintext in contract storage. The ACL gates Solidity reads, but any node operator can read storage directly via `eth_getStorageAt`. URIs are no longer emitted in events (patched April 2026) but the storage values remain plaintext. True URI confidentiality requires encrypting the URI before storing, or committing only a hash. Documented as acceptable for v1.
+**Design note:** URIs are stored as plaintext in contract storage. The ACL gates Solidity reads, but any node operator can read storage directly via `eth_getStorageAt`. URIs are no longer emitted in events (patched April 2026) but the storage values remain plaintext. True URI confidentiality requires encrypting the URI before storing, or committing only a hash. The `manifestHash` field anchors provenance metadata such as source file hash, lab signature, genome build, SNP order, and genotype encoding rules, but does not prove that later uploaded encrypted SNP handles match the manifest. Documented as acceptable for v1.
 
 ---
 
@@ -168,9 +170,9 @@ The rearrangement `(partialSum + scoreOffset) - (weightZeroPoint × genoSum)` av
 
 ### 2.4 ResultOracle
 
-Differential Privacy noise injection + categorical classification. All operations remain encrypted.
+DP-inspired noisy categorical classification. All operations remain encrypted. The current mechanism is bounded one-sided uniform noise plus thresholding; it is not a formal `(epsilon, delta)`-DP guarantee.
 
-**DP mechanism:** `noiseUpperBound` set at construction (must be a positive power of 2 — fhEVM requirement for `randEuint64`). Each call generates `noise = FHE.randEuint64(noiseUpperBound)` — unknowable to caller before the transaction mines.
+**Noise mechanism:** `noiseUpperBound` set at construction (must be a positive power of 2 — fhEVM requirement for `randEuint64`). Each call generates `noise = FHE.randEuint64(noiseUpperBound)` — unknowable to caller before the transaction mines.
 
 **Key functions:**
 
@@ -197,7 +199,7 @@ euint8  category = FHE.select(isLow, Low, FHE.select(isMedium, Medium, High));
 adjustedThreshold = intendedThreshold + oracle.expectedNoiseBias()
 ```
 
-This is a deterministic, correctable bias. Privacy comes from the noise variance, not the mean.
+This is a deterministic, correctable bias. Formal DP would require a calibrated two-sided mechanism, a PRS sensitivity analysis, and repeated-query composition accounting.
 
 ---
 
@@ -453,13 +455,13 @@ Never violate these:
 
 6. **Registry ACL checked at job creation.** `createPRSJob` checks `GenomicRegistry.hasAccess(sampleId, msg.sender)`. Individual compute chunks do not re-check. Registry revocation after job creation does not stop in-flight computation.
 
-7. **Rate limiting enforced at job creation.** When a model owner configures a rate limit (`setRateLimit`), `createPRSJob` enforces a per-model, per-wallet, block-windowed job count limit. Prevents weight-extraction probing via repeated queries. Default is unlimited (backwards-compatible). Block-based windows (not timestamps) prevent miner manipulation.
+7. **Rate limiting enforced at job creation.** When a model owner configures a rate limit (`setRateLimit`), `createPRSJob` enforces per-model, per-wallet and per-model, per-sample block-windowed job count limits. This throttles repeated probing and closes the simple same-sample/new-wallet bypass, but it is not a full Sybil-resistant identity layer. Default is unlimited (backwards-compatible). Block-based windows (not timestamps) prevent miner manipulation.
 
-8. **Oracle-required mode.** When a model owner enables `setOracleRequired(modelId, true)`, `finalize()`, `finalizeTo()`, and `readPartial()` revert — forcing all output through `finalizeAndClassify()` and the oracle's DP noise layer. Prevents requesters from bypassing noise by decrypting raw scores directly.
+8. **Oracle-required mode.** When a model owner enables `setOracleRequired(modelId, true)`, `finalize()`, `finalizeTo()`, and `readPartial()` revert — forcing all output through `finalizeAndClassify()` and the oracle's noisy categorical release. Prevents requesters from bypassing noise by decrypting raw scores directly.
 
-9. **Minimum threshold gap.** `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound`. Prevents attackers from choosing thresholds so narrow that classification becomes deterministic, defeating the DP noise.
+9. **Minimum threshold gap.** `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound`. Prevents attackers from choosing thresholds so narrow that classification becomes deterministic, defeating the noisy release.
 
-10. **Approved oracle enforcement.** When `oracleRequired` is true, `finalizeAndClassify()` validates that the caller-supplied oracle address matches the one registered via `setApprovedOracle(modelId, oracle)`. Without this check, the oracle-required flag could be trivially bypassed by passing a no-op oracle that skips DP noise. Attempting `finalizeAndClassify` without an approved oracle set reverts with "No approved oracle set for model".
+10. **Approved oracle enforcement.** When `oracleRequired` is true, `finalizeAndClassify()` validates that the caller-supplied oracle address matches the one registered via `setApprovedOracle(modelId, oracle)`. Without this check, the oracle-required flag could be trivially bypassed by passing a no-op oracle that skips noise. Attempting `finalizeAndClassify` without an approved oracle set reverts with "No approved oracle set for model".
 
 11. **Single-finalize per job.** `finalize()`, `finalizeTo()`, and `finalizeAndClassify()` each set a `finalized` flag on the job and revert on any subsequent call. Prevents a requester from issuing multiple score handles for the same job, which would generate redundant FHE ops and could be exploited to probe the oracle multiple times per rate-limit slot.
 
@@ -469,19 +471,19 @@ Never violate these:
 
 ### SNP→sample linkage (open research problem)
 
-`createPRSJob` verifies registry ACL but cannot verify that submitted SNP ciphertexts match the registered sample's off-chain data. A malicious requester can submit arbitrary SNP values. Rate limiting + DP noise + categorical bucketing mitigate weight extraction via model probing but do not eliminate it. This remains unresolved in v1.
+`createPRSJob` verifies registry ACL but cannot verify that submitted SNP ciphertexts match the registered sample's off-chain data. `GenomicRegistry.registerSampleWithManifest` now stores a manifest hash that can anchor source file hashes, lab signatures, genome build, SNP order, and encoding rules, but the current contract does not verify ciphertext-to-manifest consistency. A malicious requester can still submit arbitrary SNP values. Rate limiting + noisy categorical bucketing mitigate model probing but do not eliminate it. This remains unresolved in v1.
 
 ### Requester sees raw score before oracle (mitigated)
 
-`finalize()` gives the requester a raw `euint64` handle, bypassing DP noise. **Mitigation (v1):** Model owners can set `oracleRequired=true`, which blocks `finalize()`, `finalizeTo()`, and `readPartial()` — forcing all output through `finalizeAndClassify()` and the oracle's DP noise layer. This is now protocol-enforced per model, not just a user-level recommendation.
+`finalize()` gives the requester a raw `euint64` handle, bypassing noisy categorical release. **Mitigation (v1):** Model owners can set `oracleRequired=true`, which blocks `finalize()`, `finalizeTo()`, and `readPartial()` — forcing all output through `finalizeAndClassify()` and the oracle's noise layer. This is now protocol-enforced per model, not just a user-level recommendation.
 
-### DP noise upward bias
+### Uniform noise upward bias
 
 Uniform noise from `[0, noiseUpperBound)` introduces an expected upward bias of `noiseUpperBound/2`. Callers who don't adjust thresholds see systematic score inflation. Call `oracle.expectedNoiseBias()` and add the result to each classification threshold.
 
 ### Probing attack cost (rate limiting)
 
-With rate limit R queries per W-block window, DP noise bound B, and K=3 categorical buckets, each query reveals at most ~log2(K) = 1.58 bits minus noise entropy. At suggested private-model defaults (R=3, W=1000, B=128), extracting a 20-bit weight requires ~2000/3 windows (~2800 hours at 12s/block). Sybil attacks (multiple wallets) bypass per-wallet limits — the authorization layer (private model reader approval) is the trust boundary.
+With rate limit R queries per W-block window, noise bound B, and K=3 categorical buckets, each query reveals only a noisy category rather than a raw score when `oracleRequired` is enabled. The current limit is enforced both per wallet and per sample, so rotating wallets does not bypass the quota for the same registered sample. This is still not full Sybil resistance: a determined attacker can use many samples, many identities, or compromised credentials unless the deployment adds identity, staking, or verifiable-credential controls.
 
 ### Rate limiting window design
 
@@ -526,7 +528,8 @@ Infrastructure is ready. Pending: testnet ETH and credentials.
 
 ```bash
 npx hardhat vars set MNEMONIC
-npx hardhat vars set INFURA_API_KEY
+npx hardhat vars set SEPOLIA_RPC_URL   # optional; defaults to PublicNode
+npx hardhat vars set INFURA_API_KEY    # optional alternative to SEPOLIA_RPC_URL
 npm run deploy:sepolia         # deploy all 4 contracts
 npm run validate:sepolia       # 100-SNP end-to-end with real FHE
 npm run probe:hcu              # find real HCU ceiling; update computeChunkSize

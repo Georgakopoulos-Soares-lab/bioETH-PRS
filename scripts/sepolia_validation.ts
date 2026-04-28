@@ -52,6 +52,8 @@ const FIXTURE_SIZE = 100 as const;
 const UPLOAD_CHUNK_SIZE = 32;
 const MOCK_COMPUTE_CHUNK_SIZE = 20;
 const SEPOLIA_COMPUTE_CHUNK_SIZE = 10;
+const DEFAULT_HARDHAT_DEPLOYER =
+  "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
 
 interface SavedDeployment {
   contracts: {
@@ -92,6 +94,15 @@ describe("Sepolia 100-SNP validation", function () {
     console.log(`Fixture  : ${FIXTURE_SIZE} SNPs, uploadChunkSize=${UPLOAD_CHUNK_SIZE}, computeChunkSize=${computeChunkSize}\n`);
 
     const [signer] = await ethers.getSigners();
+    if (
+      chainId === 11155111n &&
+      signer.address.toLowerCase() === DEFAULT_HARDHAT_DEPLOYER
+    ) {
+      throw new Error(
+        "Refusing Sepolia validation with the public Hardhat test mnemonic. " +
+          "Set a funded private mnemonic with `npx hardhat vars set MNEMONIC`."
+      );
+    }
 
     // ── 1. Load + quantize fixture ───────────────────────────────────────────
     const { genotypes, betas } = loadHeprsFixture(FIXTURE_SIZE);

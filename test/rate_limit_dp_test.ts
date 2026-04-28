@@ -96,7 +96,7 @@ async function runCompleteJob(
 
 // ---------- Rate Limiting Tests ----------
 
-describe("Rate Limiting — per-model per-wallet job limits", function () {
+describe("Rate Limiting — per-model per-wallet and per-sample job limits", function () {
   it("default (no rate limit) allows unlimited job creation", async function () {
     const { engine, modelId, sampleId } = await deployStack(
       [1n, 2n],
@@ -191,7 +191,7 @@ describe("Rate Limiting — per-model per-wallet job limits", function () {
     await engine.createPRSJob(1n, 0n);
   });
 
-  it("rate limits are independent across requesters", async function () {
+  it("blocks the same sample across requesters when the sample window is exhausted", async function () {
     const [owner, researcher] = await ethers.getSigners();
     const { marketplace, registry, engine, modelId, sampleId } =
       await deployStack([1n, 2n], 2n, 2n);
@@ -206,10 +206,30 @@ describe("Rate Limiting — per-model per-wallet job limits", function () {
       "Rate limit exceeded"
     );
 
-    // Researcher has their own independent window
-    await engine.connect(researcher).createPRSJob(modelId, sampleId);
+    // Researcher has an unused wallet window, but the sample window is exhausted.
     await expect(
       engine.connect(researcher).createPRSJob(modelId, sampleId)
+    ).to.be.revertedWith("Rate limit exceeded");
+  });
+
+  it("rate limits are independent across different samples and requesters", async function () {
+    const [, researcher] = await ethers.getSigners();
+    const { marketplace, registry, engine, modelId, sampleId } =
+      await deployStack([1n, 2n], 2n, 2n);
+
+    const secondSampleId =
+      await registry.registerSample.staticCall("ipfs://sample-2");
+    await registry.registerSample("ipfs://sample-2");
+    await registry.grantAccess(secondSampleId, researcher.address);
+
+    await marketplace.setRateLimit(modelId, 1n, 1000n);
+
+    await engine.createPRSJob(modelId, sampleId);
+
+    // Different requester + different registered sample gets an independent window.
+    await engine.connect(researcher).createPRSJob(modelId, secondSampleId);
+    await expect(
+      engine.connect(researcher).createPRSJob(modelId, secondSampleId)
     ).to.be.revertedWith("Rate limit exceeded");
   });
 
@@ -270,9 +290,9 @@ describe("Rate Limiting — per-model per-wallet job limits", function () {
   });
 });
 
-// ---------- DP Hardening Tests — Oracle-Required Mode ----------
+// ---------- Noisy Release Hardening Tests — Oracle-Required Mode ----------
 
-describe("DP Hardening — oracle-required mode", function () {
+describe("Noisy Release Hardening — oracle-required mode", function () {
   it("finalize() works when oracleRequired is false (default)", async function () {
     const [signer] = await ethers.getSigners();
     const { marketplace, engine, modelId, sampleId } = await deployStack(
@@ -415,9 +435,9 @@ describe("DP Hardening — oracle-required mode", function () {
   });
 });
 
-// ---------- DP Hardening Tests — Minimum Threshold Gap ----------
+// ---------- Noisy Release Hardening Tests — Minimum Threshold Gap ----------
 
-describe("DP Hardening — minimum threshold gap", function () {
+describe("Noisy Release Hardening — minimum threshold gap", function () {
   it("rejects threshold gap smaller than noiseUpperBound", async function () {
     const [signer] = await ethers.getSigners();
     const Oracle = await ethers.getContractFactory("ResultOracle");
