@@ -14,7 +14,8 @@ GWAS beta weights are signed floating-point values (~−0.5 to +0.5). TFHE opera
 2. Evaluates candidate scale values (10², 10⁴, 10⁶, 10⁸, 10¹⁰, 10¹²…)
 3. For each scale, computes the quantized dot product against all 50 individuals in the fixture
 4. Reports mean absolute error (MAE) vs the plaintext float dot product
-5. Checks whether `scale × 2 × N_snps` overflows `uint64` (max ~1.8×10¹⁹)
+5. Checks whether the contract's largest unsigned intermediate overflows
+   `uint64` (max ~1.8×10¹⁹)
 6. Recommends `baseline` / `balanced` / `max_precision` tiers
 
 Runtime: 0.2-0.26 s across all fixture sizes. Safe to run before every model publication.
@@ -50,23 +51,51 @@ All within `uint64` budget (64 bits). No overflow risk at these scales and SNP c
 
 All 11 evaluated scale candidates pass the overflow check for all fixture sizes. The `uint64` ceiling (~1.8×10¹⁹) is not the limiting factor.
 
-### Quick-screen formula
+### Formal overflow bound
 
-Simplified bound: `scale × 2 × N_snps ≤ uint64_max`. Assumes all weights have magnitude ≤ 1 (conservative; actual HEPRS weights are much smaller).
+The contract does not accumulate signed values directly. It uses:
+
+```text
+q_i = round(S × beta_i)
+z = max(0, -min_i(q_i))
+shifted_i = q_i + z
+partialSum = Σ g_i × shifted_i
+genoSum = Σ g_i
+encoded = partialSum + scoreOffset - z × genoSum
+```
+
+For genotype dosage `0 ≤ g_i ≤ M` and `|q_i| ≤ Q`, the final encoded score is
+bounded by `M × N × Q`, while the largest intermediate
+`partialSum + scoreOffset` is conservatively bounded by `2 × M × N × Q`.
+
+Using `Q = S` for a quick screen, `M = 2`, and `uint64_max = 2^64 - 1`:
+
+```text
+safe_N = floor(uint64_max / (2 × M × S))
+       = floor(uint64_max / (4 × S))
+```
+
+This is deliberately conservative. The advisor computes the exact
+`maxIntermediate` from the actual quantized weight distribution and should be
+used for production manifests.
 
 | Scale | Safe SNP ceiling |
 |-------|-----------------|
-| 10² | 9.2 × 10¹⁶ |
-| 10⁴ | 9.2 × 10¹⁴ |
-| 10⁶ | 9.2 × 10¹² |
-| 10⁸ | 9.2 × 10¹⁰ |
-| 10¹⁰ | 9.2 × 10⁸ |
-| 10¹² | 921,000 |
+| 10² | 4.6 × 10¹⁶ |
+| 10⁴ | 4.6 × 10¹⁴ |
+| 10⁶ | 4.6 × 10¹² |
+| 10⁸ | 4.6 × 10¹⁰ |
+| 10¹⁰ | 4.6 × 10⁸ |
+| 10¹² | 4,611,686 |
 
-At `balanced` scale 10⁶ and 5,000 SNPs: max accumulation ~10¹³. Comfortable margin.
-At `max_precision` scale 10¹⁰ and 5,000 SNPs: max accumulation ~10¹⁴. Still within bounds.
+At `balanced` scale 10⁶ and 5,000 SNPs, the conservative intermediate bound is
+`2 × 2 × 10^6 × 5,000 = 2 × 10^10`, far below `uint64_max`.
+At `max_precision` scale 10¹⁰ and 5,000 SNPs, the bound is `2 × 10^14`, still
+well within `uint64`.
 
-Use the advisor's exact bounds (from actual weight distributions) rather than this table for production decisions.
+The 5,000-SNP fixture is therefore not the theoretical overflow ceiling. It is
+the largest bundled HEPRS fixture we validate end to end. Gas/HCU cost is the
+practical ceiling in this prototype, not `uint64` arithmetic capacity.
 
 ---
 

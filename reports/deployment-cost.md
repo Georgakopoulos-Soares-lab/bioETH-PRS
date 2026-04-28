@@ -1,6 +1,6 @@
 # Deployment Cost & Viability
 
-**Date:** 9 April 2026
+**Date:** 28 April 2026
 **Gas data from:** `npm run profile:heprs` — mock coprocessor, all four HEPRS fixture sizes
 **Paths compared:** Classic (`appendSnpChunk` → `computeChunk`) and Streaming (`appendAndComputeChunk`)
 
@@ -31,19 +31,19 @@ All numbers below are from mock profiling. Sepolia expected within 10-20%.
 
 | SNPs | 1 gwei | 5 gwei | 30 gwei | 100 gwei |
 |------|--------|--------|---------|---------|
-| 100 | 0.0178 ETH | 0.0889 ETH | 0.5333 ETH | 1.778 ETH |
-| 500 | 0.0838 ETH | 0.4191 ETH | 2.515 ETH | 8.383 ETH |
-| 1,000 | 0.1666 ETH | 0.8331 ETH | 4.999 ETH | 16.66 ETH |
-| 5,000 | 0.8284 ETH | 4.142 ETH | 24.85 ETH | 82.84 ETH |
+| 100 | 0.01782 ETH | 0.08911 ETH | 0.5347 ETH | 1.782 ETH |
+| 500 | 0.08394 ETH | 0.4197 ETH | 2.518 ETH | 8.394 ETH |
+| 1,000 | 0.16683 ETH | 0.8342 ETH | 5.005 ETH | 16.68 ETH |
+| 5,000 | 0.82937 ETH | 4.147 ETH | 24.88 ETH | 82.94 ETH |
 
 ### Streaming path ETH costs
 
 | SNPs | 1 gwei | 5 gwei | 30 gwei | 100 gwei |
 |------|--------|--------|---------|---------|
-| 100 | 0.01146 ETH | 0.0573 ETH | 0.3439 ETH | 1.146 ETH |
-| 500 | 0.05294 ETH | 0.2647 ETH | 1.588 ETH | 5.295 ETH |
-| 1,000 | 0.10484 ETH | 0.5242 ETH | 3.145 ETH | 10.48 ETH |
-| 5,000 | 0.51985 ETH | 2.599 ETH | 15.60 ETH | 51.99 ETH |
+| 100 | 0.01150 ETH | 0.0575 ETH | 0.3449 ETH | 1.150 ETH |
+| 500 | 0.05302 ETH | 0.2651 ETH | 1.591 ETH | 5.302 ETH |
+| 1,000 | 0.10497 ETH | 0.5249 ETH | 3.149 ETH | 10.50 ETH |
+| 5,000 | 0.52044 ETH | 2.602 ETH | 15.61 ETH | 52.04 ETH |
 
 ---
 
@@ -70,9 +70,9 @@ Using streaming path (lower cost, preferred for solo-requester flows):
 
 | SNPs | ETH cost | USD @ $1,500 | USD @ $3,000 |
 |------|----------|-------------|-------------|
-| 100 | 0.34 ETH | $515 | $1,030 |
-| 500 | 1.59 ETH | $2,380 | $4,760 |
-| 1,000 | 3.15 ETH | $4,718 | $9,435 |
+| 100 | 0.345 ETH | $517 | $1,035 |
+| 500 | 1.59 ETH | $2,386 | $4,772 |
+| 1,000 | 3.15 ETH | $4,724 | $9,448 |
 
 **Verdict: Not viable for clinical or commercial use at any scale.**
 
@@ -80,10 +80,10 @@ Using streaming path (lower cost, preferred for solo-requester flows):
 
 | SNPs | ETH cost | USD @ $1,500 | USD @ $3,000 |
 |------|----------|-------------|-------------|
-| 100 | 0.000573 ETH | $0.86 | $1.72 |
-| 500 | 0.002647 ETH | $3.97 | $7.94 |
-| 1,000 | 0.005242 ETH | $7.86 | $15.73 |
-| 5,000 | 0.025993 ETH | $38.99 | $77.98 |
+| 100 | 0.000575 ETH | $0.86 | $1.72 |
+| 500 | 0.002651 ETH | $3.98 | $7.95 |
+| 1,000 | 0.005249 ETH | $7.87 | $15.75 |
+| 5,000 | 0.026022 ETH | $39.03 | $78.07 |
 
 **Verdict: Viable for 100-500 SNP models. Marginal for 1,000 SNPs. Still expensive for 5,000 SNPs.**
 
@@ -92,9 +92,9 @@ Using streaming path (lower cost, preferred for solo-requester flows):
 | SNPs | ETH cost | USD @ $3,000 |
 |------|----------|-------------|
 | 100 | 0.0000115 ETH | $0.034 |
-| 500 | 0.0000529 ETH | $0.159 |
-| 1,000 | 0.0001048 ETH | $0.314 |
-| 5,000 | 0.0005199 ETH | $1.560 |
+| 500 | 0.0000530 ETH | $0.159 |
+| 1,000 | 0.0001050 ETH | $0.315 |
+| 5,000 | 0.0005204 ETH | $1.561 |
 
 **Verdict: Fully viable across all SNP counts. Competitive with centralized alternatives.**
 
@@ -138,8 +138,8 @@ PRS models in clinical use span a wide range. The table below shows what's econo
 For a $50 per-analysis target cost (reasonable for clinical genomics), streaming path, 100 SNPs (0.01146 ETH):
 
 ```
-$50 / 0.01146 ETH = ETH price ceiling of $4,363 at 1 gwei
-$50 / 0.01146 ETH = $4,363 / 30 = ETH price ceiling of $145 at 30 gwei
+$50 / 0.01150 ETH = ETH price ceiling of $4,349 at 1 gwei
+$50 / 0.01150 ETH = $4,349 / 30 = ETH price ceiling of $145 at 30 gwei
 ```
 
 At 30 gwei L1 pricing, even a $50 target requires ETH below $145 — not a realistic assumption. The $50 target only works at sub-1 gwei effective gas prices, which requires a dedicated chain.

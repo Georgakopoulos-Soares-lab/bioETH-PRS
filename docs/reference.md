@@ -90,18 +90,22 @@ raw_max = Σ(2 × max(qᵢ, 0))
 raw_min = Σ(2 × min(qᵢ, 0))
 ```
 
-Quick reference using the simplified bound `scale × 2 × N ≤ uint64_max` (assumes all weights have magnitude ≤ 1):
+Quick reference using the conservative unsigned-encoding bound
+`2 × genotypeMax × scale × N ≤ uint64_max` with `genotypeMax = 2` and
+`|beta| ≤ 1`. This protects the contract's largest intermediate
+`partialSum + scoreOffset`, not only the final encoded score:
 
 | Scale | Max safe SNPs |
 |---|---|
-| 10² | 9.2 × 10¹⁶ (no constraint in practice) |
-| 10⁴ | 9.2 × 10¹⁴ |
-| 10⁶ | 9.2 × 10¹² |
-| 10⁸ | 9.2 × 10¹⁰ |
-| 10¹⁰ | 9.2 × 10⁸ |
-| 10¹² | 921,000 |
+| 10² | 4.6 × 10¹⁶ (no constraint in practice) |
+| 10⁴ | 4.6 × 10¹⁴ |
+| 10⁶ | 4.6 × 10¹² |
+| 10⁸ | 4.6 × 10¹⁰ |
+| 10¹⁰ | 4.6 × 10⁸ |
+| 10¹² | 4,611,686 |
 
-At balanced scale ~10⁶ and 5,000 SNPs: max accumulation ~10¹³ ✓
+At balanced scale ~10⁶ and 5,000 SNPs: conservative max intermediate
+`2 × 2 × 10^6 × 5,000 = 2 × 10^10` ✓
 
 Use `npm run advisor:quantization` for exact bounds from the actual weight distribution. The simplified table is a quick screen, not a final safety proof.
 

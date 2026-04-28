@@ -12,10 +12,10 @@ describe("Scale ceiling reference", function () {
     expect(scale1e8).to.not.equal(undefined);
     expect(scale1e12).to.not.equal(undefined);
 
-    expect(scale1e8!.accumulationAt5000Snps).to.equal(1_000_000_000_000n);
-    expect(scale1e8!.safeSnpCeiling).to.equal(92_233_720_368n);
+    expect(scale1e8!.maxIntermediateAt5000Snps).to.equal(2_000_000_000_000n);
+    expect(scale1e8!.safeSnpCeiling).to.equal(46_116_860_184n);
 
-    expect(scale1e12!.accumulationAt5000Snps).to.equal(10_000_000_000_000_000n);
-    expect(scale1e12!.safeSnpCeiling).to.equal(9_223_372n);
+    expect(scale1e12!.maxIntermediateAt5000Snps).to.equal(20_000_000_000_000_000n);
+    expect(scale1e12!.safeSnpCeiling).to.equal(4_611_686n);
   });
 });

@@ -1,6 +1,6 @@
 # Streaming Path — Gas Profile
 
-**Date:** 9 April 2026
+**Date:** 28 April 2026
 **Config:** Hardhat mock, computeChunkSize=20, public weights, real HEPRS GWAS beta files, balanced advisor scale
 **Path:** `createPRSJob → appendAndComputeChunk (×N) → finalize`
 
@@ -39,10 +39,10 @@ Each streaming call with N SNPs uses: N `FHE.fromExternal` (proof ops, not HCU-c
 
 | SNPs | Classic gas | Streaming gas | Saved | Savings |
 |------|------------|--------------|-------|---------|
-| 100 | 17,776,955 | 11,462,650 | 6,314,305 | 35.5% |
-| 500 | 83,826,323 | 52,942,406 | 30,883,917 | 36.8% |
-| 1,000 | 166,623,762 | 104,835,421 | 61,788,341 | 37.1% |
-| 5,000 | 828,432,311 | 519,850,706 | 308,581,605 | 37.2% |
+| 100 | 17,822,343 | 11,497,106 | 6,325,237 | 35.5% |
+| 500 | 83,943,791 | 53,022,266 | 30,921,525 | 36.8% |
+| 1,000 | 166,833,088 | 104,972,231 | 61,860,857 | 37.1% |
+| 5,000 | 829,373,147 | 520,441,238 | 308,931,909 | 37.2% |
 
 Savings stabilise at ~37% above 500 SNPs. Both paths produce identical scores (verified for all four fixture sizes).
 
@@ -52,11 +52,11 @@ Savings stabilise at ~37% above 500 SNPs. Both paths produce identical scores (v
 
 | Phase | 100 SNPs | 500 SNPs | 1,000 SNPs | 5,000 SNPs |
 |-------|---------|---------|-----------|-----------|
-| `publishModel` | 1,128,690 | 4,256,666 | 8,210,154 | 39,707,027 |
-| `createPRSJob` | 278,450 | 278,450 | 278,450 | 278,450 |
-| `appendAndComputeChunk` | 9,900,648 | 48,252,428 | 96,191,955 | 479,710,367 |
-| `finalize` | 154,862 | 154,862 | 154,862 | 154,862 |
-| **Total** | **11,462,650** | **52,942,406** | **104,835,421** | **519,850,706** |
+| `publishModel` | 1,129,042 | 4,257,810 | 8,212,354 | 39,717,477 |
+| `createPRSJob` | 284,148 | 284,148 | 284,148 | 284,148 |
+| `appendAndComputeChunk` | 9,914,040 | 48,310,432 | 96,305,853 | 480,269,737 |
+| `finalize` | 169,876 | 169,876 | 169,876 | 169,876 |
+| **Total** | **11,497,106** | **53,022,266** | **104,972,231** | **520,441,238** |
 
 ### Per-SNP gas — streaming vs classic
 

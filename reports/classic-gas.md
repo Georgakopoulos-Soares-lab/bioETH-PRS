@@ -1,6 +1,6 @@
 # Classic Path — Gas Profile
 
-**Date:** 9 April 2026
+**Date:** 28 April 2026
 **Config:** Hardhat mock, uploadChunkSize=32, computeChunkSize=20, public weights, real HEPRS GWAS beta files, balanced advisor scale
 **Path:** `createPRSJob → appendSnpChunk (×N) → finalizeSnpUpload → computeChunk (×N) → finalize`
 
@@ -39,26 +39,29 @@ Sepolia ceiling: TBD — run `npm run probe:hcu` after first Sepolia deployment.
 
 ## Gas Profile — All Fixture Sizes
 
-### Timing (wall clock, mock)
+### Timing (wall clock, mock profile harness)
+
+These timings are local mock wall-clock timings and vary by machine/load. The
+gas table below is the stable measurement to use for comparisons.
 
 | SNPs | Upload txs | Compute txs | Total time |
 |------|-----------|-------------|-----------|
-| 100 | 4 | 6 | ~386 ms |
-| 500 | 16 | 26 | ~1,496 ms |
-| 1,000 | 32 | 51 | ~2,833 ms |
-| 5,000 | 157 | 251 | ~14,457 ms |
+| 100 | 4 | 6 | ~1.0 s |
+| 500 | 16 | 26 | ~3.2 s |
+| 1,000 | 32 | 51 | ~5.8 s |
+| 5,000 | 157 | 251 | ~32.3 s |
 
 ### Gas by phase
 
 | Phase | 100 SNPs | 500 SNPs | 1,000 SNPs | 5,000 SNPs |
 |-------|---------|---------|-----------|-----------|
-| `publishModel` | 1,128,690 | 4,256,666 | 8,210,154 | 39,707,027 |
-| `createPRSJob` | 315,450 | 315,450 | 315,450 | 315,450 |
-| `appendSnpChunk` | 10,326,983 | 50,929,135 | 101,874,036 | 508,993,312 |
-| `finalizeSnpUpload` | 34,967 | 34,967 | 34,967 | 34,967 |
-| `computeChunk` | 5,816,015 | 28,135,255 | 56,034,305 | 279,226,705 |
-| `finalize` | 154,850 | 154,850 | 154,850 | 154,850 |
-| **Total** | **17,776,955** | **83,826,323** | **166,623,762** | **828,432,311** |
+| `publishModel` | 1,129,042 | 4,257,810 | 8,212,354 | 39,717,477 |
+| `createPRSJob` | 321,148 | 321,148 | 321,148 | 321,148 |
+| `appendSnpChunk` | 10,335,719 | 50,964,559 | 101,944,512 | 509,341,048 |
+| `finalizeSnpUpload` | 37,175 | 37,175 | 37,175 | 37,175 |
+| `computeChunk` | 5,829,395 | 28,193,235 | 56,148,035 | 279,786,435 |
+| `finalize` | 169,864 | 169,864 | 169,864 | 169,864 |
+| **Total** | **17,822,343** | **83,943,791** | **166,833,088** | **829,373,147** |
 
 ### Phase shares (consistent across sizes)
 
@@ -73,9 +76,9 @@ Sepolia ceiling: TBD — run `npm run probe:hcu` after first Sepolia deployment.
 
 | SNPs | Gas/SNP |
 |------|---------|
-| 100 | ~176K |
-| 500 | ~167K |
-| 1,000 | ~166K |
+| 100 | ~178K |
+| 500 | ~168K |
+| 1,000 | ~167K |
 | 5,000 | ~166K |
 
 Linear scaling confirmed. No hidden quadratic overhead.
@@ -126,10 +129,10 @@ After first Sepolia deployment, record actual numbers here:
 | Metric | Mock | Sepolia |
 |--------|------|---------|
 | Max safe `computeChunkSize` | 20 | TBD |
-| Gas: `publishModel` (100 SNPs) | 1,128,690 | TBD |
-| Gas: `appendSnpChunk` per call (32 SNPs) | ~2,582K | TBD |
-| Gas: `computeChunk` per call (20 SNPs) | ~969K | TBD |
-| Gas: total 100-SNP end-to-end | 17,776,955 | TBD |
+| Gas: `publishModel` (100 SNPs) | 1,129,042 | TBD |
+| Gas: `appendSnpChunk` per call (32 SNPs) | ~2,584K | TBD |
+| Gas: `computeChunk` per call (20 SNPs) | ~1,118K | TBD |
+| Gas: total 100-SNP end-to-end | 17,822,343 | TBD |
 | Score correctness (758,685) | Pass | TBD |
 
 Run `npm run validate:sepolia` after deployment. Fill Sepolia column.

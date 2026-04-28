@@ -387,7 +387,7 @@ Decode after decryption:
 
 ### 5.4 Overflow safety
 
-The safe `uint64` bound is:
+The final encoded score bound is:
 
 ```
 encoded_range = raw_max - raw_min ≤ 2^64 - 1  (~1.8 × 10^19)
@@ -397,9 +397,17 @@ where:
   raw_min = Σ(2 × min(q_i, 0))
 ```
 
-At scale 10⁸ and 5,000 SNPs with max single-weight magnitude 1.0:
+The contract's largest unsigned intermediate is `partialSum + scoreOffset`, so
+the conservative manifest-independent quick screen is stronger:
 
-- `raw_max ≈ 2 × 10⁸ × 5,000 = 10¹²` — well within `uint64` range
+```
+2 × genotypeMax × scale × N_snps ≤ 2^64 - 1
+```
+
+For genotype hardcalls, `genotypeMax = 2`. At scale 10⁸ and 5,000 SNPs with
+max single-weight magnitude 1.0:
+
+- conservative intermediate bound `≈ 2 × 2 × 10⁸ × 5,000 = 2 × 10¹²` — well within `uint64` range
 
 Do not use `scale × 2 × N_snps` as the only check — compute exact bounds from the actual quantized weight vector. The quantization advisor does this automatically and is faster.
 
@@ -447,7 +455,7 @@ Never violate these:
 
 2. **ACL on every encrypted output.** Every `euint64` returned to a user must have `FHE.allow(handle, userAddress)` before the function returns.
 
-3. **Quantization ceiling.** `scale × 2 × N_snps` must fit in `uint64` (~1.8×10¹⁹). Run `npm run advisor:quantization` before deploying new models.
+3. **Quantization ceiling.** The largest unsigned intermediate must fit in `uint64` (~1.8×10¹⁹). Use the conservative quick screen `2 × genotypeMax × scale × N_snps ≤ uint64_max`, then run `npm run advisor:quantization` for exact per-model bounds before deploying new models.
 
 4. **On-chain noise generation.** `ResultOracle` generates noise via `FHE.randEuint64(noiseUpperBound)`. Zero-noise calls are impossible — the constructor rejects `noiseUpperBound == 0` and non-power-of-two values.
 
