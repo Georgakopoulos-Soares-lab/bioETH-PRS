@@ -44,11 +44,22 @@ fixtures may keep `ZeroHash`, since they assert contract logic rather than repor
 ## CD-002 — Baseline artifacts were produced on an unsupported node runtime
 
 - **Opened:** Phase 0, 28 July 2026
-- **Status:** open
-- **Resolves via:** re-capture on node 22 before Stage B quotes any baseline number
+- **Status:** **resolved** (Phase 0, 28 July 2026)
+- **Resolved by:** installing nvm 0.40.6 and pinning node v22.23.1, then re-capturing the
+  entire baseline from a fresh `npm ci`
 
-`.nvmrc` pins node 22; the Phase 0 capture ran on node v25.5.0 and Hardhat 2.22 warned that
-the runtime is unsupported. Compile and all 137 tests passed. This does not invalidate the
-baseline, but any manuscript sentence citing a mock measurement must either be re-measured on
-node 22 or state the runtime. Relevant to `R1.1-M1`, which must label evidence classes
-precisely.
+`.nvmrc` pins node 22; the first Phase 0 capture ran on the system node v25.5.0 and Hardhat
+2.22 warned `You are currently using Node.js v25.5.0, which is not supported by Hardhat`.
+Compile and all 137 tests passed regardless, but a measurement taken on an unsupported runtime
+is not defensible in a manuscript under review for evidence quality.
+
+Resolution: nvm 0.40.6 installed at `~/.nvm` with the loader added to `~/.zshrc`; node
+v22.23.1 (npm 10.9.8) installed and set as the default alias. `node_modules` was rebuilt from
+scratch with `npm ci` so no native module retained the node 25 ABI, then `npx hardhat clean`
+forced a full recompile. Re-captured results are identical — 11 contracts compiled, **137
+passing**, 100-SNP mock validation passing — and the unsupported-runtime warning is absent
+from `baseline/compile.txt`.
+
+**Standing rule for the rest of Stage A:** run `nvm use` (which reads `.nvmrc`) before any
+command that produces a reportable number. Every artifact in `evidence/` must record its
+runtime in the same way `baseline/environment.txt` does.

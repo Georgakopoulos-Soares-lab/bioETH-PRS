@@ -1,7 +1,10 @@
 === git ===
-0ebbfda0f6fb97d5e4f771a201b2b481838c1d40
+b935d5fd0843737fc66cfb6200f2d24063a21c29
 rtr-revision
 
-=== node/npm ===
-v25.5.0
-11.8.0
+=== runtime ===
+node   v22.23.1
+npm    10.9.8
+which  /Users/kap4722/.nvm/versions/node/v22.23.1/bin/node
+.nvmrc 22
+nvm    0.40.6

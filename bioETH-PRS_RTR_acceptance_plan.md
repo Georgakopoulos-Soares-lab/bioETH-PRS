@@ -16,6 +16,10 @@ This document has two views of the same work:
 
 Update an action in both views when its status changes.
 
+**This file is the issue tracker.** There is no external tracker and no owner column — the
+revision has a single implementer. An action's authoritative status is its View 1 checkbox and
+`Progress:` line; the crosswalk and View 2 must be updated to agree whenever it changes.
+
 ### Ordering doctrine: build the evidence, then write the paper
 
 Revision 2 of this plan reorders every action into two sequential stages:
@@ -793,28 +797,37 @@ No editor-specific technical action is required. The cover response should thank
 
 ## Phase 0 - Freeze the revision baseline and tracker
 
-Phase progress: **75%** (3/4 items)
+Phase progress: **100%** (4/4 items)
 
 - [x] Create a revision branch from snapshot `2d6f21d4560db77da026aa7d5043e5f1e789288c`.
       Branch `rtr-revision`; baseline commit `0ebbfda` adds the RTR docx, the submitted
       `bioeth_prs (4).tex`, and this plan with no code changes.
-- [ ] Copy all 35 action IDs into the issue tracker with owner, status, output path, and manuscript location.
-      The crosswalk table above is the import source; owners are still unassigned.
+- [x] Track all 35 action IDs with status, output path, and manuscript location.
+      **This file is the issue tracker.** No external tracker and no owner column: the
+      revision has a single implementer, so ownership is implicit. Each action is tracked by
+      its View 1 entry (status, progress, code action, manuscript action, completion
+      criterion), its `- Stage:` line, and its row in the crosswalk table above.
 - [x] Save baseline compile, 137-test, and 100-SNP mock outputs.
-      In `evidence/baseline/`: `npm ci` exit 0, `npm run build` exit 0 (11 contracts, evm
-      `cancun`), `npm run test` **137 passing / 0 failing**, `npm run validate:mock` 1 passing
-      with an end-to-end decrypted score. Caveat recorded: captured on node v25.5.0 against an
-      `.nvmrc` pin of 22, which Hardhat 2.22 reports as unsupported (see `CD-002`).
+      In `evidence/baseline/`, all on node v22.23.1 from a fresh `npm ci` and a
+      `hardhat clean` recompile: `npm run build` exit 0 (11 contracts, evm `cancun`, 56
+      typings), `npm run test` **137 passing / 0 failing**, `npm run validate:mock` 1 passing
+      with an end-to-end decrypted score on chainId 31337. No unsupported-runtime warning.
 - [x] Create `evidence/` as the single destination for every artifact produced in Stage A.
       `evidence/README.md` fixes the three evidence classes (`Live fhEVM`, `Hardhat mock`,
       `Analytic projection`), the provenance requirement, and the Stage A to Stage B gate.
-      `evidence/claim_deltas.md` is open with two entries.
+      `evidence/claim_deltas.md` holds `CD-001` (open, widens `R2.4-E1` scope) and `CD-002`
+      (resolved, runtime pinned to node 22).
 
 Exit gate:
 
-- [ ] Every action in View 1 has an owner and no implementation begins on an untracked action.
+- [x] Every action appears exactly once in this file and no implementation begins on an
+      untracked action. Verified programmatically: 35 View 1 action headings, 35 crosswalk
+      rows, 35 `- Stage:` annotations, zero unmapped and zero missing.
 - [x] No manuscript file is edited until Stage A is complete. `bioeth_prs (4).tex` is committed
       unmodified at `0ebbfda` and must not be touched before the Stage A exit gate clears.
+- [x] The build runtime matches `.nvmrc`. nvm v0.40.6 installed at `~/.nvm` with node v22.23.1
+      (npm 10.9.8) as the default alias; the Hardhat 2.22 unsupported-runtime warning is gone.
+      Closes `CD-002`.
 
 ---
 

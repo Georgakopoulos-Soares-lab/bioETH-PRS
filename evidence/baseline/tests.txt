@@ -2,9 +2,6 @@
 > bioeth-prs@0.1.0 test
 > hardhat test
 
-WARNING: You are currently using Node.js v25.5.0, which is not supported by Hardhat. This can lead to unexpected behavior. See https://v2.hardhat.org/nodejs-versions
-
-
 
 
   BioETHPRS — fhEVM mock coprocessor (Hardhat)
@@ -16,10 +13,10 @@ WARNING: You are currently using Node.js v25.5.0, which is not supported by Hard
     ✔ readPartial is restricted to the requester
 
   HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)
-    ✔ matches a plaintext dot product on the HEPRS 100-SNP fixture using the balanced advisor recommendation (208ms)
-    ✔ matches a plaintext dot product on the HEPRS 500-SNP fixture using the balanced advisor recommendation (831ms)
-    ✔ matches a plaintext dot product on the HEPRS 1000-SNP fixture using the balanced advisor recommendation (1675ms)
-    ✔ matches a plaintext dot product on the HEPRS 5000-SNP fixture using chunked SNP ingestion and the balanced advisor recommendation (9050ms)
+    ✔ matches a plaintext dot product on the HEPRS 100-SNP fixture using the balanced advisor recommendation (196ms)
+    ✔ matches a plaintext dot product on the HEPRS 500-SNP fixture using the balanced advisor recommendation (817ms)
+    ✔ matches a plaintext dot product on the HEPRS 1000-SNP fixture using the balanced advisor recommendation (1638ms)
+    ✔ matches a plaintext dot product on the HEPRS 5000-SNP fixture using chunked SNP ingestion and the balanced advisor recommendation (8089ms)
 
   HEPRS quantization — overflow safety across all individuals
     ✔ encoded scores stay within uint64 for all 50 individuals — 100 SNP fixture
@@ -68,7 +65,7 @@ WARNING: You are currently using Node.js v25.5.0, which is not supported by Hard
       ✔ rejects appends once all public chunks are uploaded but before finalize
       ✔ emits PublicModelChunkAppended with the derived chunk index
     private chunk publication
-      ✔ appends encrypted chunks sequentially and stores the encrypted payloads (45ms)
+      ✔ appends encrypted chunks sequentially and stores the encrypted payloads (47ms)
       ✔ rejects encrypted chunk append by non-owner
       ✔ rejects encrypted chunk append on an invalid model id
       ✔ rejects encrypted chunk append to a public model
@@ -99,7 +96,7 @@ WARNING: You are currently using Node.js v25.5.0, which is not supported by Hard
     Registry ACL enforcement
       ✔ owner can create a job for their own sample
       ✔ delegate with grantAccess can create a job
-      ✔ stranger without access is rejected
+      ✔ stranger without access is rejected (48ms)
       ✔ revoked grantee is rejected
       ✔ rejects an unregistered sampleId
     Private model per-requester authorization
@@ -164,9 +161,9 @@ WARNING: You are currently using Node.js v25.5.0, which is not supported by Hard
       ✔ stranger is denied before access is granted
       ✔ grantAccess / revokeAccess work correctly
     ModelMarketplace → PRSComputeEngine (public model)
-      ✔ computes correct dot product via public weights (57ms)
-      ✔ requester can decrypt the raw engine score without calling the oracle
-      ✔ computes correct dot product via encrypted chunks after authorizing the engine (38ms)
+      ✔ computes correct dot product via public weights (62ms)
+      ✔ requester can decrypt the raw engine score without calling the oracle (42ms)
+      ✔ computes correct dot product via encrypted chunks after authorizing the engine (42ms)
     ResultOracle classification
       ✔ classifies score well below low threshold as Low (0)
       ✔ classifies score well within medium band as Medium (1)
@@ -177,7 +174,7 @@ WARNING: You are currently using Node.js v25.5.0, which is not supported by Hard
       ✔ rejects classify when lowThreshold >= highThreshold
       ✔ noise is added — noisy score exceeds raw score
     PRSComputeEngine → ResultOracle end-to-end
-      ✔ classifies an engine-produced score correctly (full pipeline)
+      ✔ classifies an engine-produced score correctly (full pipeline) (41ms)
       ✔ classifies a high-risk engine score as High
       ✔ supports oracle-only classification through an atomic engine handoff (53ms)
       ✔ classifyPreauthorized threshold guard is enforced via the atomic engine handoff path
@@ -187,5 +184,5 @@ WARNING: You are currently using Node.js v25.5.0, which is not supported by Hard
     ✔ computes the documented quick-screen ceilings
 
 
-  137 passing (14s)
+  137 passing (13s)
 
