@@ -318,13 +318,52 @@ receive the least reliable classification.
 
 ## MS-04 · `R1.4-M1` · Phase 11 · Replace the 2,800-hour claim
 
-**Status: `BLOCKED`** on `R1.4-E1` (Phase 6). Do not draft a placeholder number.
+**Status: `READY`** — measured in Phase 6. See `CD-017`, `CD-018`, `CD-019`, `CD-020`.
 
-Remove from `Anti-Probing: Rate Limiting`: `extracting a single 20-bit weight ... approximately
-2,800 hours`. Remove from the Introduction contributions: `raise the cost ... to thousands of
-hours`. Replace with the measured summary from Phase 6 plus the bounded conclusion: *The controls
-reduce output resolution and increase query cost under the evaluated attacker models; they do not
-prevent Sybil attacks or provide a formal model-confidentiality guarantee.*
+**Delete the calculation; do not repair it.** The submitted derivation is wrong three ways: it
+divides a *count of candidate weight values* (2 x 10^4) by a *bit rate*, a units error inflating
+the query estimate ~1,400x; its stated intermediate (4,220 windows at W = 1,000 blocks, 12 s per
+block) works out to 14,067 hours rather than the 2,800 stated, so the two are mutually
+inconsistent; and the measured cost is ~252x lower than claimed. Also remove the Introduction
+bullet claiming the controls "raise the cost ... to thousands of hours".
+
+**Replace with the measured two-factor decomposition.** Keeping the factors separate is the
+structural fix — collapsing them into one unchecked number is what produced the original error.
+
+*Factor 1, information cost* (rate limiting off, so it is a property of the interface):
+
+| Design | Queries | Pearson r | Sign acc. | Within B |
+|---|---:|---:|---:|---:|
+| No oracle, raw score | **20** = N | 1.0000 | 100% | 100% |
+| Submitted design, caller-chosen thresholds, adaptive | **200** | 1.0000 | 100% | 100% |
+| Submitted design, non-adaptive | 320 | 0.6689 | 65% | 0% |
+| **Hardened, fixed thresholds, adaptive** | 320 | 0.9391 | 70% | **0%** |
+| Hardened + correlated LD probes | 320 | -0.0037 | 65% | 0% |
+
+*Factor 2, permitted rate*: R = 3 per W = 1,000-block window at 12 s per block = 4,000 s per
+query. Product: **11.1 hours per weight, 222.2 hours for a 20-weight model** under the submitted
+design. State block time as an assumption; note S samples divide wall clock by roughly S.
+
+**Mandated bounded conclusion**, now measured: *the controls reduce output resolution and increase
+query cost under the evaluated attacker models; they do not prevent Sybil attacks or provide a
+formal model-confidentiality guarantee.*
+
+Four points that must appear:
+
+1. **Resolution reduction, not confidentiality** (`CD-018`). Fixed thresholds recover 0/20 within
+   the noise bound against 20/20 for the submitted design, but *r* = 0.94 means relative shape
+   still leaks; 70% sign accuracy means the absolute level does not.
+2. **Adaptivity converts into precision only when the boundary can move.** That is the mechanism
+   by which `R1.4-C1` works, and it is measurable.
+3. **The noise bound is 1.34% of the largest weight** (`CD-019`) — ~7 bits of blur on a 13.2-bit
+   weight. Choosing B needs the quantised weight distribution, which the advisor already computes.
+4. **The correlated-SNP mitigation is vacuous** (`CD-020`) — nothing forces an attacker to use
+   correlated probes, because inputs are unvalidated. **Cross-reference `R1.5-M1`**: R1 C4 and
+   R1 C5 cannot be answered independently.
+
+State the limits: mock coprocessor, N = 20, one estimator, lower bounds on attacker effort.
+Removing the raw-score path is the single largest control — exact extraction in N queries when
+`finalize()` is reachable on a private model.
 
 ## MS-05 · `R1.1-M1` · Phase 11 · Evidence-class labelling
 
@@ -417,7 +456,7 @@ We thank the reviewer for this comment and we agree without reservation. On refl
 
 We thank the reviewer for this comment and we accept the reclassification. The reviewer is correct that this is a property of the security model rather than a peripheral limitation, and that its consequences for model probing and misuse make its former placement in a late subsection inappropriate. We want to state the boundary precisely: `GenomicRegistry.hasAccess` gates *who* may open a job against a registered sample, but nothing in the protocol binds *what* is subsequently uploaded to that sample. The contracts guarantee correct computation over the ciphertexts that were submitted; they do not prove that those ciphertexts encode genotypes derived from the registered sample. The full discussion has been moved into the Security Model immediately after the Threat Model, and the threat model now includes an explicit malicious-but-authorized requester who may upload arbitrary encrypted values. Beyond relocating the prose, we have made the boundary visible in the implementation. The test suite already contained a regression test showing that the engine accepts arbitrary encrypted SNP values, but it read as an incidental observation; it is now named as a trust-boundary record and carries a comment block stating what is and is not guaranteed. Its inputs are deliberately invalid diploid dosages — 9 and 11, where only 0, 1, and 2 are biologically meaningful — and the engine computes over them and reports a score without objection, which is precisely the capability that makes model probing feasible in the first place. The comment also instructs future maintainers to update the Security Model and the manuscript if that test ever begins to fail, since that would signal a change in the guarantee. We are explicit that `registerSampleWithManifest` does not close this gap: `manifestHash` commits to preparation metadata such as genome build, input-file hash, variant order, and preparation policy, and is therefore a provenance commitment only — it is not a cryptographic binding between a ciphertext and a sample, and we do not present it as a proof. Signed laboratory attestation and a zero-knowledge ciphertext-to-sample proof are identified in Future Directions as the mechanisms that would genuinely close it. The setting we evaluate is consequently one of trusted genotype preparation by the patient's local pipeline, an accredited laboratory, or an approved data custodian, and we now state that assumption where the privacy invariants are introduced rather than after them.
 
-## Reviewer 1, Comment 4 — model extraction and adaptive querying
+## Reviewer 1, Comment 4 - model extraction and adaptive querying
 
 > The manuscript estimates that model extraction would require thousands of hours under
 > recommended rate-limiting settings. However, this calculation appears heuristic and does not
@@ -425,11 +464,14 @@ We thank the reviewer for this comment and we accept the reclassification. The r
 > SNP structure, or cross-sample probing. A stronger adversarial analysis is needed before the
 > anti-probing claims can be considered established.
 
-**Substantiated now:** `R1.4-C1` and `R1.4-T1` — commit below, `evidence/phase2/`.
-**Blocked on:** `R1.4-E1` (Phase 6) for the five-variation analysis, MS-04 (Phase 11) for the
-numerical replacement, MS-09 (Phase 9/10) for the algorithm listings.
+**Substantiated now:** `R1.4-C1`, `R1.4-T1` (Phase 2) and `R1.4-E1` (Phase 6) -
+`evidence/phase2/`, `evidence/phase6/`.
+**Blocked on:** MS-04 (Phase 11) for the manuscript text, MS-09 (Phase 9/10) for the algorithms.
 
-We thank the reviewer for this comment, which identified a genuine design flaw rather than only a weakness in our estimate, and we have changed the protocol in response. Working through the reviewer's list of adaptive capabilities made clear that threshold manipulation was not one attack among five but the enabling one: because `finalizeAndClassify` accepted `lowThreshold` and `highThreshold` from the requester on every call, an attacker could hold a genotype fixed and sweep the thresholds across successive jobs, performing a binary search on the encrypted score. That extracts far more information per query than the ternary Low/Medium/High output suggests, and it undermines the randomized release, whose protection assumes the adversary observes a coarse categorical answer rather than a comparison at a precision they chose. Widening the minimum threshold gap, which was our original mitigation, bounds the resolution of any single query but leaves the adaptive channel intact. We therefore removed the capability rather than bounding it. Both thresholds and the oracle address now live in a per-model release policy that the model owner fixes before the model is finalized and that is immutable afterwards; `finalizeAndClassify` takes only a job identifier. We also removed the two setters that previously allowed the oracle and the oracle-required flag to be changed after publication, since either would have let an owner advertise a strict policy and then relax it once requesters had committed. We want to be precise about the strength of this claim: requester-chosen thresholds are not rejected at runtime, they are absent from the interface, and our test suite asserts this at the ABI level — that the classification entry point has exactly one parameter, that no function on the compute engine accepts any parameter matching "threshold", and that the removed setters are absent from the compiled ABI. The change is inexpensive: total gas moves by under 0.001%, the HCU ceiling is unchanged because the policy is read with ordinary storage loads and adds no homomorphic operations, and the one-time cost of fixing a policy is 77,314 gas per model, independent of variant count. On the remaining capabilities the reviewer lists, we report a full adversarial evaluation of non-adaptive versus adaptive querying, single versus multiple wallets, fixed versus caller-selected thresholds, independent versus correlated SNP inputs, and single versus multiple samples, and we have replaced the heuristic wall-clock figure with those measurements. We are explicit that multiple-wallet attacks are bounded but not solved: per-sample rate limiting means a registered sample stays throttled across wallets, and two tests in the suite demonstrate this, but distinct wallets holding distinct registered samples still receive independent quotas. We state as a limitation, not a result, that the controls reduce output resolution and raise query cost under the evaluated attacker models while providing neither Sybil resistance nor a formal model-confidentiality guarantee.
+*An earlier draft of this response, written before the adversarial evaluation ran, promised
+measurements it did not have; it has been replaced by this one rather than kept alongside it.*
+
+We thank the reviewer for this comment, which proved the most consequential of the review, and we should begin by conceding more than was asked. The reviewer suspected our extraction estimate was heuristic. On re-deriving it we found it was not merely heuristic but incorrect in three independent ways. The calculation divides two times ten to the fourth, which is a count of candidate weight values, by a rate of bits per query; dividing a count of values by a bit rate is a dimensional error, and the information actually required is the logarithm of that count, about fourteen bits rather than twenty thousand of them, which alone inflates the query estimate by roughly three orders of magnitude. Separately, the stated intermediate result and the stated conclusion are mutually inconsistent: four thousand two hundred and twenty windows of one thousand blocks at twelve seconds per block is about fourteen thousand hours, not the two thousand eight hundred we reported, and the figure we reported is instead consistent with a window of roughly two hundred blocks, contradicting the window size given in the same sentence. Finally, and most importantly, we have now measured the attack rather than estimating it, and the true cost is about two hundred and fifty times lower than we claimed. We have deleted the calculation rather than attempting to repair it. In its place we report an adversarial evaluation in which every query is a real job against real contracts, and we deliberately separate the two factors whose conflation produced the original error: the information cost of extraction, measured in queries with rate limiting disabled, and the permitted query rate, measured separately. Against the design as submitted, an adaptive attacker recovers every weight of a twenty-weight private model to within the noise bound in two hundred queries, ten per weight, which closely matches the corrected information-theoretic bound of nine and is the main reason to trust the measurement over the estimate. At our own recommended settings of three queries per thousand-block window and twelve-second blocks, that is eleven hours per weight and two hundred and twenty-two hours for the model, against the two thousand eight hundred hours per weight we claimed. We address each of the five capabilities the reviewer names. On adaptive querying, adaptivity is decisive but only where the attacker controls the decision boundary: with caller-chosen thresholds an adaptive attacker recovers everything, while a non-adaptive one recovers nothing to within the noise bound at the same budget. On threshold manipulation, this was not a weakness in our analysis but a flaw in our protocol, and we have removed the capability rather than bounding it; the classification entry point no longer accepts thresholds at all, and our tests assert their absence at the level of the compiled interface. Measured against the frozen submitted contracts, that change takes recovery from all twenty weights to none within the noise bound. On multiple wallets, the same-sample bypass is closed: a second and third wallet obtained no additional queries against a registered sample whose window was exhausted. On cross-sample probing, distinct wallets holding distinct samples do each receive an independent quota, which we state plainly as the remaining Sybil boundary, noting that for a private model each additional wallet must also be authorised by the model owner, so expansion is gated by an explicit allowlist rather than by rate limits alone. On correlated SNP structure, recovery does collapse when probes are confined to linkage blocks, but we decline to present that as a defence: nothing compels an attacker to submit correlated genotypes, because the contracts do not validate inputs, which is the same trust boundary raised in the reviewer's fifth comment. We therefore cross-reference the two responses, since the unverifiable-input gap is precisely what makes the strongest probing attack expressible, and the honest measure of attacker capability is the arm in which probes are chosen freely. Two further findings emerged that we report against our own interest. First, the hardening reduces resolution rather than conferring confidentiality: no weight is recovered to within the noise bound, but the correlation between the true and estimated weight vectors remains about zero point nine four, so the relative shape of the model still leaks even though its absolute level does not, and we now claim only the former. Second, our recommended noise bound is too small to matter much: at a scale of one million, a bound of one hundred and twenty-eight is one and a third percent of the largest quantised weight, about seven bits of blur on a thirteen-bit weight, so it conceals roughly the lower half of each weight and nothing above it. Choosing that bound properly requires reference to the quantised weight distribution, which our advisor already computes, and we have moved calibrated selection of it to Future Directions. Our revised claim is accordingly bounded: the controls reduce output resolution and increase query cost under the attacker models we evaluated, and they neither prevent Sybil attacks nor provide a formal model-confidentiality guarantee. We also state that these figures are lower bounds on attacker effort under the strategies we implemented, and that the absence of a better attack in our evaluation is not evidence that none exists.
 
 ## Reviewer 2, Comment 2 — genotype quality control
 
@@ -534,6 +576,10 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-21 | `evidence/phase5/summary_statistics.json` - MAE/RMSE/max = 0, Pearson r = 1 exact | MS-15; R2 C7 |
 | EV-22 | `evidence/phase5/category_agreement_100snp.json` - 48/48 outside band, 2/50 in band | MS-15; R2 C7, R1 C3 |
 | EV-23 | `scripts/individual_level_validation.ts` - runner, `npm run validate:individual-level` | MS-15 |
+| EV-24 | `evidence/phase6/anti_probing_results.json` - 6 arms, extraction-cost curve, wall-clock derivation | MS-04; R1 C4 |
+| EV-25 | `contracts/attack-baseline/` - frozen `2d6f21d` design, byte-faithful | MS-04; R1 C4 |
+| EV-26 | `test/attack_baseline_isolation_test.ts` - 6 tests: fidelity + never deployable | R1 C4 |
+| EV-27 | `scripts/anti_probing_evaluation.ts` - `npm run evaluate:anti-probing` | MS-04 |
 
 ## Commit trail
 
@@ -548,3 +594,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `88ecb89` | Phase 3: independent Python reference; cross-language agreement at tolerance 0 |
 | `bb0ddfd` | Phase 4: real provenance across all evidence-producing code; zero-hash guard |
 | `29836a6` | Phase 5: 200-individual Equation 1 comparison, all exact |
+| `<phase6>` | Phase 6: adversarial evaluation; 2,800-hour claim refuted and replaced |

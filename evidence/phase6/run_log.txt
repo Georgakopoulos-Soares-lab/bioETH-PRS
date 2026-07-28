@@ -1,0 +1,46 @@
+
+> bioeth-prs@0.1.0 evaluate:anti-probing
+> hardhat test scripts/anti_probing_evaluation.ts
+
+
+
+  Anti-probing adversarial evaluation (R1.4-E1)
+
+  N=20 private weights, scale=1000000, B=128
+  z_w=9534  z_s=46088
+  max |q_i|=9534; noise bound is 1.34% of the largest weight magnitude
+  arm 1 (raw score):        queries=20  {"pearsonR":1,"signAccuracy":1,"meanRelativeError":0,"withinNoiseBound":1}
+    ✔ arm 1 — unprotected raw score release: exact extraction in N queries (840ms)
+  arm 2 (baseline, adaptive): queries=320  {"pearsonR":0.999982,"signAccuracy":1,"meanRelativeError":0.005727,"withinNoiseBound":1}
+  arm 2 extraction-cost curve (queries -> recovery):
+       20 queries  r=0.6671  sign=80%  relErr=2.2461  withinB=0%
+       40 queries  r=0.6671  sign=80%  relErr=1.0037  withinB=0%
+       60 queries  r=0.6671  sign=80%  relErr=0.4351  withinB=5%
+       80 queries  r=0.8521  sign=80%  relErr=0.1831  withinB=10%
+      100 queries  r=0.9481  sign=80%  relErr=0.1062  withinB=0%
+      120 queries  r=0.9906  sign=100%  relErr=0.0419  withinB=25%
+      140 queries  r=0.9973  sign=100%  relErr=0.0251  withinB=30%
+      160 queries  r=0.9993  sign=100%  relErr=0.0129  withinB=65%
+      180 queries  r=0.9998  sign=100%  relErr=0.0065  withinB=85%
+      200 queries  r=0.9999  sign=100%  relErr=0.0059  withinB=100%
+      220 queries  r=1.0000  sign=100%  relErr=0.0054  withinB=100%
+      240 queries  r=1.0000  sign=100%  relErr=0.0057  withinB=100%
+      260 queries  r=1.0000  sign=100%  relErr=0.0056  withinB=100%
+      280 queries  r=1.0000  sign=100%  relErr=0.0057  withinB=100%
+      300 queries  r=1.0000  sign=100%  relErr=0.0057  withinB=100%
+      320 queries  r=1.0000  sign=100%  relErr=0.0057  withinB=100%
+    ✔ arm 2 — BASELINE caller-selected thresholds, adaptive binary search (12113ms)
+  arm 3 (baseline, non-adapt): queries=320  {"pearsonR":0.668898,"signAccuracy":0.65,"meanRelativeError":0.937268,"withinNoiseBound":0}
+    ✔ arm 3 — BASELINE caller-selected thresholds, NON-adaptive at equal budget (12745ms)
+  arm 4 (hardened, adaptive): queries=320  {"pearsonR":0.939135,"signAccuracy":0.7,"meanRelativeError":1.02437,"withinNoiseBound":0}
+    ✔ arm 4 — HARDENED fixed thresholds, adaptive, equal budget (12462ms)
+  arm 5 (hardened, correlated): queries=320  {"pearsonR":-0.00367,"signAccuracy":0.65,"meanRelativeError":0.813575,"withinNoiseBound":0}
+    ✔ arm 5 — HARDENED fixed thresholds with CORRELATED probes (LD blocks) (12618ms)
+  arm 6 (rate limits): quota=3/window; 1 wallet+1 sample=3, other wallets on the SAME sample=0, other wallets on OTHER samples=3
+    ✔ arm 6 — rate limiting across wallets and samples (variations 2 and 5) (50ms)
+
+  results written to evidence/phase6/anti_probing_results.json
+
+
+  6 passing (51s)
+

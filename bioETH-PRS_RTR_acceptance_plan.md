@@ -42,8 +42,8 @@ Status convention:
 - `[x]` Completed
 - `Progress: 0%` can be changed to an intermediate percentage while work is in progress.
 
-Overall RTR progress: **11/35 actions completed (31%)** — plus `R1.3-M2` at 50%
-Stage A: **11/16** &nbsp;&nbsp; Stage B: **0/19**
+Overall RTR progress: **12/35 actions completed (34%)** — plus `R1.3-M2` at 50%
+Stage A: **12/16** &nbsp;&nbsp; Stage B: **0/19**
 
 ## Baseline already verified
 
@@ -288,7 +288,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.4-E1 — Run the reviewer-requested adversarial analysis
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 6, 28 July 2026
 - Stage: Code and evidence - Phase 6 (Adversarial evidence)
 - Type: Experiment
 - Code action:
@@ -834,7 +834,7 @@ Exit gate:
 
 # Stage A - Code and evidence (Phases 1-8, 16 actions)
 
-Stage A progress: **11/16 actions (69%)** — Phases 1-5 complete
+Stage A progress: **12/16 actions (75%)** — Phases 1-6 complete
 
 Stage A rule: the manuscript is not touched. If a code result contradicts something the
 submitted paper claims, record the contradiction in `evidence/claim_deltas.md` and resolve
@@ -1091,21 +1091,67 @@ Phase exit gate:
 
 ## Phase 6 - Adversarial evidence
 
-Phase progress: **0/1 actions (0%)**
+Phase progress: **1/1 actions (100%)** — complete 28 July 2026. Record: `evidence/phase6/`.
 
-- [ ] `R1.4-E1` Add `scripts/anti_probing_evaluation.ts` and evaluate all five variations the
-      reviewer named: non-adaptive vs adaptive queries; one wallet vs multiple wallets; fixed
-      thresholds vs the old caller-selected design; independent vs correlated SNP inputs; one
-      sample vs multiple samples. Report query count plus a direct extraction metric
-      (recovered-weight correlation or sign accuracy).
+Headline: **the 2,800-hour extraction claim is wrong in three independent ways and overstates
+attacker cost by ~252x per weight.** Reviewer 1's suspicion that it "appears heuristic" was
+correct, and the problem is worse than heuristic. See `CD-017`.
 
-Dependencies: Phase 2 (hardened interface plus retained baseline), Phase 4 (provenance).
+- [x] `R1.4-E1` `scripts/anti_probing_evaluation.ts`, run via `npm run evaluate:anti-probing`
+      (51 s, ~1,600 real jobs). All five reviewer-named variations evaluated against **real
+      contracts** on the mock coprocessor — every query is an actual job and every observation a
+      real decryption; nothing is simulated. Uses a **private** model throughout, since a public
+      model's weights are plaintext by design and extraction is meaningless; the attacker is an
+      authorised private-model reader, which is both the realistic and the strongest adversary.
+      Extraction arms run with rate limiting **off** to measure the information cost in queries;
+      arm 6 measures the permitted rate. Wall clock is the product with the block time stated as
+      an assumption — the two-factor decomposition whose collapse produced the original error.
+
+Dependencies: Phase 2 (hardened interface), Phase 4 (provenance).
+
+Measured results at an equal 320-query budget, N = 20 private weights, B = 128:
+
+| Arm | Design | Adaptive | Queries | Pearson r | Sign acc. | Within B |
+|---|---|:---:|---:|---:|---:|---:|
+| 1 | No oracle, raw score | — | **20** | 1.0000 | 100% | 100% |
+| 2 | Baseline, caller-chosen thresholds | yes | 320 | 1.0000 | 100% | 100% |
+| 3 | Baseline, caller-chosen thresholds | no | 320 | 0.6689 | 65% | 0% |
+| 4 | **Hardened, fixed thresholds** | yes | 320 | 0.9391 | 70% | **0%** |
+| 5 | Hardened + correlated LD probes | no | 320 | -0.0037 | 65% | 0% |
 
 Phase exit gate:
 
-- [ ] All five variations are either measured or explicitly recorded as outside the remaining
-      threat model, with the reason stated in the output file.
-- [ ] The measured numbers that will replace the 2,800-hour claim are written down.
+- [x] All five attacker capabilities named in Reviewer 1, Comment 4 are **evaluated**, none
+      deferred as out of scope. (1) Adaptive vs non-adaptive: decisive, but only when thresholds
+      can be moved. (2) Multi-wallet: the same-sample bypass is **closed** — 3 jobs for the first
+      wallet, **0** additional for two further wallets on the same registered sample. (3) Fixed vs
+      caller-selected thresholds: 200 queries recover all 20 weights under the submitted design;
+      **0/20** within the noise bound under the hardened design at 320 queries. (4) Correlated
+      SNPs: recovery collapses to r = -0.004, but the mitigation is **vacuous** — see `CD-020`.
+      (5) Cross-sample: distinct wallets with distinct samples each receive a full independent
+      quota, the remaining Sybil boundary, bounded further for private models by the
+      `setPrivateModelReader` allowlist.
+- [x] Query count and a direct extraction metric reported: Pearson r, sign accuracy, mean
+      relative error, and the fraction of weights recovered to within the noise bound. Arm 2 emits
+      a full extraction-cost curve rather than a single point.
+- [x] The numbers replacing the 2,800-hour claim are recorded and reproducible: **10 queries per
+      weight**, 200 for the whole model, which is 11.1 hours per weight or 222.2 hours for all 20
+      at the paper's own R = 3, W = 1000, 12 s/block. The measured figure closely matches the
+      **corrected** information bound of 9.04 queries per weight.
+- [x] Baseline fidelity guaranteed, not assumed (`CD-005`). `contracts/attack-baseline/` is a
+      frozen copy of `2d6f21d`; `test/attack_baseline_isolation_test.ts` (6 tests) proves that
+      reversing only the documented renames reproduces the frozen source **byte for byte**, that
+      no deployment path references it, that live contracts never import it, and that it still
+      exposes the 4-argument entry point while the live contract exposes 1.
+- [x] Findings recorded rather than smoothed: `CD-017` (three errors in the 2,800-hour claim),
+      `CD-018` (fixed thresholds prevent precise recovery but still leak structure at r = 0.94 —
+      claim resolution reduction, **not** confidentiality), `CD-019` (B = 128 is 1.34% of the
+      largest weight, ~7 bits of blur on a 13.2-bit weight, so the bound must scale with weight
+      magnitude), `CD-020` (the correlated-SNP mitigation is vacuous without input validation,
+      which ties R1 C4 to R1 C5 — they cannot be answered independently).
+- [x] Limits stated in the record: mock coprocessor, N = 20, one specific estimator strategy, and
+      these are **lower bounds** on attacker effort. A better attack may exist; the absence of one
+      here is not a security proof.
 
 ## Phase 7 - Live fhEVM validation
 
@@ -1352,17 +1398,17 @@ Phase exit gate:
 | A | 3. Independent validation stack | 6 | 6 | **100%** |
 | A | 4. Evidence provenance | 1 | 1 | **100%** |
 | A | 5. Individual-level correctness evidence | 1 | 1 | **100%** |
-| A | 6. Adversarial evidence | 1 | 0 | 0% |
+| A | 6. Adversarial evidence | 1 | 1 | **100%** |
 | A | 7. Live fhEVM validation | 2 | 0 | 0% |
 | A | 8. Evidence synthesis | 2 | 0 | 0% |
-| **A** | **Code and evidence subtotal** | **16** | **11** | **69%** |
+| **A** | **Code and evidence subtotal** | **16** | **12** | **75%** |
 | B | 9. Methods written from code | 3 | 0 | 0% |
 | B | 10. Security model and release narrative | 5 | 0 | 0% |
 | B | 11. Results from measured evidence | 4 | 0 | 0% |
 | B | 12. Scope, cost, and HEPRS comparison | 6 | 0 | 0% |
 | B | 13. Front matter and conclusion | 1 | 0 | 0% |
 | **B** | **Manuscript subtotal** | **19** | **0** | **0%** |
-| | **Total reviewer actions** | **35** | **11** | **31%** |
+| | **Total reviewer actions** | **35** | **12** | **34%** |
 
 Phase 0 and Phase 14 are coordination and final-integration gates; they do not add reviewer
 action IDs to the 35-action total.

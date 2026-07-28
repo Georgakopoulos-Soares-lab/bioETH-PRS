@@ -448,3 +448,120 @@ manuscript places a `~386 ms` bioETH-PRS latency beside HEPRS real-FHE latency i
 `tab:comparison` as though the two were comparable; `R1.7-M1` already requires that row to be
 split by evidence type, and these numbers supply the mock column. They must never appear
 unlabelled.
+
+---
+
+## CD-017 — The 2,800-hour extraction claim is wrong in three independent ways
+
+- **Opened:** Phase 6, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R1.4-M1` (Phase 11); this is the measured replacement
+
+Submitted text, `Anti-Probing: Rate Limiting`:
+
+> At suggested settings for private models (R = 3, W = 1000, B = 128), extracting a single
+> 20-bit weight requires approximately 2 x 10^4/(3 x 1.58) ~ 4,220 block windows,
+> corresponding to ~2,800 hours at 12 s/block.
+
+**1. Dimensional error.** `2 x 10^4` is a *count of candidate weight values* — the weight range
+is about 2 x 9,534 = 19,068. It is divided by a *bit rate* (1.58 bits/query x 3 queries/window).
+Dividing a count of values by a bit rate is a units error. The information required is
+`log2(2 x 10^4) ~ 14.3 bits`, not 2 x 10^4 of them. This alone inflates the query estimate by
+a factor of roughly **1,400**.
+
+**2. Internal inconsistency.** Taking the paper's own intermediate figure: 4,220 windows x
+W = 1,000 blocks x 12 s = **14,067 hours**, not 2,800. The 2,800-hour conclusion is consistent
+with W ~ 199 blocks, contradicting the W = 1,000 stated in the same sentence. The intermediate
+and the conclusion cannot both be correct.
+
+**3. Measured cost.** Against the frozen submitted contracts, at the paper's own R = 3,
+W = 1,000, 12 s/block — so 4,000 s per query:
+
+| | Queries | Hours |
+|---|---:|---:|
+| Per weight, measured | **10** | **11.1** |
+| All 20 weights, measured | **200** | **222.2** |
+| Per weight, as claimed | — | 2,800 |
+| **Overstatement** | | **~252x** |
+
+The measured 10 queries per weight closely matches the **corrected** information-theoretic bound
+of 9.04 queries, which is the main reason to trust the measurement over the estimate.
+
+**What `R1.4-M1` must do.** Delete the calculation rather than repair it, and replace it with the
+measured extraction-cost curve plus the explicit two-factor decomposition: queries required
+(information cost, measured with rate limiting off) multiplied by seconds per query (rate limit x
+assumed block time). The original figure's core defect was collapsing those two factors into one
+unchecked number, so the replacement must keep them separate.
+
+## CD-018 — Fixed thresholds prevent precise recovery but still leak structure
+
+- **Opened:** Phase 6, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R1.4-M1` (Phase 11), `R1.2-M2` trust table (Phase 10)
+
+Measured at an equal 320-query budget on a private 20-weight model:
+
+| Design | Pearson *r* | Sign accuracy | Recovered within B |
+|---|---:|---:|---:|
+| No oracle (raw score, 20 queries) | 1.0000 | 100% | 100% |
+| Baseline, caller-chosen thresholds, adaptive | 1.0000 | 100% | 100% |
+| **Hardened, fixed thresholds, adaptive** | **0.9391** | **70%** | **0%** |
+
+The hardening is effective on the axis that matters most — **no weight is recovered to within the
+noise bound**, against all twenty under the submitted design — but *r* = 0.94 means the attacker
+still learns the relative shape of the weight vector. High correlation with only 70% sign accuracy
+indicates the estimate captures relative magnitudes while missing the absolute level.
+
+The paper must therefore claim **reduced output resolution**, not **model confidentiality**. The
+plan's mandated wording — "the controls reduce output resolution and increase query cost under the
+evaluated attacker models; they do not prevent Sybil attacks or provide a formal
+model-confidentiality guarantee" — is exactly right and is now backed by measurement.
+
+Also worth stating: adaptivity converts into precision **only** when the decision boundary can be
+moved. Baseline adaptive recovers everything; baseline non-adaptive recovers nothing to within B at
+the same budget; hardened adaptive recovers nothing to within B despite higher correlation.
+
+## CD-019 — The noise bound is far too small relative to the weight magnitudes
+
+- **Opened:** Phase 6, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R1.3-M2` (Phase 10) and Future Directions
+
+With scale 10^6 and real HEPRS betas, the largest quantised weight magnitude is 9,534. The
+recommended noise bound is B = 128.
+
+- B is **1.34%** of the largest weight magnitude.
+- `log2(128) = 7` bits of blur on a weight carrying `log2(9534) = 13.2` bits.
+
+So the noise conceals roughly the low half of each weight and nothing above it. A bound intended
+to protect weight confidentiality has to scale with the weight magnitudes; a fixed 128 at scale
+10^6 is decorative. This is a concrete, quantified instance of the general point in `R1.3`: the
+mechanism is a bounded randomized release with an uncalibrated bound, and "uncalibrated" here has
+a measurable cost.
+
+`Noisy Output Release` should state the ratio explicitly and note that choosing B requires
+reference to the quantised weight distribution — which the quantisation advisor already computes
+and could therefore recommend.
+
+## CD-020 — The correlated-SNP mitigation is vacuous without input validation
+
+- **Opened:** Phase 6, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R1.4-M1` (Phase 11) and `R1.5-M1` (Phase 10) — the two must cross-reference
+
+Recovery does collapse when probes are constrained to LD-like blocks: *r* = −0.004 with blocks of
+5 identical dosages, because the design matrix becomes rank-deficient and only block sums are
+identifiable. It is tempting to present correlated genotype structure as a natural defence.
+
+It is not one. **Nothing forces an attacker to submit correlated genotypes.** The contracts do not
+validate inputs — exactly the trust boundary recorded by `R1.5-T1`, where the regression test
+submits dosages of 9 and 11 and the engine computes over them without objection. An attacker
+submits unit vectors that no real genome would produce, and unit vectors are the optimal probes.
+
+**Therefore R1 C4 and R1 C5 cannot be answered independently.** The unverifiable-input gap is what
+makes the strongest probing attack expressible; conversely, on-chain hard-call validation would
+retroactively give the correlated-structure argument force. The two responses must cross-reference,
+and the adversarial subsection must state that the measured protection assumes an attacker who
+declines to use the freedom the protocol grants them.
+
+The honest measure of attacker capability is the independent-probe arm, not the correlated one.
