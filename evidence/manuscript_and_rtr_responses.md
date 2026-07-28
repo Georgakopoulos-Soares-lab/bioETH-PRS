@@ -472,4 +472,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `b0c86a4` | Phase 1: DP framing removed, trust boundary labelled |
 | `7870d4c` | Phase 2: release policy fixed and immutable; requester thresholds removed |
 | `88ecb89` | Phase 3: independent Python reference; cross-language agreement at tolerance 0 |
-| `<phase4>` | Phase 4: real provenance across all evidence-producing code; zero-hash guard |
+| `bb0ddfd` | Phase 4: real provenance across all evidence-producing code; zero-hash guard |
