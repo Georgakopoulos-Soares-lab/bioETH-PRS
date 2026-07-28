@@ -391,8 +391,8 @@ assumptions the layers actually rest on.
 
 ## MS-07 · `R2.4-M1` · Phase 11 · Correctness-guarantee boundary table
 
-**Status: `BLOCKED`** on `R2.6-C1` (Phase 3) — the independent-reference row cannot be written
-until the reference exists.
+**Status: `READY`** — unblocked by Phase 3; the independent reference now exists, and Phase 5
+supplies the 200-individual agreement its row cites.
 
 Add to `Correctness and Protocol Verification`, naming what each party guarantees: genotype
 preprocessor (variant and effect-allele alignment); model provider (weights, thresholds,
@@ -404,7 +404,8 @@ validity, calibration, or ancestry portability.
 
 ## MS-08 · Phase 12 · Cost-scope correction carried from `CD-001`
 
-**Status: `BLOCKED`** on `R2.4-E1` (Phase 4) and `R1.8-E1` (Phase 8).
+**Status: `BLOCKED`** on `R1.8-E1` (Phase 8) only. `R2.4-E1` landed in Phase 4, which also
+quantified the cost of recording provenance — see `CD-012`.
 
 `CD-001` found that `scripts/gas_profile.ts` and `scripts/probe_hcu_ceiling.ts` write
 `ethers.ZeroHash` manifests, and both feed numbers **already printed in the submitted
