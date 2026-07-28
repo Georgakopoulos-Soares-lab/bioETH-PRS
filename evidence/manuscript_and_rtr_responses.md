@@ -594,4 +594,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `88ecb89` | Phase 3: independent Python reference; cross-language agreement at tolerance 0 |
 | `bb0ddfd` | Phase 4: real provenance across all evidence-producing code; zero-hash guard |
 | `29836a6` | Phase 5: 200-individual Equation 1 comparison, all exact |
-| `<phase6>` | Phase 6: adversarial evaluation; 2,800-hour claim refuted and replaced |
+| `7c1ffd2` | Phase 6: adversarial evaluation; 2,800-hour claim refuted and replaced |
