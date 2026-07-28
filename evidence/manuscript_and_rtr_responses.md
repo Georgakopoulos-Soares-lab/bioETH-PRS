@@ -547,4 +547,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `7870d4c` | Phase 2: release policy fixed and immutable; requester thresholds removed |
 | `88ecb89` | Phase 3: independent Python reference; cross-language agreement at tolerance 0 |
 | `bb0ddfd` | Phase 4: real provenance across all evidence-producing code; zero-hash guard |
-| `<phase5>` | Phase 5: 200-individual Equation 1 comparison, all exact |
+| `29836a6` | Phase 5: 200-individual Equation 1 comparison, all exact |
