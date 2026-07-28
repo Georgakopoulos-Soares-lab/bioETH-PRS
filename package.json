@@ -15,6 +15,7 @@
     "profile:gas": "hardhat test scripts/gas_profile.ts",
     "profile:policy-gas": "hardhat test scripts/release_policy_gas.ts",
     "validate:cross-language": "bash validation/cross_language_check.sh",
+    "validate:individual-level": "hardhat test scripts/individual_level_validation.ts",
     "validate:local": "npm run build && npm test && npm run validate:mock && npm run profile:gas && npm run profile:heprs && npm run probe:hcu:mock && npm run advisor:scale-ceilings && npm run advisor:quantization -- test/fixtures/heprs/beta_100SNP_phenotype0.csv test/fixtures/heprs/genotype_100SNP_50individual.csv && npm run advisor:quantization -- test/fixtures/heprs/beta_500SNP_phenotype0.csv test/fixtures/heprs/genotype_500SNP_50individual.csv && npm run advisor:quantization -- test/fixtures/heprs/beta_1000SNP_phenotype0.csv test/fixtures/heprs/genotype_1000SNP_50individual.csv && npm run advisor:quantization -- test/fixtures/heprs/beta_5000SNP_phenotype0.csv test/fixtures/heprs/genotype_5000SNP_50individual.csv && npm run validate:cross-language",
     "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
     "validate:sepolia": "hardhat test scripts/sepolia_validation.ts --network sepolia",

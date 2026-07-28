@@ -39,6 +39,13 @@ const EVIDENCE_PRODUCING = [
   // the per-model release-policy gas that Phase 8's cost synthesis cites, so it is
   // evidence-producing even though it was written as a one-off measurement. See CD-013.
   "scripts/release_policy_gas.ts",
+  // Added by the CD-013 sweep: its output backs the cross-language agreement the
+  // manuscript cites, so it belongs in the guarded set even though it lives under
+  // validation/ rather than scripts/.
+  "validation/contract_case_run.ts",
+  // Added at the time of writing rather than after the fact, per the CD-013 lesson:
+  // this produces the 200-row individual-level comparison the manuscript reports.
+  "scripts/individual_level_validation.ts",
 ];
 
 // Behavioural tests: they assert contract logic and report no measurement, so
@@ -60,8 +67,18 @@ describe("Evidence provenance guard (R2.4-E1)", function () {
       expect(fs.existsSync(full), `${rel} must exist`).to.equal(true);
       const src = fs.readFileSync(full, "utf8");
       src.split("\n").forEach((line, i) => {
-        if (/ZeroHash|0x0{64}/.test(line)) {
-          offenders.push(`${rel}:${i + 1}: ${line.trim()}`);
+        const trimmed = line.trim();
+        // Skip comment lines. A guard that fires on prose *describing* the hazard
+        // penalises documenting it, which is the opposite of what we want — these
+        // files should be free to explain why they no longer use a zero hash.
+        // Commented-out code is still caught, because it would sit on a line that
+        // does not begin with a comment marker only if it were live.
+        const isComment =
+          trimmed.startsWith("//") ||
+          trimmed.startsWith("*") ||
+          trimmed.startsWith("/*");
+        if (!isComment && /ZeroHash|0x0{64}/.test(line)) {
+          offenders.push(`${rel}:${i + 1}: ${trimmed}`);
         }
       });
     }
@@ -70,6 +87,21 @@ describe("Evidence provenance guard (R2.4-E1)", function () {
       "evidence-producing code must commit to its real inputs, not a zero hash " +
         "(R2.4-E1). Offending lines:\n" + offenders.join("\n")
     ).to.deep.equal([]);
+  });
+
+  it("the zero-hash scan ignores prose but not code", function () {
+    // Guards the guard: comment-skipping must not become a blind spot. A live
+    // assignment is caught; the same text inside a comment is not.
+    const scan = (line: string) => {
+      const t = line.trim();
+      const isComment =
+        t.startsWith("//") || t.startsWith("*") || t.startsWith("/*");
+      return !isComment && /ZeroHash|0x0{64}/.test(line);
+    };
+    expect(scan("  const h = ethers.ZeroHash;"), "live code must be caught").to.equal(true);
+    expect(scan("      manifestHash: 0x" + "0".repeat(64)), "literal zero hash").to.equal(true);
+    expect(scan(" * not ethers.ZeroHash — see CD-001"), "jsdoc prose").to.equal(false);
+    expect(scan("// ethers.ZeroHash was removed here"), "line comment").to.equal(false);
   });
 
   it("every evidence-producing file imports the provenance helper", function () {

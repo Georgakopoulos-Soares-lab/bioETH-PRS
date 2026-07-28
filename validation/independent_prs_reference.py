@@ -876,6 +876,91 @@ def compare(reference: dict, contract: dict, tolerance: Decimal) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Individual-level summary statistics (R2.7-E1 / R2.7-M1)
+# ---------------------------------------------------------------------------
+
+def _fmt(value: Decimal) -> str:
+    """Human-readable exact decimal.
+
+    Decimal renders zero at a given exponent as "0E-12", which is correct but reads as
+    a magnitude rather than as zero. Since these strings are quoted in the manuscript,
+    normalise exact zero to "0" and strip meaningless trailing zeros elsewhere.
+    """
+    if value == 0:
+        return "0"
+    normalised = value.normalize()
+    # Avoid scientific notation for values a reader will scan by eye.
+    sign, digits, exponent = normalised.as_tuple()
+    if isinstance(exponent, int) and -20 < exponent < 20:
+        return format(normalised, "f")
+    return str(normalised)
+
+
+def summarise_individual_level(pairs: Sequence[Tuple[Decimal, Decimal]]) -> dict:
+    """Summary statistics over (Equation 1 PRS, decoded bioETH-PRS) pairs.
+
+    IMPORTANT (CD-006).  On the supplied HEPRS fixtures these statistics are zero or
+    unity *by construction*, not by measurement: every fixture weight carries at most
+    six decimal places, the advisor's recommended scale is an integer multiple of
+    10^6, so the quantisation is lossless and the decode round trip is exact.  MAE,
+    RMSE, and maximum absolute error are therefore identically zero and Pearson r is
+    exactly 1 whenever the pipeline is correct.
+
+    They are reported because the reviewer asked for them and because a NONZERO value
+    would be a genuine finding.  What they establish is that the pipeline is faithful,
+    not that the encoding is approximately accurate.  The manuscript must say which.
+    """
+    n = len(pairs)
+    if n == 0:
+        raise ValidationError("no pairs to summarise")
+
+    errors = [abs(a - b) for a, b in pairs]
+    mae = sum(errors) / Decimal(n)
+    mse = sum(e * e for e in errors) / Decimal(n)
+    max_abs = max(errors)
+    exact = sum(1 for e in errors if e == 0)
+
+    xs = [a for a, _ in pairs]
+    ys = [b for _, b in pairs]
+    mx = sum(xs) / Decimal(n)
+    my = sum(ys) / Decimal(n)
+    sxy = sum((x - mx) * (y - my) for x, y in pairs)
+    sxx = sum((x - mx) ** 2 for x in xs)
+    syy = sum((y - my) ** 2 for y in ys)
+
+    if sxx == 0 or syy == 0:
+        # Zero variance on either side makes correlation undefined rather than 1.
+        pearson = None
+        pearson_note = ("undefined: one series has zero variance, so correlation "
+                        "carries no information")
+    elif sxy * sxy == sxx * syy:
+        # Exact equality of the squared covariance and the variance product means the
+        # relationship is perfectly linear; report 1 (or -1) without a float sqrt.
+        pearson = "1" if sxy > 0 else "-1"
+        pearson_note = "exact: |r| = 1, established in integer/decimal arithmetic"
+    else:
+        # Fall back to float only when r is genuinely not +-1.
+        import math
+        pearson = repr(float(sxy) / math.sqrt(float(sxx) * float(syy)))
+        pearson_note = "computed in floating point; |r| != 1"
+
+    return {
+        "n": n,
+        "meanAbsoluteError": _fmt(mae),
+        "rootMeanSquareError": _fmt(mse.sqrt() if hasattr(mse, "sqrt") else mse),
+        "maxAbsoluteError": _fmt(max_abs),
+        "exactMatches": exact,
+        "exactMatchFraction": _fmt(Decimal(exact) / Decimal(n)),
+        "pearsonR": pearson,
+        "pearsonRNote": pearson_note,
+        "caveat": ("On these fixtures MAE, RMSE, and max error are zero by "
+                   "construction (CD-006): the quantisation is lossless because the "
+                   "source weights carry six decimal places. These statistics "
+                   "validate the pipeline, not arithmetic precision."),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Known-answer self test
 # ---------------------------------------------------------------------------
 
@@ -1239,6 +1324,14 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     sub.add_parser("selftest", help="run known-answer checks")
 
+    sm = sub.add_parser("summarise", help="summary statistics over reference/contract pairs")
+    sm.add_argument("--reference", required=True, nargs="+",
+                    help="one or more reference JSON files")
+    sm.add_argument("--contract", required=True, nargs="+",
+                    help="matching contract JSON files, same order")
+    sm.add_argument("--category", help="optional category-agreement JSON")
+    sm.add_argument("--out")
+
     rc = sub.add_parser("run-case", help="score a known-answer case file")
     rc.add_argument("--case", required=True)
     rc.add_argument("--out")
@@ -1254,6 +1347,70 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     if args.cmd == "selftest":
         return 1 if selftest() else 0
+
+    if args.cmd == "summarise":
+        if len(args.reference) != len(args.contract):
+            print("reference and contract lists must be the same length")
+            return 2
+        per_size = []
+        all_pairs: List[Tuple[Decimal, Decimal]] = []
+        for rp, cp in zip(args.reference, args.contract):
+            ref = json.load(open(rp))
+            con = json.load(open(cp))
+            by_id = {r["individual"]: r for r in ref["individuals"]}
+            pairs: List[Tuple[Decimal, Decimal]] = []
+            for c in con["individuals"]:
+                if c.get("status") != "scored":
+                    continue
+                r = by_id.get(c["individual"])
+                if r is None or r.get("status") != "scored":
+                    continue
+                pairs.append((Decimal(r["equation1PRS"]),
+                              Decimal(str(c["decodedPRS"]))))
+            stats = summarise_individual_level(pairs)
+            stats["nominalSnpCount"] = con.get("nominalSnpCount")
+            stats["encodedPositions"] = con.get("encodedPositions")
+            stats["scale"] = con.get("encoding", {}).get("scale")
+            per_size.append(stats)
+            all_pairs.extend(pairs)
+
+        overall = summarise_individual_level(all_pairs)
+        report = {"perFixtureSize": per_size, "overall": overall}
+
+        if args.category:
+            cat = json.load(open(args.category))
+            report["categoryAgreement"] = {
+                "nominalSnpCount": cat.get("nominalSnpCount"),
+                "noiseUpperBound": cat.get("noiseUpperBound"),
+                "individualsScored": cat.get("individualsScored"),
+                "outsideBand": cat.get("outsideBand"),
+                "outsideBandAgreeing": cat.get("outsideBandAgreeing"),
+                "withinBand": cat.get("withinBand"),
+                "note": cat.get("note"),
+            }
+
+        text = json.dumps(report, indent=2)
+        if args.out:
+            with open(args.out, "w") as fh:
+                fh.write(text + "\n")
+
+        print("individuals compared : %d" % overall["n"])
+        print("exact matches        : %d / %d" % (overall["exactMatches"], overall["n"]))
+        print("mean absolute error  : %s" % overall["meanAbsoluteError"])
+        print("RMSE                 : %s" % overall["rootMeanSquareError"])
+        print("max absolute error   : %s" % overall["maxAbsoluteError"])
+        print("Pearson r            : %s  (%s)"
+              % (overall["pearsonR"], overall["pearsonRNote"]))
+        for st in per_size:
+            print("  %5s SNPs (%s positions): n=%d exact=%d maxErr=%s"
+                  % (st["nominalSnpCount"], st["encodedPositions"], st["n"],
+                     st["exactMatches"], st["maxAbsoluteError"]))
+        if "categoryAgreement" in report:
+            ca = report["categoryAgreement"]
+            print("category agreement   : %s/%s outside the ambiguous band, "
+                  "%s within B of a threshold"
+                  % (ca["outsideBandAgreeing"], ca["outsideBand"], ca["withinBand"]))
+        return 0 if overall["exactMatches"] == overall["n"] else 1
 
     if args.cmd == "run-case":
         with open(args.case) as fh:

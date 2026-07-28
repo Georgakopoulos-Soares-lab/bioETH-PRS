@@ -1,0 +1,143 @@
+
+> bioeth-prs@0.1.0 validate:cross-language
+> bash validation/cross_language_check.sh
+
+
+=== Runtime ===
+node   : v22.23.1
+python : Python 3.9.6
+commit : 3977049
+
+=== Arm A, step 1 — reference self test (R2.2-T1, R2.3-T1) ===
+Case 1 -- manuscript worked example (Quantisation Scheme)
+  q == [-30, 10, 25]                                         PASS
+  z_w == 30                                                  PASS
+  u == [0, 40, 55]                                           PASS
+  z_s == 60                                                  PASS
+  partialSum == 135                                          PASS
+  G == 3                                                     PASS
+  encodedScore == 105                                        PASS
+  decode == 0.45                                             PASS
+  Equation 1 == 0.45                                         PASS
+Case 2 -- all-positive weights (z_w clamp)
+  q == [10, 20]                                              PASS
+  z_w clamped to 0                                           PASS
+  z_w unclamped would be -10                                 PASS
+  z_s == 0 (no negative weights)                             PASS
+  encodedScore == 50                                         PASS
+  decode == 0.50                                             PASS
+Case 3 -- mixed signed weights, hand-checked
+  q == [-5000, 2500, -1250, 625]                             PASS
+  z_w == 5000                                                PASS
+  z_s == 12500                                               PASS
+  partialSum == 18750                                        PASS
+  encodedScore == 6250                                       PASS
+  decode == -0.625                                           PASS
+  Equation 1 == -0.625                                       PASS
+  negative PRS still encodes non-negative                    PASS
+Case 4 -- allele reversal (R2.3-T1): [0,1,2] -> [2,1,0]
+  reversed effect allele maps [0,1,2] -> [2,1,0]             PASS
+  aligned effect allele leaves [0,1,2] unchanged             PASS
+Case 5 -- strand handling (R2.3-T1)
+  strand-compatible SNP resolves via complement              PASS
+  strand-compatible SNP is not rejected                      PASS
+  unresolved palindromic SNP is rejected                     PASS
+  unresolved palindromic SNP yields no dosage                PASS
+  explicitly strand-resolved palindrome is accepted          PASS
+  explicitly strand-resolved palindrome keeps dosage         PASS
+Case 6 -- QC rules (R2.2-T1)
+  out-of-range dosage 9 is invalid                           PASS
+  non-integer dosage 0.7 is invalid                          PASS
+  non-numeric dosage is invalid                              PASS
+  missing under reject policy -> rejected                    PASS
+  missing under reject policy -> no dosage                   PASS
+  missing under zero policy -> imputed 0                     PASS
+  manifest without missing_policy is rejected                PASS
+  wrong variant count is rejected                            PASS
+  duplicate variant ids are rejected                         PASS
+  multiallelic variant is rejected                           PASS
+Case 7 -- intercept column handling
+  intercept counted separately from dosages                  PASS
+  intercept passes through as 1                              PASS
+  intercept != 1 is a hard error                             PASS
+Case 7b -- genome build and variant order (R2.2-T1)
+  matching build is accepted                                 PASS
+  wrong build is rejected                                    PASS
+  undeclared build is rejected when manifest names one       PASS
+  fixture manifest with UNSPECIFIED build tolerates no declaration PASS
+  correct variant order is accepted                          PASS
+  swapped variant order is rejected                          PASS
+  truncated variant order is rejected                        PASS
+Case 7c -- advisor scale table (CD-010 regression guard)
+  100-SNP advisor scale is 3e6                               PASS
+  500-SNP advisor scale is 3e6                               PASS
+  1000-SNP advisor scale is 1e6                              PASS
+  5000-SNP advisor scale is 1e6                              PASS
+  unknown fixture size is rejected, not guessed              PASS
+  weights stay exact at s=3e6                                PASS
+Case 8 -- rounding rule
+  round_half_away_from_zero(+0.5) == 1                       PASS
+  round_half_away_from_zero(-0.5) == -1                      PASS
+  round_half_away_from_zero(+1.5) == 2                       PASS
+  round_half_away_from_zero(-2.5) == -3                      PASS
+  exact decimal avoids 1e6*0.000439 float drift              PASS
+
+SELFTEST PASSED: all known-answer checks agree
+
+=== Arm A, step 2 — score known-answer cases and verify hand-computed values ===
+case allele_reversal          scale=1000     z_w=200      z_s=400        hand-checks 11/11 agree
+case mixed_signed_weights     scale=100      z_w=30       z_s=60         hand-checks 10/10 agree
+case positive_weights         scale=100      z_w=0        z_s=0          hand-checks 6/6 agree
+
+=== Arm B — TypeScript + contract path through the fhEVM mock ===
+
+
+  Cross-language known-answer validation — contract path
+  allele_reversal: 3 scored -> evidence/phase3/contract/case_allele_reversal.json
+    ✔ runs the contract path for case: allele_reversal (65ms)
+  mixed_signed_weights: 3 scored -> evidence/phase3/contract/case_mixed_signed_weights.json
+    ✔ runs the contract path for case: mixed_signed_weights (48ms)
+  positive_weights: 3 scored -> evidence/phase3/contract/case_positive_weights.json
+    ✔ runs the contract path for case: positive_weights (44ms)
+
+
+  3 passing (159ms)
+
+
+=== Cross-language comparison (tolerance 0) ===
+--- allele_reversal
+compared              : 3
+encoded mismatches    : 0
+decoded mismatches    : 0
+max abs decode error  : 0
+tolerance             : 0
+  weightZeroPoint  reference=200          contract=200          agree
+  scoreOffset      reference=400          contract=400          agree
+
+COMPARISON PASSED
+--- mixed_signed_weights
+compared              : 3
+encoded mismatches    : 0
+decoded mismatches    : 0
+max abs decode error  : 0
+tolerance             : 0
+  weightZeroPoint  reference=30           contract=30           agree
+  scoreOffset      reference=60           contract=60           agree
+
+COMPARISON PASSED
+--- positive_weights
+compared              : 3
+encoded mismatches    : 0
+decoded mismatches    : 0
+max abs decode error  : 0
+tolerance             : 0
+  weightZeroPoint  reference=0            contract=0            agree
+  scoreOffset      reference=0            contract=0            agree
+
+COMPARISON PASSED
+
+========================================
+CROSS-LANGUAGE VALIDATION PASSED
+cases compared: 3 (allele_reversal mixed_signed_weights positive_weights)
+This is independent-implementation agreement, not a proof of correctness.
+========================================

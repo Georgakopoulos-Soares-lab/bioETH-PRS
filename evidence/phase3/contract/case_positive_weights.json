@@ -6,6 +6,7 @@
   "provenance": {
     "manifestHash": "0xeb777d32e4b6bc2895af47097607febbfa8123d310d86ea1dcd228660c7f4f32",
     "sourceModelHash": "0x6813e2a9ba34f05fa71e7ac96e0697146867005f9de2c188337d70e3beb1d6d4",
+    "genotypeHash": "0xeb25ee0b9ea52a0bbeab472bec66d824f3fe62c5541d0ee6214366818c2bbec0",
     "caseFile": "validation/cases/positive_weights.json"
   },
   "encoding": {
@@ -32,7 +33,7 @@
         0
       ],
       "encodedScore": "50",
-      "decodedPRS": "0.50"
+      "decodedPRS": "0.500000000000"
     },
     {
       "individual": 1,
@@ -48,7 +49,7 @@
         2
       ],
       "encodedScore": "70",
-      "decodedPRS": "0.70"
+      "decodedPRS": "0.700000000000"
     },
     {
       "individual": 2,
@@ -64,7 +65,7 @@
         1
       ],
       "encodedScore": "5",
-      "decodedPRS": "0.05"
+      "decodedPRS": "0.050000000000"
     }
   ]
 }

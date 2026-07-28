@@ -1,0 +1,408 @@
+{
+  "tool": "individual_level_validation.ts",
+  "arm": "typescript + fhevm mock coprocessor",
+  "evidenceClass": "Hardhat mock",
+  "nominalSnpCount": 5000,
+  "encodedPositions": 5001,
+  "encodedPositionsNote": "nominal + 1: each fixture carries a leading intercept column (weight 0, dosage 1)",
+  "individualsScored": 50,
+  "encoding": {
+    "weightZeroPoint": 11604,
+    "scoreOffset": 11042232,
+    "scale": 1000000
+  },
+  "individuals": [
+    {
+      "individual": 0,
+      "status": "scored",
+      "encodedScore": "10821829",
+      "decodedPRS": "-0.220403000000"
+    },
+    {
+      "individual": 1,
+      "status": "scored",
+      "encodedScore": "10717467",
+      "decodedPRS": "-0.324765000000"
+    },
+    {
+      "individual": 2,
+      "status": "scored",
+      "encodedScore": "11129951",
+      "decodedPRS": "0.087719000000"
+    },
+    {
+      "individual": 3,
+      "status": "scored",
+      "encodedScore": "11125187",
+      "decodedPRS": "0.082955000000"
+    },
+    {
+      "individual": 4,
+      "status": "scored",
+      "encodedScore": "11283260",
+      "decodedPRS": "0.241028000000"
+    },
+    {
+      "individual": 5,
+      "status": "scored",
+      "encodedScore": "10810264",
+      "decodedPRS": "-0.231968000000"
+    },
+    {
+      "individual": 6,
+      "status": "scored",
+      "encodedScore": "11072669",
+      "decodedPRS": "0.030437000000"
+    },
+    {
+      "individual": 7,
+      "status": "scored",
+      "encodedScore": "10589870",
+      "decodedPRS": "-0.452362000000"
+    },
+    {
+      "individual": 8,
+      "status": "scored",
+      "encodedScore": "10646088",
+      "decodedPRS": "-0.396144000000"
+    },
+    {
+      "individual": 9,
+      "status": "scored",
+      "encodedScore": "10813174",
+      "decodedPRS": "-0.229058000000"
+    },
+    {
+      "individual": 10,
+      "status": "scored",
+      "encodedScore": "10799214",
+      "decodedPRS": "-0.243018000000"
+    },
+    {
+      "individual": 11,
+      "status": "scored",
+      "encodedScore": "11275819",
+      "decodedPRS": "0.233587000000"
+    },
+    {
+      "individual": 12,
+      "status": "scored",
+      "encodedScore": "11164216",
+      "decodedPRS": "0.121984000000"
+    },
+    {
+      "individual": 13,
+      "status": "scored",
+      "encodedScore": "11052237",
+      "decodedPRS": "0.010005000000"
+    },
+    {
+      "individual": 14,
+      "status": "scored",
+      "encodedScore": "10937572",
+      "decodedPRS": "-0.104660000000"
+    },
+    {
+      "individual": 15,
+      "status": "scored",
+      "encodedScore": "10887772",
+      "decodedPRS": "-0.154460000000"
+    },
+    {
+      "individual": 16,
+      "status": "scored",
+      "encodedScore": "11382967",
+      "decodedPRS": "0.340735000000"
+    },
+    {
+      "individual": 17,
+      "status": "scored",
+      "encodedScore": "11422946",
+      "decodedPRS": "0.380714000000"
+    },
+    {
+      "individual": 18,
+      "status": "scored",
+      "encodedScore": "11170770",
+      "decodedPRS": "0.128538000000"
+    },
+    {
+      "individual": 19,
+      "status": "scored",
+      "encodedScore": "11063273",
+      "decodedPRS": "0.021041000000"
+    },
+    {
+      "individual": 20,
+      "status": "scored",
+      "encodedScore": "10651040",
+      "decodedPRS": "-0.391192000000"
+    },
+    {
+      "individual": 21,
+      "status": "scored",
+      "encodedScore": "10770583",
+      "decodedPRS": "-0.271649000000"
+    },
+    {
+      "individual": 22,
+      "status": "scored",
+      "encodedScore": "11114937",
+      "decodedPRS": "0.072705000000"
+    },
+    {
+      "individual": 23,
+      "status": "scored",
+      "encodedScore": "10698921",
+      "decodedPRS": "-0.343311000000"
+    },
+    {
+      "individual": 24,
+      "status": "scored",
+      "encodedScore": "11050293",
+      "decodedPRS": "0.008061000000"
+    },
+    {
+      "individual": 25,
+      "status": "scored",
+      "encodedScore": "11049962",
+      "decodedPRS": "0.007730000000"
+    },
+    {
+      "individual": 26,
+      "status": "scored",
+      "encodedScore": "11183599",
+      "decodedPRS": "0.141367000000"
+    },
+    {
+      "individual": 27,
+      "status": "scored",
+      "encodedScore": "11193578",
+      "decodedPRS": "0.151346000000"
+    },
+    {
+      "individual": 28,
+      "status": "scored",
+      "encodedScore": "11336357",
+      "decodedPRS": "0.294125000000"
+    },
+    {
+      "individual": 29,
+      "status": "scored",
+      "encodedScore": "10925352",
+      "decodedPRS": "-0.116880000000"
+    },
+    {
+      "individual": 30,
+      "status": "scored",
+      "encodedScore": "11060073",
+      "decodedPRS": "0.017841000000"
+    },
+    {
+      "individual": 31,
+      "status": "scored",
+      "encodedScore": "11226026",
+      "decodedPRS": "0.183794000000"
+    },
+    {
+      "individual": 32,
+      "status": "scored",
+      "encodedScore": "11244013",
+      "decodedPRS": "0.201781000000"
+    },
+    {
+      "individual": 33,
+      "status": "scored",
+      "encodedScore": "10974255",
+      "decodedPRS": "-0.067977000000"
+    },
+    {
+      "individual": 34,
+      "status": "scored",
+      "encodedScore": "10482987",
+      "decodedPRS": "-0.559245000000"
+    },
+    {
+      "individual": 35,
+      "status": "scored",
+      "encodedScore": "10773353",
+      "decodedPRS": "-0.268879000000"
+    },
+    {
+      "individual": 36,
+      "status": "scored",
+      "encodedScore": "11192944",
+      "decodedPRS": "0.150712000000"
+    },
+    {
+      "individual": 37,
+      "status": "scored",
+      "encodedScore": "11090929",
+      "decodedPRS": "0.048697000000"
+    },
+    {
+      "individual": 38,
+      "status": "scored",
+      "encodedScore": "11159155",
+      "decodedPRS": "0.116923000000"
+    },
+    {
+      "individual": 39,
+      "status": "scored",
+      "encodedScore": "10859623",
+      "decodedPRS": "-0.182609000000"
+    },
+    {
+      "individual": 40,
+      "status": "scored",
+      "encodedScore": "10674004",
+      "decodedPRS": "-0.368228000000"
+    },
+    {
+      "individual": 41,
+      "status": "scored",
+      "encodedScore": "11172571",
+      "decodedPRS": "0.130339000000"
+    },
+    {
+      "individual": 42,
+      "status": "scored",
+      "encodedScore": "11356465",
+      "decodedPRS": "0.314233000000"
+    },
+    {
+      "individual": 43,
+      "status": "scored",
+      "encodedScore": "10951710",
+      "decodedPRS": "-0.090522000000"
+    },
+    {
+      "individual": 44,
+      "status": "scored",
+      "encodedScore": "10978791",
+      "decodedPRS": "-0.063441000000"
+    },
+    {
+      "individual": 45,
+      "status": "scored",
+      "encodedScore": "10783832",
+      "decodedPRS": "-0.258400000000"
+    },
+    {
+      "individual": 46,
+      "status": "scored",
+      "encodedScore": "11463300",
+      "decodedPRS": "0.421068000000"
+    },
+    {
+      "individual": 47,
+      "status": "scored",
+      "encodedScore": "11319306",
+      "decodedPRS": "0.277074000000"
+    },
+    {
+      "individual": 48,
+      "status": "scored",
+      "encodedScore": "11513401",
+      "decodedPRS": "0.471169000000"
+    },
+    {
+      "individual": 49,
+      "status": "scored",
+      "encodedScore": "10859730",
+      "decodedPRS": "-0.182502000000"
+    }
+  ],
+  "provenance": {
+    "schema": "bioeth-prs/provenance/1",
+    "repository": {
+      "commit": "397704998b80fd1b7d14aa9f336670344f967997",
+      "shortCommit": "3977049",
+      "branch": "rtr-revision",
+      "dirty": true,
+      "dirtyFiles": [
+        "M evidence/phase3/compare_allele_reversal.json",
+        "M evidence/phase3/compare_mixed_signed_weights.json",
+        "M evidence/phase3/compare_positive_weights.json",
+        "M evidence/phase3/contract/case_allele_reversal.json",
+        "M evidence/phase3/contract/case_mixed_signed_weights.json",
+        "M evidence/phase3/contract/case_positive_weights.json",
+        "M package.json",
+        "M test/provenance_guard_test.ts",
+        "M validation/contract_case_run.ts",
+        "M validation/independent_prs_reference.py",
+        "?? evidence/phase5/",
+        "?? scripts/individual_level_validation.ts",
+        "?? scripts/utils/exact.ts"
+      ]
+    },
+    "runtime": {
+      "node": "v22.23.1",
+      "platform": "darwin"
+    },
+    "network": {
+      "name": "hardhat",
+      "chainId": "31337"
+    },
+    "inputs": [
+      {
+        "role": "model_manifest",
+        "path": "validation/manifests/heprs_5000snp.json",
+        "hash": "0x3c5979c9e386e6d30e3495926c6a2eebda0dd8c77d6b20e8778eb88829f99f7c",
+        "bytes": 850526
+      },
+      {
+        "role": "model_weights",
+        "path": "test/fixtures/heprs/beta_5000SNP_phenotype0.csv",
+        "hash": "0xed3eb3fad4a489b21780d545b2fd29ec1e4b7c7c55f33734a3067dfaf7d0e08b",
+        "bytes": 46683
+      },
+      {
+        "role": "genotypes",
+        "path": "test/fixtures/heprs/genotype_5000SNP_50individual.csv",
+        "hash": "0xb12d462a4b87dcf832c1372ee2dc477514be2c0724e672727f0a47e3ef1eb2fb",
+        "bytes": 500100
+      }
+    ],
+    "model": {
+      "manifestHash": "0x3c5979c9e386e6d30e3495926c6a2eebda0dd8c77d6b20e8778eb88829f99f7c",
+      "sourceModelHash": "0xed3eb3fad4a489b21780d545b2fd29ec1e4b7c7c55f33734a3067dfaf7d0e08b",
+      "genotypeManifestHash": "0xb12d462a4b87dcf832c1372ee2dc477514be2c0724e672727f0a47e3ef1eb2fb",
+      "descriptor": {
+        "kind": "heprs_fixture",
+        "manifest": "validation/manifests/heprs_5000snp.json",
+        "weights": "test/fixtures/heprs/beta_5000SNP_phenotype0.csv",
+        "genotypes": "test/fixtures/heprs/genotype_5000SNP_50individual.csv",
+        "nominalSnpCount": 5000,
+        "encodedPositions": 5001,
+        "encodedPositionsNote": "nominal + 1: leading intercept column, weight 0 and dosage 1",
+        "scale": 1000000,
+        "individualsRequested": 50
+      }
+    },
+    "contracts": [
+      {
+        "name": "ModelMarketplace",
+        "address": "0x879a0fA3fB513109A39240595A5Cd2B626Db8117",
+        "bytecodeHash": "0x4a64e793f919c00d38b7e0e4a0acf82a917826bdb7d2ace9aa2970b1cdd435b2",
+        "bytecodeBytes": 8151
+      },
+      {
+        "name": "GenomicRegistry",
+        "address": "0x9efFf8528aC15309A905c8505969023c9A37bDE7",
+        "bytecodeHash": "0x1b2e38bee44ca3a96c813fc05e41fd0b59e8e08b09320503cdfade32aa1400da",
+        "bytecodeBytes": 2808
+      },
+      {
+        "name": "PRSComputeEngine",
+        "address": "0xcd349b780A7D21a359e5EC24Bba274a792b5F3c7",
+        "bytecodeHash": "0x9095f79baa7e79b34c24cb3f03e80510d880f7e6df64a28ff5391421aca82f8a",
+        "bytecodeBytes": 10426
+      }
+    ],
+    "referenceOutput": {
+      "path": "evidence/phase3/reference/heprs_5000snp_reference.json",
+      "hash": "0xb085bab587e15680c210006f0f188169a2d9b4c5e2ebee327c14f588e2ebf96b"
+    }
+  }
+}

@@ -6,6 +6,7 @@
   "provenance": {
     "manifestHash": "0x664362804661a02affe27e91418f750b4179a633054220639bf3e19153867450",
     "sourceModelHash": "0xafefbdb77b9650ad42ccc186536829e676a9ee2ac2ed8f65168ce35553162a54",
+    "genotypeHash": "0x29e75d82fef6e2f6cbc7ef883e0ddac1382ccb34f47a2bb01fdf0f5343cc8983",
     "caseFile": "validation/cases/mixed_signed_weights.json"
   },
   "encoding": {
@@ -32,7 +33,7 @@
         1
       ],
       "encodedScore": "105",
-      "decodedPRS": "0.45"
+      "decodedPRS": "0.450000000000"
     },
     {
       "individual": 1,
@@ -48,7 +49,7 @@
         0
       ],
       "encodedScore": "0",
-      "decodedPRS": "-0.60"
+      "decodedPRS": "-0.600000000000"
     },
     {
       "individual": 2,
@@ -64,7 +65,7 @@
         1
       ],
       "encodedScore": "25",
-      "decodedPRS": "-0.35"
+      "decodedPRS": "-0.350000000000"
     }
   ]
 }

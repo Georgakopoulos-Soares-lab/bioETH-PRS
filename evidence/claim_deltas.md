@@ -365,3 +365,86 @@ Now wired and guarded: `scripts/release_policy_gas.ts` commits to its synthetic 
 spec and registers its sample with a real manifest hash. Reported figures are unchanged —
 `setReleasePolicy` 77,314 gas and `finalizeAndClassify` 432,230 gas — because neither
 transaction writes the model hashes. Guarded set is now six files.
+
+---
+
+## CD-014 — Category agreement cannot be exact, so a single agreement figure would mislead
+
+- **Opened:** Phase 5, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R2.7-M1` (Phase 11) and `R1.3-M2` (Phase 10)
+
+`R2.7-E1` asks for category agreement. It cannot be an exact quantity. The bounded randomized
+release adds noise uniform on `[0, B)`, so an individual whose encoded score lies within `B`
+below a threshold may legitimately classify on either side of it. Any single "agreement
+percentage" therefore conflates a correctness property with a noise draw.
+
+Measured at 100 SNPs, `B = 128`, thresholds at the score tertiles:
+
+| Measure | Value |
+|---|---|
+| Individuals classified | 50 |
+| Outside the ambiguous band | 48 |
+| Outside the band, agreeing with the plaintext category | **48 / 48** |
+| Within `B` of a threshold | 2 |
+| Disagreements observed | 0 |
+
+Both in-band individuals happened to agree. **That is a favourable noise draw, not a
+guarantee**, and the paper must not report 50/50. The defensible claim is: agreement is exact
+for every individual outside the ambiguous band, and 2 of 50 fell inside it, where the
+mechanism is designed not to be deterministic.
+
+Measured at one fixture size deliberately: `ResultOracle` consumes a single encoded score and
+two thresholds, so classification is independent of variant count and 100 SNPs is fully
+representative. State that reasoning rather than leaving the single size looking like a gap.
+
+## CD-015 — The `B/2` bias correction places the boundary individual at maximum ambiguity
+
+- **Opened:** Phase 5, 28 July 2026
+- **Status:** open
+- **Resolves via:** `Noisy Output Release` in Phase 10 (`R1.3-M2`)
+
+`ResultOracle.expectedNoiseBias()` returns `B/2` and the contract documents adding it to each
+threshold so the noisy comparison aligns with the intended plaintext boundary. That guidance is
+correct for the *aggregate*: it removes the systematic upward shift the one-sided noise
+introduces.
+
+But it has a consequence not currently stated anywhere. If a threshold is derived from the score
+distribution — a tertile, a quantile, a clinical cut point calibrated on a cohort — then adding
+`B/2` places the individual *defining* that cut point exactly `B/2` below the adjusted
+threshold: dead centre of the ambiguous band, the point of maximum classification uncertainty.
+
+Observed directly, not inferred. Both in-band individuals in the Phase 5 category study sat at
+exactly 64 = `B/2` below their threshold, because the thresholds were `tertile + B/2` and those
+two individuals were the tertile boundaries.
+
+This is an inherent trade-off in the mechanism, not a defect: threshold adjustment can fix
+aggregate bias or per-individual boundary certainty, not both. `Noisy Output Release` should
+state it, because a reader following the documented `+B/2` guidance for a clinically calibrated
+threshold would otherwise be unaware that patients near the cut point receive the least
+reliable classification.
+
+## CD-016 — Mock per-individual latency is now measured, and the submitted `~386 ms` needs a label
+
+- **Opened:** Phase 5, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R1.1-M1` (Phase 11) and `R1.7-M1` (Phase 12)
+
+Per-individual wall-clock through the streaming contract path, mock coprocessor:
+
+| Nominal SNPs | Encoded positions | ms / individual | ms / encoded position |
+|---:|---:|---:|---:|
+| 100 | 101 | 157 | 1.554 |
+| 500 | 501 | 780 | 1.557 |
+| 1,000 | 1,001 | 1,672 | 1.670 |
+| 5,000 | 5,001 | 8,819 | 1.763 |
+
+Per-position cost rises ~13% across the range, so scaling is close to linear but mildly
+superlinear — worth stating precisely rather than claiming plain linearity.
+
+The reporting requirement: this is **mock-coprocessor plaintext arithmetic plus transaction
+overhead**. It measures neither TFHE evaluation time nor real network latency. The submitted
+manuscript places a `~386 ms` bioETH-PRS latency beside HEPRS real-FHE latency in
+`tab:comparison` as though the two were comparable; `R1.7-M1` already requires that row to be
+split by evidence type, and these numbers supply the mock column. They must never appear
+unlabelled.

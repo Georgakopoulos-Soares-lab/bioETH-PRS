@@ -42,8 +42,8 @@ Status convention:
 - `[x]` Completed
 - `Progress: 0%` can be changed to an intermediate percentage while work is in progress.
 
-Overall RTR progress: **10/35 actions completed (29%)** — plus `R1.3-M2` at 50%
-Stage A: **10/16** &nbsp;&nbsp; Stage B: **0/19**
+Overall RTR progress: **11/35 actions completed (31%)** — plus `R1.3-M2` at 50%
+Stage A: **11/16** &nbsp;&nbsp; Stage B: **0/19**
 
 ## Baseline already verified
 
@@ -733,7 +733,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.7-E1 — Produce individual-level Equation 1 comparisons
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 5, 28 July 2026
 - Stage: Code and evidence - Phase 5 (Individual-level correctness evidence)
 - Type: Experiment
 - Current evidence gap:
@@ -834,7 +834,7 @@ Exit gate:
 
 # Stage A - Code and evidence (Phases 1-8, 16 actions)
 
-Stage A progress: **10/16 actions (63%)** — Phases 1-4 complete
+Stage A progress: **11/16 actions (69%)** — Phases 1-5 complete
 
 Stage A rule: the manuscript is not touched. If a code result contradicts something the
 submitted paper claims, record the contradiction in `evidence/claim_deltas.md` and resolve
@@ -1038,20 +1038,56 @@ Phase exit gate:
 
 ## Phase 5 - Individual-level correctness evidence
 
-Phase progress: **0/1 actions (0%)**
+Phase progress: **1/1 actions (100%)** — complete 28 July 2026. Record: `evidence/phase5/`.
 
-- [ ] `R2.7-E1` Run all 50 individuals at each nominal fixture size (100, 500, 1,000, 5,000),
-      one published model per size and one job per individual. Record the plaintext Equation 1
-      score, the decoded bioETH-PRS score, absolute error, and category agreement. State
-      explicitly that each fixture carries a leading intercept column, so the encoded vector
-      length is nominal size plus one.
+Headline: all **200 individuals** (50 at each of 100 / 500 / 1,000 / 5,000 SNPs) scored end to
+end through the encrypted contract path and compared against the independent reference.
+**200/200 exact agreement**, MAE = RMSE = max absolute error = **0**, Pearson *r* = **exactly 1**
+established in exact decimal arithmetic. 10 minutes wall clock.
+
+- [x] `R2.7-E1` `scripts/individual_level_validation.ts`, run via
+      `npm run validate:individual-level`. One published model per size, one job per individual,
+      streaming path. Records the plaintext Equation 1 score, the decoded bioETH-PRS score, the
+      absolute error, and category agreement. Closes the gap the plan identified: the submitted
+      evaluation executed the encrypted path for only the **first** individual at each size,
+      checking the other 49 for TypeScript-side overflow alone. Output includes a full
+      provenance block per size and reuses the Phase 3 comparator format rather than a second
+      comparator. Summary statistics via a new `summarise` subcommand on the reference.
 
 Dependencies: Phases 3 and 4.
 
 Phase exit gate:
 
-- [ ] A machine-readable 200-row comparison file exists under `evidence/`.
-- [ ] Its summary statistics are computed and saved, not recomputed later by hand.
+- [x] A machine-readable 200-row comparison file exists:
+      `evidence/phase5/individual_level_comparison.csv`, 200 data rows plus header, 50 per
+      fixture size. Audited independently of the runner's own assertion by re-reading both JSON
+      sets and comparing encoded scores directly: 0 mismatches.
+- [x] Summary statistics computed and saved rather than left to be recomputed by hand:
+      `evidence/phase5/summary_statistics.json`, per size and overall.
+- [x] The leading intercept column is recorded explicitly. Encoded vector length is nominal
+      **+ 1** — 101 / 501 / 1,001 / 5,001 positions — stated in every output file and in the CSV.
+- [x] Category agreement measured honestly rather than as a single percentage. At 100 SNPs with
+      `B = 128`: **48/48 agree outside the ambiguous band**, 2 of 50 fall within `B` of a
+      threshold where the mechanism is designed not to be deterministic. Both in-band
+      individuals happened to agree, which is a favourable noise draw and is **not** reported as
+      50/50. Measured at one size deliberately, since classification consumes a single encoded
+      score and is independent of variant count. See `CD-014`.
+- [x] Parameter-mismatch guard added. The runner refuses to proceed if the reference manifest's
+      scale, weightZeroPoint, or scoreOffset disagree with the advisor recommendation, naming
+      `CD-010` in the error. That is the Phase 4 failure mode: a scale mismatch produced a
+      uniform 3x disagreement indistinguishable from an encoding bug.
+- [x] Framing constraint recorded, not just the numbers. Per `CD-006` the error is zero **by
+      construction** — the fixture weights carry six decimal places and the advisor scale is an
+      integer multiple of 10^6, so quantisation is lossless. This validates the **pipeline**
+      (preprocessing, alignment, encoding, chunked on-chain execution, ACL-gated decryption,
+      decoding), **not** arithmetic precision. `R2.7-M1` must say which claim it makes.
+- [x] Further findings recorded: `CD-015` (the documented `B/2` bias correction places the
+      individual defining a distribution-derived threshold at the point of maximum
+      classification ambiguity — an inherent trade-off, observed directly), `CD-016` (mock
+      per-individual latency measured at 1.55-1.76 ms per encoded position, mildly superlinear;
+      must never appear unlabelled beside HEPRS real-FHE latency).
+- [x] `scripts/individual_level_validation.ts` added to the provenance guard **at the time of
+      writing**, per the `CD-013` lesson. Guarded set is now 8 files, 10 guard tests.
 
 ## Phase 6 - Adversarial evidence
 
@@ -1315,18 +1351,18 @@ Phase exit gate:
 | A | 2. Release-policy hardening | 2 | 2 | **100%** |
 | A | 3. Independent validation stack | 6 | 6 | **100%** |
 | A | 4. Evidence provenance | 1 | 1 | **100%** |
-| A | 5. Individual-level correctness evidence | 1 | 0 | 0% |
+| A | 5. Individual-level correctness evidence | 1 | 1 | **100%** |
 | A | 6. Adversarial evidence | 1 | 0 | 0% |
 | A | 7. Live fhEVM validation | 2 | 0 | 0% |
 | A | 8. Evidence synthesis | 2 | 0 | 0% |
-| **A** | **Code and evidence subtotal** | **16** | **10** | **63%** |
+| **A** | **Code and evidence subtotal** | **16** | **11** | **69%** |
 | B | 9. Methods written from code | 3 | 0 | 0% |
 | B | 10. Security model and release narrative | 5 | 0 | 0% |
 | B | 11. Results from measured evidence | 4 | 0 | 0% |
 | B | 12. Scope, cost, and HEPRS comparison | 6 | 0 | 0% |
 | B | 13. Front matter and conclusion | 1 | 0 | 0% |
 | **B** | **Manuscript subtotal** | **19** | **0** | **0%** |
-| | **Total reviewer actions** | **35** | **10** | **29%** |
+| | **Total reviewer actions** | **35** | **11** | **31%** |
 
 Phase 0 and Phase 14 are coordination and final-integration gates; they do not add reviewer
 action IDs to the 35-action total.

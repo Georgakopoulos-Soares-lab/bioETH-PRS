@@ -1,0 +1,508 @@
+{
+  "tool": "individual_level_validation.ts",
+  "evidenceClass": "Hardhat mock",
+  "note": "Category agreement cannot be exact by construction: the bounded randomized release adds one-sided noise on [0, B), so a score within B below a threshold may legitimately classify either side of it. Agreement is therefore reported only for individuals outside that band, alongside the band's population. Classification consumes a single encoded score and is independent of variant count, so one fixture size is representative.",
+  "nominalSnpCount": 100,
+  "noiseUpperBound": 128,
+  "lowThreshold": "739309",
+  "highThreshold": "774721",
+  "thresholdSource": "tertiles of the reference encoded-score distribution, + B/2 bias",
+  "individualsScored": 50,
+  "outsideBand": 48,
+  "outsideBandAgreeing": 48,
+  "withinBand": 2,
+  "rows": [
+    {
+      "individual": 0,
+      "encodedScore": "758685",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 1,
+      "encodedScore": "762258",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 2,
+      "encodedScore": "894813",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 3,
+      "encodedScore": "762699",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 4,
+      "encodedScore": "741669",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 5,
+      "encodedScore": "784395",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 6,
+      "encodedScore": "892752",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 7,
+      "encodedScore": "882285",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 8,
+      "encodedScore": "739764",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 9,
+      "encodedScore": "707835",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 10,
+      "encodedScore": "905232",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 11,
+      "encodedScore": "726180",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 12,
+      "encodedScore": "740088",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 13,
+      "encodedScore": "687540",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 14,
+      "encodedScore": "944211",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 15,
+      "encodedScore": "671550",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 16,
+      "encodedScore": "743604",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 17,
+      "encodedScore": "784233",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 18,
+      "encodedScore": "739392",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 19,
+      "encodedScore": "645075",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 20,
+      "encodedScore": "743748",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 21,
+      "encodedScore": "688719",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 22,
+      "encodedScore": "877902",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 23,
+      "encodedScore": "730224",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 24,
+      "encodedScore": "738819",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 25,
+      "encodedScore": "688179",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 26,
+      "encodedScore": "739245",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": true
+    },
+    {
+      "individual": 27,
+      "encodedScore": "927900",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 28,
+      "encodedScore": "796020",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 29,
+      "encodedScore": "756150",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 30,
+      "encodedScore": "795885",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 31,
+      "encodedScore": "729438",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 32,
+      "encodedScore": "687702",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 33,
+      "encodedScore": "778890",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 34,
+      "encodedScore": "839670",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 35,
+      "encodedScore": "564648",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 36,
+      "encodedScore": "746307",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 37,
+      "encodedScore": "774657",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": true
+    },
+    {
+      "individual": 38,
+      "encodedScore": "751182",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 39,
+      "encodedScore": "709635",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 40,
+      "encodedScore": "698340",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 41,
+      "encodedScore": "744219",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 42,
+      "encodedScore": "771450",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 43,
+      "encodedScore": "651924",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 44,
+      "encodedScore": "706095",
+      "plaintextCategory": 0,
+      "onchainCategory": 0,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 45,
+      "encodedScore": "747954",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 46,
+      "encodedScore": "805773",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 47,
+      "encodedScore": "817986",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 48,
+      "encodedScore": "746445",
+      "plaintextCategory": 1,
+      "onchainCategory": 1,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    },
+    {
+      "individual": 49,
+      "encodedScore": "874929",
+      "plaintextCategory": 2,
+      "onchainCategory": 2,
+      "agrees": true,
+      "withinNoiseBandOfThreshold": false
+    }
+  ],
+  "provenance": {
+    "schema": "bioeth-prs/provenance/1",
+    "repository": {
+      "commit": "397704998b80fd1b7d14aa9f336670344f967997",
+      "shortCommit": "3977049",
+      "branch": "rtr-revision",
+      "dirty": true,
+      "dirtyFiles": [
+        "M evidence/phase3/compare_allele_reversal.json",
+        "M evidence/phase3/compare_mixed_signed_weights.json",
+        "M evidence/phase3/compare_positive_weights.json",
+        "M evidence/phase3/contract/case_allele_reversal.json",
+        "M evidence/phase3/contract/case_mixed_signed_weights.json",
+        "M evidence/phase3/contract/case_positive_weights.json",
+        "M package.json",
+        "M test/provenance_guard_test.ts",
+        "M validation/contract_case_run.ts",
+        "M validation/independent_prs_reference.py",
+        "?? evidence/phase5/",
+        "?? scripts/individual_level_validation.ts",
+        "?? scripts/utils/exact.ts"
+      ]
+    },
+    "runtime": {
+      "node": "v22.23.1",
+      "platform": "darwin"
+    },
+    "network": {
+      "name": "hardhat",
+      "chainId": "31337"
+    },
+    "inputs": [
+      {
+        "role": "model_manifest",
+        "path": "validation/manifests/heprs_100snp.json",
+        "hash": "0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75",
+        "bytes": 17524
+      },
+      {
+        "role": "model_weights",
+        "path": "test/fixtures/heprs/beta_100SNP_phenotype0.csv",
+        "hash": "0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5",
+        "bytes": 940
+      },
+      {
+        "role": "genotypes",
+        "path": "test/fixtures/heprs/genotype_100SNP_50individual.csv",
+        "hash": "0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a",
+        "bytes": 10100
+      }
+    ],
+    "model": {
+      "manifestHash": "0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75",
+      "sourceModelHash": "0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5",
+      "genotypeManifestHash": "0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a",
+      "descriptor": {
+        "kind": "heprs_fixture",
+        "manifest": "validation/manifests/heprs_100snp.json",
+        "weights": "test/fixtures/heprs/beta_100SNP_phenotype0.csv",
+        "genotypes": "test/fixtures/heprs/genotype_100SNP_50individual.csv",
+        "nominalSnpCount": 100,
+        "purpose": "category_agreement",
+        "noiseUpperBound": 128,
+        "lowThreshold": "739309",
+        "highThreshold": "774721"
+      }
+    },
+    "contracts": [
+      {
+        "name": "ModelMarketplace",
+        "address": "0x434b002AEa2D9721104bCAb8eAE8576FE884Ffe4",
+        "bytecodeHash": "0x4a64e793f919c00d38b7e0e4a0acf82a917826bdb7d2ace9aa2970b1cdd435b2",
+        "bytecodeBytes": 8151
+      },
+      {
+        "name": "ResultOracle",
+        "address": "0x525459EF64678b12000c25714dD20438b7FA9d25",
+        "bytecodeHash": "0x8382c5d71e44674b7e9a5ea24a695a40f5a63c621d98493b56d8b912a1dc2ba8",
+        "bytecodeBytes": 3594
+      },
+      {
+        "name": "PRSComputeEngine",
+        "address": "0x76e08f59C9E35d69A7d613cddB0Be85958037de6",
+        "bytecodeHash": "0x9095f79baa7e79b34c24cb3f03e80510d880f7e6df64a28ff5391421aca82f8a",
+        "bytecodeBytes": 10426
+      }
+    ],
+    "referenceOutput": {
+      "path": "evidence/phase3/reference/heprs_100snp_reference.json",
+      "hash": "0x6fe5e6a78b58a1f3965e266009a57e57c7bfa3727173e16cc4fd26c3c5cd2f2c"
+    }
+  }
+}

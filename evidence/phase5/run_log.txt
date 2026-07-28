@@ -1,0 +1,23 @@
+
+> bioeth-prs@0.1.0 validate:individual-level
+> hardhat test scripts/individual_level_validation.ts
+
+
+
+  Individual-level Equation 1 comparison (R2.7-E1)
+  100 SNPs (101 encoded positions): 50 individuals, 50 agree, 0 disagree, 157ms/individual
+    ✔ scores every individual at 100 SNPs and compares to Equation 1 (7925ms)
+  500 SNPs (501 encoded positions): 50 individuals, 50 agree, 0 disagree, 780ms/individual
+    ✔ scores every individual at 500 SNPs and compares to Equation 1 (39077ms)
+  1000 SNPs (1001 encoded positions): 50 individuals, 50 agree, 0 disagree, 1672ms/individual
+    ✔ scores every individual at 1000 SNPs and compares to Equation 1 (83692ms)
+  5000 SNPs (5001 encoded positions): 50 individuals, 50 agree, 0 disagree, 8819ms/individual
+    ✔ scores every individual at 5000 SNPs and compares to Equation 1 (441176ms)
+  category agreement (100 SNPs, B=128): 48/48 outside the ambiguous band, 2/50 within B of a threshold
+    ✔ measures category agreement and the width of the ambiguous band (100 SNPs) (9939ms)
+
+  200-row comparison written to evidence/phase5/individual_level_comparison.csv
+
+
+  5 passing (10m)
+

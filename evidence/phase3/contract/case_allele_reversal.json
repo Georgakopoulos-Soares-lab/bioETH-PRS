@@ -6,6 +6,7 @@
   "provenance": {
     "manifestHash": "0xf7e616cdfc0b30318c4deaa78e7af14ff9bbb9e73b961d959357821b4b136e0f",
     "sourceModelHash": "0x57e7ed6fb60b32dfd1a49469f97becbafe390ddf5af5242fcfa76b8253896b3c",
+    "genotypeHash": "0xf70e302ef7fd405524d00f18167fccb6bc83917acdad0e9d06510170804f1c46",
     "caseFile": "validation/cases/allele_reversal.json"
   },
   "encoding": {
@@ -29,7 +30,7 @@
         1
       ],
       "encodedScore": "1000",
-      "decodedPRS": "0.600"
+      "decodedPRS": "0.600000000000"
     },
     {
       "individual": 1,
@@ -43,7 +44,7 @@
         2
       ],
       "encodedScore": "400",
-      "decodedPRS": "0.000"
+      "decodedPRS": "0.000000000000"
     },
     {
       "individual": 2,
@@ -57,7 +58,7 @@
         0
       ],
       "encodedScore": "400",
-      "decodedPRS": "0.000"
+      "decodedPRS": "0.000000000000"
     }
   ]
 }

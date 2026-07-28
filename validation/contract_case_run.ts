@@ -4,6 +4,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { encryptUint64Array, debugDecryptUint64 } from "../test/utils/fhevm-helpers";
 import { quantizeSignedWeightsToUint64 } from "../test/utils/heprs";
+import { decodeExactRational } from "../scripts/utils/exact";
+import { assertProvenanceHash } from "../scripts/utils/provenance";
 
 /**
  * Contract-side arm of the cross-language known-answer validation (R2.6-T1).
@@ -75,9 +77,16 @@ describe("Cross-language known-answer validation — contract path", function ()
       const [signer] = await ethers.getSigners();
 
       // Real provenance hashes (R2.4-E1): keccak256 over the exact case bytes.
-      const manifestHash = ethers.keccak256(ethers.toUtf8Bytes(raw));
-      const sourceModelHash = ethers.keccak256(
-        ethers.toUtf8Bytes(JSON.stringify(spec.weights))
+      const manifestHash = assertProvenanceHash(
+        ethers.keccak256(ethers.toUtf8Bytes(raw)), "manifestHash"
+      );
+      const sourceModelHash = assertProvenanceHash(
+        ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(spec.weights))),
+        "sourceModelHash"
+      );
+      const genotypeHash = assertProvenanceHash(
+        ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(spec.genotypes))),
+        "genotypeManifestHash"
       );
 
       const betas: number[] = spec.weights.map((w: string) => Number(w));
@@ -104,8 +113,10 @@ describe("Cross-language known-answer validation — contract path", function ()
 
       const Registry = await ethers.getContractFactory("GenomicRegistry");
       const registry = await Registry.deploy();
-      const sampleId = await registry.registerSample.staticCall(`case://${caseName}`);
-      await registry.registerSample(`case://${caseName}`);
+      const sampleId = await registry.registerSampleWithManifest.staticCall(
+        `case://${caseName}`, genotypeHash
+      );
+      await registry.registerSampleWithManifest(`case://${caseName}`, genotypeHash);
 
       const Engine = await ethers.getContractFactory("PRSComputeEngine");
       const engine = await Engine.deploy(
@@ -152,7 +163,7 @@ describe("Cross-language known-answer validation — contract path", function ()
         // Decode exactly, in integer arithmetic, to avoid introducing float error
         // into the value being compared: PRS = (e - z_s) / s.
         const numerator = encodedScore - q.scoreOffset;
-        const decoded = decodeExact(numerator, BigInt(spec.scale));
+        const decoded = decodeExactRational(numerator, BigInt(spec.scale));
 
         individuals.push({
           individual: idx,
@@ -172,6 +183,7 @@ describe("Cross-language known-answer validation — contract path", function ()
         provenance: {
           manifestHash,
           sourceModelHash,
+          genotypeHash,
           caseFile: `validation/cases/${file}`,
         },
         encoding: {
@@ -193,18 +205,3 @@ describe("Cross-language known-answer validation — contract path", function ()
     });
   }
 });
-
-/**
- * Exact decimal string for numerator/scale, where scale is a power of ten.
- * Avoids Number division so the comparison is not polluted by float error.
- */
-function decodeExact(numerator: bigint, scale: bigint): string {
-  const negative = numerator < 0n;
-  const abs = negative ? -numerator : numerator;
-  const whole = abs / scale;
-  const frac = abs % scale;
-  const digits = scale.toString().length - 1;
-  const fracStr = frac.toString().padStart(digits, "0");
-  const sign = negative && (whole !== 0n || frac !== 0n) ? "-" : "";
-  return digits > 0 ? `${sign}${whole}.${fracStr}` : `${sign}${whole}`;
-}

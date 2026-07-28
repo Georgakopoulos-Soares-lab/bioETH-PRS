@@ -256,6 +256,66 @@ block by the five evidence-producing scripts, so the paper transcribes rather th
 State plainly that the HCU ceiling is unaffected by provenance, since it uses ordinary storage
 operations and adds no homomorphic work.
 
+## MS-15 · `R2.7-M1` · Phase 11 · Individual-level results, framed correctly
+
+**Status: `READY`** — measured. See `CD-006`, `CD-014`, `CD-015`, `CD-016`.
+
+Add to `Empirical Evaluation`:
+
+1. **Scatter plot**, Equation 1 PRS against decoded bioETH-PRS, all 200 individuals, generated
+   from `evidence/phase5/individual_level_comparison.csv`. Caption should note the points lie
+   exactly on the identity line.
+2. **Summary table**: n = 200, MAE = 0, RMSE = 0, maximum absolute error = 0, exact matches
+   200/200, Pearson *r* = 1. State that *r* = 1 was established in exact decimal arithmetic
+   rather than estimated in floating point.
+3. **Supplementary material**: all 200 rows.
+4. **Rewrite the existing claim.** The submitted text says all 50 individuals agree to machine
+   epsilon, citing the TypeScript quantisation advisor. Replace with a citation to this
+   independent 200-individual comparison, and state that the submitted evaluation had executed
+   the encrypted path for only the *first* individual at each size.
+
+**The framing constraint is the critical part of this spec.** Per `CD-006` the error is zero
+**by construction**: every fixture weight carries at most six decimal places and the advisor's
+scale is an integer multiple of 10^6, so quantisation is lossless. Do **not** present MAE = 0 as
+evidence that the encoding is accurate — that misattributes a property of the input data to the
+encoding scheme. State that the comparison validates the **pipeline** — preprocessing,
+effect-allele alignment, quantisation, chunked on-chain execution, ACL-gated decryption,
+decoding — against an independently derived implementation, and that a nonzero value would have
+been a finding.
+
+**Intercept column**, per `R2.7-E1`: state that each fixture carries a leading constant column
+(weight 0, dosage 1), so the encoded vector length is nominal + 1 — 101 positions for the
+"100 SNP" fixture.
+
+**Category agreement** must not be a single percentage (`CD-014`). Report: 48/48 agreement for
+individuals outside the ambiguous band, 2 of 50 within `B` of a threshold where the mechanism is
+designed not to be deterministic. Both in-band individuals happened to agree, which is a
+favourable noise draw and must not be reported as 50/50. State that the measurement was taken at
+one fixture size because classification consumes a single encoded score and is independent of
+variant count.
+
+**Mock latency** (`CD-016`): 1.55-1.76 ms per encoded position, mildly superlinear across the
+range. Label `Hardhat mock`; it measures neither TFHE evaluation time nor network latency.
+
+## MS-16 · `R1.3-M2` addition · Phase 10 · The bias correction has a boundary cost
+
+**Status: `READY`** — observed directly. See `CD-015`.
+
+`Noisy Output Release` documents adding `expectedNoiseBias() = B/2` to each threshold so the
+noisy comparison aligns with the intended plaintext boundary. Add the consequence, which is
+currently stated nowhere: if a threshold is derived from the score distribution — a quantile, or
+a clinical cut point calibrated on a cohort — then adding `B/2` places the individual *defining*
+that cut point exactly `B/2` below the adjusted threshold, i.e. at the centre of the ambiguous
+band and the point of maximum classification uncertainty.
+
+Observed rather than inferred: both in-band individuals in the Phase 5 study sat at exactly
+64 = `B/2` below their threshold.
+
+Frame it as an inherent trade-off, not a defect: threshold adjustment can correct aggregate bias
+or per-individual boundary certainty, not both. A reader following the documented guidance for a
+clinically calibrated threshold would otherwise not know that patients nearest the cut point
+receive the least reliable classification.
+
 ## MS-04 · `R1.4-M1` · Phase 11 · Replace the 2,800-hour claim
 
 **Status: `BLOCKED`** on `R1.4-E1` (Phase 6). Do not draft a placeholder number.
@@ -419,6 +479,17 @@ the restated gas figures, and final page/line refs.
 
 We thank the reviewer for this question, which we found to be the most demanding of the review, because answering it honestly required us to admit that the submitted version did not support the trust it invited. Our answer has three parts: what the protocol guarantees, what it explicitly does not, and what a reader can independently check. On the first, we have added a table to Correctness and Protocol Verification that assigns each guarantee to a named party rather than leaving it to the architecture in general. The genotype preprocessor is responsible for variant and effect-allele alignment; the model provider for the weights, the release thresholds, and the scientific validity of the model; the smart contracts for computing a deterministic encoded weighted sum over whatever ciphertexts were submitted; the fhEVM infrastructure for encrypted execution and decryption under its own assumptions; the independent reference implementation for agreement with Equation 1; and the end user for verifying manifest hashes, contract addresses, and the transaction record. On the second, we state without qualification that the protocol guarantees none of sample authenticity, clinical validity, calibration, or ancestry portability, and that blockchain consensus does not establish biological correctness - consensus makes the orchestration auditable, and nothing more. On the third, and this is the substantive change, the reviewer's question exposed a concrete defect: the evaluation code committed a zero hash in place of every model and sample manifest hash, so a figure printed in the manuscript could not be traced back to the fixture that produced it. Trust in a number requires the number to be attributable, and ours were not. Every evaluation script now records the repository commit, the digests of the exact input files, the model manifest, the deployed contract addresses together with their bytecode digests, and the digest of the independent reference output the run was checked against, and a regression test fails the build if any of that is reintroduced as a placeholder. We would highlight that this change immediately justified itself by exposing a second error we would otherwise have published: linking the reference output to the on-chain run forced the two to be compared directly for the first time on real fixture data, and they disagreed by a factor of exactly three, because our reference had been configured with the wrong quantisation scale for two of the four fixtures. Neither implementation was at fault; a parameter was. The reference and the contract path now agree exactly on the fixture we validate end to end. Finally, we report a consequence that bears on the reviewer's question about trusting numbers in general. Recording real provenance costs 40,568 gas per model, so the model-publication figures in the submitted manuscript correspond to a configuration in which provenance was not recorded, and we have restated them. We also found that our upload-path gas measurements are not reproducible to the individual gas unit across runs, although model publication and compute are, so we no longer quote gas at a precision the measurement does not support.
 
+## Reviewer 2, Comment 7 - individual-level agreement with Equation 1
+
+> In the Empirical Evaluation section, I was expecting to see that the individual PRS calculated
+> by bioETH-PRS is consistent with the PRS calculated from Equation 1. Could the authors provide
+> that information?
+
+**Substantiated now:** `R2.7-E1` - `evidence/phase5/`, 200-row comparison.
+**Blocked on:** MS-15 (Phase 11) for the scatter plot, metrics table, and supplement.
+
+We thank the reviewer for asking for this directly, because the expectation was reasonable and the submitted manuscript did not meet it. On re-examining our own evaluation we found that the encrypted contract path had been executed for only the first individual at each fixture size; the remaining forty-nine were checked for unsigned-integer overflow on the client side and never compared against a decoded on-chain result. The agreement we claimed was therefore narrower than a reader would reasonably have inferred. We have now run all fifty individuals at each of the four fixture sizes, two hundred jobs in total, each a separate job against a single published model, and compared every decoded score against Equation 1 as computed by an independent reference implementation. All two hundred agree exactly: mean absolute error, root-mean-square error, and maximum absolute error are all zero, every individual is an exact match, and the Pearson correlation is exactly one, which we establish in exact decimal arithmetic rather than estimating in floating point. The full two hundred rows are provided as supplementary material, with a scatter plot and summary table in the main text. We want to be careful about what this does and does not establish, because the result is stronger than we can honestly take credit for. The error is zero by construction rather than by measurement: every weight in these fixtures is distributed with at most six decimal places, and the quantisation advisor's recommended scale is an integer multiple of one million, so the fixed-point encoding is lossless and no rounding occurs at all. Reporting zero error as evidence that our encoding is accurate would attribute to the scheme a property that belongs to the input data, and we have revised the Quantisation Accuracy discussion accordingly. What the comparison does validate is the pipeline end to end - genotype preprocessing, effect-allele alignment, quantisation, chunked homomorphic execution on chain, access-controlled decryption, and decoding - against an implementation derived independently from the published specification, and a nonzero value would have been a genuine finding rather than a rounding artifact. We also report, per the reviewer's mention of categories, that classification agreement is exact for all forty-eight individuals whose scores lie outside the noise band around a threshold, with two of fifty falling inside it. We deliberately do not report this as fifty out of fifty: the release mechanism adds one-sided noise, so an individual within the noise bound of a threshold may legitimately classify on either side, and the two in-band individuals agreeing on our run reflects a favourable draw rather than a guarantee. Finally, we note an explicit detail that affects how these counts should be read: each fixture carries a leading constant column with weight zero and dosage one, so the encoded vector length is the nominal variant count plus one - one hundred and one positions for the fixture we describe as one hundred SNPs.
+
 ## Not yet drafted
 
 Do not pre-write these; each needs its Stage A evidence first.
@@ -431,7 +502,6 @@ Do not pre-write these; each needs its Stage A evidence first.
 | R1 C8 | Cost projections | `R1.8-E1` (Phase 8) |
 | R2 C1 | Narrow SNP class | Phase 8 |
 | R2 C5 | Interpretability of the encoded pipeline | Phase 9 |
-| R2 C7 | Equation 1 agreement | `R2.7-E1` (Phase 5) |
 
 ---
 
@@ -460,6 +530,10 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-17 | `test/provenance_guard_test.ts` - 9 tests; zero-hash regression guard incl. exemption-list staleness | R2 C4 |
 | EV-18 | `evidence/phase4/gas_delta.md` - +40,568 gas/model for real provenance, attributed by phase | MS-14, MS-08; R1 C8 |
 | EV-19 | 100-SNP cross-validation: reference and contract agree at `encodedScore = 758,685` | R2 C4, C7 |
+| EV-20 | `evidence/phase5/individual_level_comparison.csv` - 200 rows, all exact | MS-15; R2 C7 |
+| EV-21 | `evidence/phase5/summary_statistics.json` - MAE/RMSE/max = 0, Pearson r = 1 exact | MS-15; R2 C7 |
+| EV-22 | `evidence/phase5/category_agreement_100snp.json` - 48/48 outside band, 2/50 in band | MS-15; R2 C7, R1 C3 |
+| EV-23 | `scripts/individual_level_validation.ts` - runner, `npm run validate:individual-level` | MS-15 |
 
 ## Commit trail
 
@@ -473,3 +547,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `7870d4c` | Phase 2: release policy fixed and immutable; requester thresholds removed |
 | `88ecb89` | Phase 3: independent Python reference; cross-language agreement at tolerance 0 |
 | `bb0ddfd` | Phase 4: real provenance across all evidence-producing code; zero-hash guard |
+| `<phase5>` | Phase 5: 200-individual Equation 1 comparison, all exact |

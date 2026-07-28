@@ -1,0 +1,80 @@
+{
+  "perFixtureSize": [
+    {
+      "n": 50,
+      "meanAbsoluteError": "0",
+      "rootMeanSquareError": "0",
+      "maxAbsoluteError": "0",
+      "exactMatches": 50,
+      "exactMatchFraction": "1",
+      "pearsonR": "1",
+      "pearsonRNote": "exact: |r| = 1, established in integer/decimal arithmetic",
+      "caveat": "On these fixtures MAE, RMSE, and max error are zero by construction (CD-006): the quantisation is lossless because the source weights carry six decimal places. These statistics validate the pipeline, not arithmetic precision.",
+      "nominalSnpCount": 100,
+      "encodedPositions": 101,
+      "scale": 3000000
+    },
+    {
+      "n": 50,
+      "meanAbsoluteError": "0",
+      "rootMeanSquareError": "0",
+      "maxAbsoluteError": "0",
+      "exactMatches": 50,
+      "exactMatchFraction": "1",
+      "pearsonR": "1",
+      "pearsonRNote": "exact: |r| = 1, established in integer/decimal arithmetic",
+      "caveat": "On these fixtures MAE, RMSE, and max error are zero by construction (CD-006): the quantisation is lossless because the source weights carry six decimal places. These statistics validate the pipeline, not arithmetic precision.",
+      "nominalSnpCount": 500,
+      "encodedPositions": 501,
+      "scale": 3000000
+    },
+    {
+      "n": 50,
+      "meanAbsoluteError": "0",
+      "rootMeanSquareError": "0",
+      "maxAbsoluteError": "0",
+      "exactMatches": 50,
+      "exactMatchFraction": "1",
+      "pearsonR": "1",
+      "pearsonRNote": "exact: |r| = 1, established in integer/decimal arithmetic",
+      "caveat": "On these fixtures MAE, RMSE, and max error are zero by construction (CD-006): the quantisation is lossless because the source weights carry six decimal places. These statistics validate the pipeline, not arithmetic precision.",
+      "nominalSnpCount": 1000,
+      "encodedPositions": 1001,
+      "scale": 1000000
+    },
+    {
+      "n": 50,
+      "meanAbsoluteError": "0",
+      "rootMeanSquareError": "0",
+      "maxAbsoluteError": "0",
+      "exactMatches": 50,
+      "exactMatchFraction": "1",
+      "pearsonR": "1",
+      "pearsonRNote": "exact: |r| = 1, established in integer/decimal arithmetic",
+      "caveat": "On these fixtures MAE, RMSE, and max error are zero by construction (CD-006): the quantisation is lossless because the source weights carry six decimal places. These statistics validate the pipeline, not arithmetic precision.",
+      "nominalSnpCount": 5000,
+      "encodedPositions": 5001,
+      "scale": 1000000
+    }
+  ],
+  "overall": {
+    "n": 200,
+    "meanAbsoluteError": "0",
+    "rootMeanSquareError": "0",
+    "maxAbsoluteError": "0",
+    "exactMatches": 200,
+    "exactMatchFraction": "1",
+    "pearsonR": "1",
+    "pearsonRNote": "exact: |r| = 1, established in integer/decimal arithmetic",
+    "caveat": "On these fixtures MAE, RMSE, and max error are zero by construction (CD-006): the quantisation is lossless because the source weights carry six decimal places. These statistics validate the pipeline, not arithmetic precision."
+  },
+  "categoryAgreement": {
+    "nominalSnpCount": 100,
+    "noiseUpperBound": 128,
+    "individualsScored": 50,
+    "outsideBand": 48,
+    "outsideBandAgreeing": 48,
+    "withinBand": 2,
+    "note": "Category agreement cannot be exact by construction: the bounded randomized release adds one-sided noise on [0, B), so a score within B below a threshold may legitimately classify either side of it. Agreement is therefore reported only for individuals outside that band, alongside the band's population. Classification consumes a single encoded score and is independent of variant count, so one fixture size is representative."
+  }
+}

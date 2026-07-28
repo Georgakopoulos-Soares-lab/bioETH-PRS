@@ -25,7 +25,7 @@
       "contractEncoded": 50,
       "encodedAgrees": true,
       "referenceDecoded": "0.5",
-      "absError": "0.00",
+      "absError": "0E-12",
       "decodedWithinTolerance": true,
       "verdict": "PASS"
     },
@@ -35,7 +35,7 @@
       "contractEncoded": 70,
       "encodedAgrees": true,
       "referenceDecoded": "0.7",
-      "absError": "0.00",
+      "absError": "0E-12",
       "decodedWithinTolerance": true,
       "verdict": "PASS"
     },
@@ -45,7 +45,7 @@
       "contractEncoded": 5,
       "encodedAgrees": true,
       "referenceDecoded": "0.05",
-      "absError": "0.00",
+      "absError": "0E-12",
       "decodedWithinTolerance": true,
       "verdict": "PASS"
     }
