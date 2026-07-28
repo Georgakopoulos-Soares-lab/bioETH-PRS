@@ -1,3 +1,18 @@
+// Rate limiting and randomized-release hardening.
+//
+// Renamed from rate_limit_dp_test.ts.  The output mechanism in ResultOracle is a
+// bounded randomized categorical release, NOT differential privacy: the noise is
+// one-sided on [0, B), uncalibrated to any sensitivity bound, and unaccounted across
+// repeated queries.  Nothing in this file tests an (epsilon, delta) guarantee,
+// because the contracts do not implement one.  Keep the terminology in this file,
+// in ResultOracle.sol, and in the manuscript identical.
+//
+// What these tests do cover:
+//   - windowed per-model, per-wallet, and per-sample job quotas
+//   - oracle-required mode, which closes the raw-score bypass
+//   - the minimum threshold-gap constraint, which prevents threshold probing from
+//     narrowing the categorical output below the noise bound
+
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import {

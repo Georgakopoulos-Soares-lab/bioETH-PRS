@@ -113,7 +113,7 @@ Model owners configure per-wallet query limits via `ModelMarketplace.setRateLimi
 
 ## Oracle-Required Mode
 
-Model owners can enforce DP noise on all output: `ModelMarketplace.setOracleRequired(modelId, true)`. When set, `finalize()`, `finalizeTo()`, and `readPartial()` revert — only `finalizeAndClassify()` is allowed.
+Model owners can enforce the bounded randomized release on all output: `ModelMarketplace.setOracleRequired(modelId, true)`. When set, `finalize()`, `finalizeTo()`, and `readPartial()` revert — only `finalizeAndClassify()` is allowed.
 
 ## Minimum Threshold Gap
 

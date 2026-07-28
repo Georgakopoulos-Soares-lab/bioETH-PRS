@@ -42,8 +42,8 @@ Status convention:
 - `[x]` Completed
 - `Progress: 0%` can be changed to an intermediate percentage while work is in progress.
 
-Overall RTR progress: **0/35 actions completed (0%)**
-Stage A: **0/16** &nbsp;&nbsp; Stage B: **0/19**
+Overall RTR progress: **1/35 actions completed (3%)** — plus `R1.3-M2` at 50%
+Stage A: **1/16** &nbsp;&nbsp; Stage B: **0/19**
 
 ## Baseline already verified
 
@@ -234,7 +234,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.3-M2 — Describe only the mechanism that is actually implemented
 
-- [ ] Progress: 0%
+- [ ] Progress: 50% — code half done in Phase 1 (28 July 2026); manuscript half pending Phase 10
 - Stage: Split action - code renames execute in Phase 1; manuscript terminology follows in Phase 10. Complete only when both are done.
 - Type: Manuscript method clarification
 - Action:
@@ -243,6 +243,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
   - Move formal adjacency, sensitivity, and calibrated DP to Future Directions.
 - Code conformity:
   - Rename test descriptions and documentation in `contracts/ResultOracle.sol` and `test/rate_limit_dp_test.ts` from `DP`/`DP-inspired` to `randomized release`.
+  - Done in Phase 1. The file itself was renamed to `test/rate_limit_randomized_release_test.ts`, since leaving `dp` in a filename the manuscript cites would defeat the rename.
   - Do not change the implemented distribution merely to retain DP terminology.
 - Completion criterion:
   - Code comments, test names, and manuscript terminology all use the same non-DP name.
@@ -276,7 +277,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 - Stage: Code and evidence - Phase 2 (Release-policy hardening)
 - Type: Tests
 - Code action:
-  - Extend `test/rate_limit_dp_test.ts` and `test/registry_marketplace_oracle_test.ts`.
+  - Extend `test/rate_limit_randomized_release_test.ts` (renamed from `rate_limit_dp_test.ts` in Phase 1) and `test/registry_marketplace_oracle_test.ts`.
   - Verify requester-supplied thresholds are impossible.
   - Verify the same registered sample remains sample-rate-limited across wallets.
   - Verify different wallets with different samples can still create independent windows, documenting the remaining Sybil boundary.
@@ -342,7 +343,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.5-T1 — Preserve the crafted-input test as evidence of the boundary
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 1, 28 July 2026
 - Stage: Code and evidence - Phase 1 (Code terminology conformity)
 - Type: Test documentation, not a claimed fix
 - Existing evidence:
@@ -833,7 +834,7 @@ Exit gate:
 
 # Stage A - Code and evidence (Phases 1-8, 16 actions)
 
-Stage A progress: **0/16 actions (0%)**
+Stage A progress: **1/16 actions (6%)** — Phase 1 complete
 
 Stage A rule: the manuscript is not touched. If a code result contradicts something the
 submitted paper claims, record the contradiction in `evidence/claim_deltas.md` and resolve
@@ -844,19 +845,34 @@ it in Stage B. Do not fix it in the tex file yet.
 Why first: every later file, test name, report, and eventually the paper inherits these
 names. Renaming now costs minutes; renaming after the experiments costs a re-run.
 
-Phase progress: **0/1 actions (0%)**
+Phase progress: **1/1 actions (100%)** — complete 28 July 2026. Record: `evidence/phase1/`.
 
-- [ ] `R1.3-M2` (code half) Rename `DP` / `DP-inspired` to `randomized release` in
-      `contracts/ResultOracle.sol` comments and `test/rate_limit_dp_test.ts` descriptions.
-      Do not change the implemented noise distribution. The manuscript half completes in Phase 10.
-- [ ] `R1.5-T1` Rename and comment the crafted-input regression test in
-      `test/prs_compute_engine_chunked_snp_test.ts` so its purpose is to document the
-      ciphertext-to-sample trust boundary, not to assert a fix.
+- [x] `R1.3-M2` (code half) `DP` / `DP-inspired` replaced by **bounded randomized categorical
+      release** across `contracts/ResultOracle.sol`, `CLAUDE.md`, `README.md`, `docs/design.md`,
+      `docs/onboarding.md`, `docs/roadmap.md`, `docs/reference.md`,
+      `.claude/instructions/solidity-fhevm.md`, and `.claude/commands/security-review.md`.
+      `docs/reviewer-questions-assessment.md` received a supersession banner rather than a
+      rewrite, since it records a prior review round. The noise distribution was **not**
+      touched. The test file was renamed to `test/rate_limit_randomized_release_test.ts`; its
+      `describe` blocks already said `Noisy Release Hardening`, so no descriptions needed
+      changing. Scope was 10 files, not the 2 the plan named — see `CD-003`.
+      The manuscript half completes in Phase 10.
+- [x] `R1.5-T1` The crafted-input test in `test/prs_compute_engine_chunked_snp_test.ts` is now
+      `TRUST BOUNDARY: accepts arbitrary encrypted SNP values, including invalid hard calls —
+      ciphertext/sample binding is not enforced on-chain`, with a comment block recording what
+      is and is not guaranteed, that `[9, 11]` are deliberately invalid dosages, that
+      `manifestHash` is provenance rather than binding, and an instruction to update the
+      manuscript if the test ever starts passing for the opposite reason.
 
 Phase exit gate:
 
-- [ ] A repository-wide search for `DP-inspired` returns no hits in contracts or tests.
-- [ ] The compile and the 137-test suite still pass.
+- [x] A repository-wide search for `DP-inspired` returns no hits in contracts or tests.
+      Verified: 0 hits for `DP-inspired`, 0 hits for bare `DP`.
+- [x] The compile and the 137-test suite still pass. `hardhat clean` + rebuild exit 0 (11
+      contracts, evm `cancun`); **137 passing / 0 failing**; `validate:mock` 1 passing.
+- [x] Behavior provably unchanged. `ResultOracle` deployed bytecode with the CBOR metadata
+      trailer stripped is byte-identical before and after (sha256
+      `c9d1640a...b056332`, 3541 bytes), confirming the code half is a pure rename.
 
 ## Phase 2 - Release-policy hardening
 
@@ -1213,7 +1229,7 @@ Phase exit gate:
 
 | Stage | Phase | Actions | Completed | Progress |
 |---|---|---:|---:|---:|
-| A | 1. Code terminology conformity | 1 | 0 | 0% |
+| A | 1. Code terminology conformity | 1 | 1 | **100%** |
 | A | 2. Release-policy hardening | 2 | 0 | 0% |
 | A | 3. Independent validation stack | 6 | 0 | 0% |
 | A | 4. Evidence provenance | 1 | 0 | 0% |
@@ -1221,14 +1237,14 @@ Phase exit gate:
 | A | 6. Adversarial evidence | 1 | 0 | 0% |
 | A | 7. Live fhEVM validation | 2 | 0 | 0% |
 | A | 8. Evidence synthesis | 2 | 0 | 0% |
-| **A** | **Code and evidence subtotal** | **16** | **0** | **0%** |
+| **A** | **Code and evidence subtotal** | **16** | **1** | **6%** |
 | B | 9. Methods written from code | 3 | 0 | 0% |
 | B | 10. Security model and release narrative | 5 | 0 | 0% |
 | B | 11. Results from measured evidence | 4 | 0 | 0% |
 | B | 12. Scope, cost, and HEPRS comparison | 6 | 0 | 0% |
 | B | 13. Front matter and conclusion | 1 | 0 | 0% |
 | **B** | **Manuscript subtotal** | **19** | **0** | **0%** |
-| | **Total reviewer actions** | **35** | **0** | **0%** |
+| | **Total reviewer actions** | **35** | **1** | **3%** |
 
 Phase 0 and Phase 14 are coordination and final-integration gates; they do not add reviewer
 action IDs to the 35-action total.

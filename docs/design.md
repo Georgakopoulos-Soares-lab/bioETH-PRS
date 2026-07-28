@@ -170,7 +170,7 @@ The rearrangement `(partialSum + scoreOffset) - (weightZeroPoint × genoSum)` av
 
 ### 2.4 ResultOracle
 
-DP-inspired noisy categorical classification. All operations remain encrypted. The current mechanism is bounded one-sided uniform noise plus thresholding; it is not a formal `(epsilon, delta)`-DP guarantee.
+Bounded randomized categorical release. All operations remain encrypted. The mechanism is one-sided uniform noise on `[0, B)` plus thresholding. It is **not** differential privacy and provides no `(epsilon, delta)` guarantee: the noise is one-sided rather than symmetric, is not calibrated to any sensitivity bound, and is not accounted across repeated queries. No adjacency definition, sensitivity analysis, or composition analysis exists in this codebase.
 
 **Noise mechanism:** `noiseUpperBound` set at construction (must be a positive power of 2 — fhEVM requirement for `randEuint64`). Each call generates `noise = FHE.randEuint64(noiseUpperBound)` — unknowable to caller before the transaction mines.
 
@@ -199,7 +199,7 @@ euint8  category = FHE.select(isLow, Low, FHE.select(isMedium, Medium, High));
 adjustedThreshold = intendedThreshold + oracle.expectedNoiseBias()
 ```
 
-This is a deterministic, correctable bias. Formal DP would require a calibrated two-sided mechanism, a PRS sensitivity analysis, and repeated-query composition accounting.
+This is a deterministic, correctable bias. A formal `(epsilon, delta)` guarantee would additionally require a calibrated two-sided mechanism, a PRS sensitivity analysis, and repeated-query composition accounting — none of which are implemented.
 
 ---
 

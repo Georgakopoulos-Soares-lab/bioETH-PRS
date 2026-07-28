@@ -24,7 +24,7 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 | GenomicRegistry | [contracts/GenomicRegistry.sol](contracts/GenomicRegistry.sol) | URI registry + per-address ACL |
 | ModelMarketplace | [contracts/ModelMarketplace.sol](contracts/ModelMarketplace.sol) | Public / private GWAS weight chunks (`ZamaEthereumConfig`) |
 | PRSComputeEngine | [contracts/PRSComputeEngine.sol](contracts/PRSComputeEngine.sol) | Chunked dot-product state machine (`ZamaEthereumConfig`) |
-| ResultOracle | [contracts/ResultOracle.sol](contracts/ResultOracle.sol) | DP noise + categorical classification (`ZamaEthereumConfig`) |
+| ResultOracle | [contracts/ResultOracle.sol](contracts/ResultOracle.sol) | Bounded randomized release + categorical classification (`ZamaEthereumConfig`) |
 | BioETHPRS | [contracts/legacy/HEPRS.sol](contracts/legacy/HEPRS.sol) | Legacy standalone variant — no marketplace dependency |
 
 ## Security Invariants — Never Violate
@@ -36,8 +36,8 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 5. **Registry ACL enforced** — `PRSComputeEngine.createPRSJob` checks `GenomicRegistry.hasAccess(sampleId, msg.sender)`. Do not assume compute chunks also re-check (they don't).
 6. **State machine integrity** — PRS job transitions: `PENDING → UPLOADING → READY → COMPUTING → DONE`. Never allow compute calls before `finalizeSnpUpload` completes.
 7. **Rate limiting** — `createPRSJob` enforces per-model, per-wallet, block-windowed job count limits when configured via `ModelMarketplace.setRateLimit`. Default is unlimited (backwards-compatible).
-8. **Oracle-required mode** — when `ModelMarketplace.setOracleRequired(modelId, true)` is set, `finalize()`, `finalizeTo()`, and `readPartial()` revert. Only `finalizeAndClassify()` (oracle path with DP noise) is allowed.
-9. **Minimum threshold gap** — `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound` to prevent threshold probing that defeats DP noise.
+8. **Oracle-required mode** — when `ModelMarketplace.setOracleRequired(modelId, true)` is set, `finalize()`, `finalizeTo()`, and `readPartial()` revert. Only `finalizeAndClassify()` (oracle path with bounded randomized release) is allowed.
+9. **Minimum threshold gap** — `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound` to prevent threshold probing that would narrow the categorical output below the noise bound.
 10. **Approved oracle enforcement** — when `oracleRequired` is true, `finalizeAndClassify()` validates the oracle address against `ModelMarketplace.getApprovedOracle(modelId)`. Model owner must call `setApprovedOracle(modelId, oracleAddr)` before enabling oracle-required mode. Prevents bypass via a custom no-op oracle.
 11. **Single-finalize per job** — `finalize()`, `finalizeTo()`, and `finalizeAndClassify()` set `job.finalized = true` and revert on any second call. Prevents redundant FHE ops and multiple oracle invocations per rate-limit slot.
 

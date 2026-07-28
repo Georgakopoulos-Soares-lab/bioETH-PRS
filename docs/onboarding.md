@@ -416,7 +416,7 @@ It no longer stores the whole SNP vector in the job header. Instead it uses a st
 
 #### 11. `contracts/ResultOracle.sol` (~53 lines)
 
-**What it does:** Takes a final encrypted PRS score, adds DP-inspired on-chain noise, and classifies into Low / Medium / High — all without decrypting. This is a noisy categorical release, not a formal `(epsilon, delta)`-DP guarantee.
+**What it does:** Takes a final encrypted PRS score, adds bounded on-chain random noise, and classifies into Low / Medium / High — all without decrypting. This is a **bounded randomized categorical release**, not differential privacy, and provides no `(epsilon, delta)` guarantee.
 
 **What to trace in `classify`:**
 

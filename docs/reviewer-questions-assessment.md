@@ -210,6 +210,16 @@ control, but it is not a calibrated formal DP mechanism.
 categorical release" and explicitly says it is not a formal `(epsilon,
 delta)`-DP guarantee.
 
+> **SUPERSEDED — RTR action `R1.3-M2`, Phase 1, 28 July 2026.** The "DP-inspired"
+> wording recorded above was judged insufficient by RTR Reviewer 1, Comment 3, on
+> the grounds that any DP-adjacent phrasing invites a reader to infer a formal
+> guarantee. The term has been removed from the codebase entirely and replaced with
+> **"bounded randomized categorical release."** The implemented distribution is
+> unchanged — still one-sided uniform noise on `[0, B)`. Current wording lives in
+> `contracts/ResultOracle.sol`, `docs/design.md §2.4`, and
+> `test/rate_limit_randomized_release_test.ts`. The "Recommended wording" block at
+> the end of this section is also superseded and must not be reused.
+
 **Sensitivity basis for future work:** For `S(g) = sum_i g_i beta_i`,
 sensitivity depends on the adjacency model:
 

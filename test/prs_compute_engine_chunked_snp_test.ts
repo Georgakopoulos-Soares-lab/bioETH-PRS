@@ -195,7 +195,33 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       .to.be.revertedWith("SNP upload not finalized");
   });
 
-  it("accepts arbitrary encrypted SNP values today; hardcall enforcement remains off-chain", async function () {
+  // ============================================================================
+  // TRUST-BOUNDARY RECORD — this test documents a known limitation, not a fix.
+  //
+  // The contracts guarantee computation over the ciphertexts that were submitted.
+  // They do NOT prove that those ciphertexts encode genotypes derived from the
+  // registered sample.  GenomicRegistry.hasAccess gates WHO may create a job for a
+  // sample; nothing binds WHAT is subsequently uploaded to that sample.
+  //
+  // The values below (9, 11) are deliberately invalid diploid hard calls — the only
+  // legal dosages are 0, 1, and 2.  The engine accepts them without objection and
+  // returns 9*1 + 11*2 = 31, demonstrating that an authorized-but-malicious
+  // requester can drive the encrypted dot product with arbitrary chosen inputs.
+  // This is the capability that makes model probing feasible in the first place.
+  //
+  // registerSampleWithManifest does NOT close this gap.  manifestHash is a
+  // provenance commitment over preparation metadata (genome build, input-file hash,
+  // variant order, preparation policy); it is not a cryptographic binding between a
+  // ciphertext and a sample.  Closing the gap requires signed laboratory attestation
+  // or a zero-knowledge ciphertext-to-sample proof, neither of which is implemented.
+  //
+  // IF THIS TEST EVER FAILS, on-chain input validation was added.  That is a change
+  // in the security model: update contracts/PRSComputeEngine.sol documentation, the
+  // Security Model section of the manuscript, and CLAUDE.md before relaxing it.
+  //
+  // Cited by RTR actions R1.5-T1 (this record) and R1.5-M1 / R1.5-M2 (manuscript).
+  // ============================================================================
+  it("TRUST BOUNDARY: accepts arbitrary encrypted SNP values, including invalid hard calls — ciphertext/sample binding is not enforced on-chain", async function () {
     const [jobOwner] = await ethers.getSigners();
     const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
     const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), jobOwner.address);
@@ -204,6 +230,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
     await engine.createPRSJob(modelId, sampleId);
 
+    // 9 and 11 are not valid dosages; only {0, 1, 2} are biologically meaningful.
     const enc = await encryptUint64Array(engineAddr, jobOwner.address, [9n, 11n]);
     await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
     await engine.finalizeSnpUpload(jobId);
@@ -215,6 +242,8 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
     );
     const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+
+    // The engine computed over out-of-range inputs and reported a score for them.
     expect(await debugDecryptUint64(scoreHandle)).to.equal(31n);
   });
 

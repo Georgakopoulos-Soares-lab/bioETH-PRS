@@ -28,7 +28,7 @@ finds `ethers.ZeroHash` in **ten** files:
 | `scripts/gas_profile.ts` | 4 | Yes — gas vs SNP-count curve |
 | `scripts/probe_hcu_ceiling.ts` | 4 | Yes — HCU ceiling figures |
 | `test/heprs_fixture_test.ts` | 8 | Yes — fixture correctness |
-| `test/rate_limit_dp_test.ts` | 6 | Yes — anti-probing behaviour |
+| `test/rate_limit_randomized_release_test.ts` | 6 | Yes — anti-probing behaviour |
 | `test/registry_marketplace_oracle_test.ts` | 18 | No — unit fixtures |
 | `test/model_marketplace_chunked_test.ts` | 19 | No — unit fixtures |
 | `test/prs_compute_engine_chunked_snp_test.ts` | 13 | No — unit fixtures |
@@ -63,3 +63,35 @@ from `baseline/compile.txt`.
 **Standing rule for the rest of Stage A:** run `nvm use` (which reads `.nvmrc`) before any
 command that produces a reportable number. Every artifact in `evidence/` must record its
 runtime in the same way `baseline/environment.txt` does.
+
+---
+
+## CD-003 — `R1.3-M2`'s code scope was 10 files, not the 2 the plan named
+
+- **Opened:** Phase 1, 28 July 2026
+- **Status:** **resolved** (Phase 1, 28 July 2026)
+- **Resolved by:** extending the rename to every file that carried DP framing
+
+The plan scoped the code half of `R1.3-M2` to `contracts/ResultOracle.sol` and
+`test/rate_limit_dp_test.ts`. A repository-wide search found DP framing in ten files. Leaving
+any of them would have let Stage B pick up "DP-inspired" from repo documentation and reintroduce
+the exact wording Reviewer 1 objected to.
+
+Renamed: `contracts/ResultOracle.sol`, `CLAUDE.md`, `README.md`, `docs/design.md`,
+`docs/onboarding.md`, `docs/roadmap.md`, `docs/reference.md`,
+`.claude/instructions/solidity-fhevm.md`, `.claude/commands/security-review.md`.
+
+Two findings inside this scope correction:
+
+1. **`test/rate_limit_dp_test.ts` needed no description changes.** Its `describe` blocks
+   already read `Noisy Release Hardening`. Only the *filename* carried `dp`, so the file was
+   renamed to `test/rate_limit_randomized_release_test.ts`. The plan's assumption that test
+   descriptions said "DP" was wrong.
+2. **`docs/reviewer-questions-assessment.md` was not rewritten.** It records a *previous*
+   review round in which "DP-inspired" was itself the agreed remediation. Rewriting it would
+   erase that history and make the document self-contradictory. It received a supersession
+   banner instead, explaining that RTR Reviewer 1 Comment 3 rejected the earlier wording and
+   pointing at the current terminology. Its "Recommended wording" block is marked do-not-reuse.
+
+**Standing rule for Stage B:** the manuscript adopts **"bounded randomized categorical
+release"** verbatim. Do not coin a third variant.

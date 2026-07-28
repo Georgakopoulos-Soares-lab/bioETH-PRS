@@ -61,7 +61,7 @@ After completion: update `reports/classic-gas.md` Sepolia table with real HCU ce
 
 **Anti-probing:**
 
-- Formal ε-δ DP calibration for a two-sided calibrated noise mechanism
+- Formal ε-δ differential privacy: adjacency definition, PRS sensitivity analysis, calibrated two-sided noise, and composition accounting (the shipped mechanism is a bounded randomized release only)
 - Staking/deposit mechanism as economic Sybil deterrent
 
 **Quantization & types:**
@@ -83,7 +83,7 @@ After completion: update `reports/classic-gas.md` Sepolia table with real HCU ce
 **Scientific validation:**
 
 - De-quantization comparison: on-chain encoded score vs PLINK/PRSice reference
-- Formal DP calibration or empirical backing for `noiseUpperBound` choice
+- Formal differential-privacy calibration, or empirical backing for the `noiseUpperBound` choice
 
 **Security analysis:**
 
