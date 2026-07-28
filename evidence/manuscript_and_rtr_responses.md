@@ -293,4 +293,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `b935d5f` | Phase 0 evidence store |
 | `e4c968c` | Phase 0 complete; node 22 pinned; `CD-002` closed |
 | `b0c86a4` | Phase 1: DP framing removed, trust boundary labelled |
-| `<phase2>` | Phase 2: release policy fixed and immutable; requester thresholds removed |
+| `7870d4c` | Phase 2: release policy fixed and immutable; requester thresholds removed |
