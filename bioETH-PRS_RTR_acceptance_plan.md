@@ -1,0 +1,1233 @@
+# bioETH-PRS RTR action plan: two synchronized views
+
+Date: 27 July 2026  
+Revision 2 (28 July 2026): reordered into code-and-evidence-first execution. Action IDs and
+verbatim reviewer comments are unchanged; only the schedule moved.  
+Repository snapshot reviewed: `2d6f21d4560db77da026aa7d5043e5f1e789288c`  
+Manuscript reviewed: `bioeth_prs (4).tex`  
+RTR reviewed: `RTR bioETH-PRS.docx`
+
+## How to use this plan
+
+This document has two views of the same work:
+
+1. View 1 preserves every reviewer comment verbatim and assigns atomic action IDs below it.
+2. View 2 schedules those same action IDs in dependency order.
+
+Update an action in both views when its status changes.
+
+### Ordering doctrine: build the evidence, then write the paper
+
+Revision 2 of this plan reorders every action into two sequential stages:
+
+- **Stage A (Phases 1-8) - code and evidence.** All 16 contract changes, validation
+  scripts, tests, and experiments run first. Nothing is written about a mechanism
+  until that mechanism exists, is tested, and has produced its numbers.
+- **Stage B (Phases 9-13) - manuscript.** All 19 manuscript actions follow. Every
+  method sentence is transcribed from shipped code, every results sentence from a
+  saved output file, and every claim from an artifact that already exists on disk.
+
+The practical consequence: the codebase is the source of truth for terminology,
+preprocessing rules, threshold policy, and every reported number. The manuscript is
+revised to match the code, never the reverse. This removes the conformity risk in
+which prose describes an intended design that the implementation never adopted.
+
+Status convention:
+
+- `[ ]` Not completed
+- `[x]` Completed
+- `Progress: 0%` can be changed to an intermediate percentage while work is in progress.
+
+Overall RTR progress: **0/35 actions completed (0%)**
+Stage A: **0/16** &nbsp;&nbsp; Stage B: **0/19**
+
+## Baseline already verified
+
+- [x] Repository snapshot identified.
+- [x] Solidity project compiles.
+- [x] Existing automated suite passes: 137 tests.
+- [x] Existing 100-SNP Hardhat mock validation passes.
+- [x] Submitted manuscript sections and all RTR comments mapped.
+
+## Action crosswalk: ID to execution slot
+
+Every action ID below appears exactly once. Stage A must be complete for a given
+topic before its Stage B counterpart is written.
+
+| Action | Stage | Phase | Primary artifact |
+|---|:---:|---|---|
+| `R1.5-T1` | A | 1 - Code terminology conformity | renamed regression test documenting the trust boundary |
+| `R1.4-C1` | A | 2 - Release-policy hardening | contracts/ModelMarketplace.sol release policy |
+| `R1.4-T1` | A | 2 - Release-policy hardening | fixed-threshold + multi-wallet tests |
+| `R2.2-C1` | A | 3 - Independent validation stack | preprocessing/QC functions + counts report |
+| `R2.2-T1` | A | 3 - Independent validation stack | QC and missingness known-answer tests |
+| `R2.3-C1` | A | 3 - Independent validation stack | effect-allele harmonization + harmonization report |
+| `R2.3-T1` | A | 3 - Independent validation stack | allele-orientation known-answer tests |
+| `R2.6-C1` | A | 3 - Independent validation stack | validation/independent_prs_reference.py |
+| `R2.6-T1` | A | 3 - Independent validation stack | one cross-language pass/fail reproducibility command |
+| `R2.4-E1` | A | 4 - Evidence provenance | real manifest/fixture hashes in all evaluation scripts |
+| `R2.7-E1` | A | 5 - Individual-level correctness evidence | 200-row individual-level comparison file |
+| `R1.4-E1` | A | 6 - Adversarial evidence | scripts/anti_probing_evaluation.ts + extraction metrics |
+| `R1.1-E1` | A | 7 - Live fhEVM validation | live public-weight run: JSON + Markdown report |
+| `R1.1-E2` | A | 7 - Live fhEVM validation | live private-weight run, or a documented blocker |
+| `R1.6-E1` | A | 8 - Evidence synthesis | three-class scale evidence table (data) |
+| `R1.8-E1` | A | 8 - Evidence synthesis | measured transaction-use table, fees kept separate |
+| `R2.2-M1` | B | 9 - Methods written from code | Methods: Genotype preprocessing, QC, and model alignment |
+| `R2.3-M1` | B | 9 - Methods written from code | Methods: effect-allele dosage and blinded alignment |
+| `R2.5-M1` | B | 9 - Methods written from code | simplified three-SNP example + six-step workflow figure |
+| `R1.2-M2` | B | 10 - Security model and release narrative | trust and failure-boundary table |
+| `R1.3-M1` | B | 10 - Security model and release narrative | removal of all DP framing |
+| `R1.3-M2` | B | 10 - Security model and release narrative | mechanism-as-implemented description |
+| `R1.5-M1` | B | 10 - Security model and release narrative | SNP authenticity relocated into Security Model |
+| `R1.5-M2` | B | 10 - Security model and release narrative | trusted-preparation assumption + future binding work |
+| `R1.1-M1` | B | 11 - Results from measured evidence | Live / Hardhat mock / Analytic projection labels |
+| `R1.4-M1` | B | 11 - Results from measured evidence | measured anti-probing conclusions replacing 2,800 hours |
+| `R2.4-M1` | B | 11 - Results from measured evidence | correctness-guarantee boundary table |
+| `R2.7-M1` | B | 11 - Results from measured evidence | scatter plot, error metrics table, 200-row supplement |
+| `R1.6-M1` | B | 12 - Scope, cost, and HEPRS comparison | bounded intended use |
+| `R1.6-M2` | B | 12 - Scope, cost, and HEPRS comparison | scale limitation surfaced early |
+| `R1.7-M1` | B | 12 - Scope, cost, and HEPRS comparison | HEPRS comparison rebuilt by dimension |
+| `R1.7-M2` | B | 12 - Scope, cost, and HEPRS comparison | trade-off language replacing superiority language |
+| `R1.8-M1` | B | 12 - Scope, cost, and HEPRS comparison | clinical/commercial practicality claims removed |
+| `R2.1-M1` | B | 12 - Scope, cost, and HEPRS comparison | self-contained narrow-scope answer to Reviewer 2 |
+| `R1.2-M1` | B | 13 - Front matter and conclusion | title, graphical abstract, abstract, key points, conclusion |
+
+---
+
+# View 1: exact reviewer comments and actions
+
+# Reviewer 1
+
+## Reviewer 1 overall comment — verbatim
+
+> This manuscript presents bioETH-PRS, a privacy-preserving framework for polygenic risk score computation using fully homomorphic encryption on a programmable blockchain. The central idea is to replace the trusted evaluator used in prior encrypted PRS pipelines with auditable smart contracts, while protecting both patient genotypes and GWAS model weights. The manuscript is timely and conceptually interesting, particularly at the intersection of genomic privacy, encrypted computation, and decentralized infrastructure. However, the current evidence remains largely proof-of-concept, and several claims about deployability, privacy guarantees, and clinical feasibility are not yet fully supported.
+
+This is the reviewer’s summary, not a separate numbered request. It is addressed collectively by Actions R1.1 through R1.8.
+
+## Reviewer 1, Comment 1 — verbatim
+
+> 1. The empirical evaluation relies heavily on a mock coprocessor environment. The reported gas consumption, HCU budget, latency, and protocol behavior are mainly evaluated using a Hardhat in-process mock coprocessor rather than a real fhEVM deployment or public testnet. This substantially weakens the deployment claims. The authors should either provide real-network validation or clearly frame these results as simulation-based estimates.
+
+### R1.1-E1 — Run and record a live public-model fhEVM experiment
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 7 (Live fhEVM validation)
+- Type: Experiment and existing script update
+- Code action:
+  - Use `scripts/sepolia_validation.ts` rather than creating a new execution framework.
+  - Run a complete 100-SNP public-weight job on the live fhEVM test network.
+  - Record chain ID, deployed contract addresses, transaction hashes, block numbers, transaction count, host gas, submission-to-result latency, decryption latency, and decoded result.
+  - Save the output as machine-readable JSON plus a short Markdown report.
+- Manuscript action:
+  - Add a “Live fhEVM validation” paragraph to `Empirical Evaluation → Experimental Setup`.
+  - Add a live-network row to the evaluation table.
+- Completion criterion:
+  - A reader can follow transaction identifiers and verify that a real encrypted result was produced and matched the independent reference result.
+
+### R1.1-E2 — Run one live private-weight validation
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 7 (Live fhEVM validation)
+- Type: Experiment
+- Code action:
+  - Extend or parameterize `scripts/sepolia_validation.ts` to publish encrypted model weights and run one 100-SNP private-weight job.
+  - Reuse the same genotype and reference score as R1.1-E1.
+  - If the current live SDK does not support this path, document the exact blocker and narrow the manuscript’s live-deployment claim to public weights.
+- Manuscript action:
+  - In `System Design → Model Marketplace`, distinguish “implemented in the contracts” from “validated on a live network.”
+  - Report private-weight live evidence only if the run succeeds.
+- Completion criterion:
+  - Either a successful private-weight transaction record exists, or the manuscript explicitly says private-weight execution is mock-validated only.
+
+### R1.1-M1 — Separate live, mock, and projected evidence everywhere
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 11 (Results from measured evidence)
+- Type: Manuscript
+- Current wording to change:
+  - `Experimental Setup`: “gas numbers are expected to be within 10--20\% of real-network deployment.”
+  - `Comparison with HEPRS`: bioETH-PRS latency shown as `~386 ms` beside HEPRS real-FHE latency.
+- Replace with:
+  - “Hardhat results validate contract logic and transaction geometry but do not measure real fhEVM latency, HCU availability, or production fees.”
+  - Label every result as `Live fhEVM`, `Hardhat mock`, or `Analytic projection`.
+- Relevant manuscript sections:
+  - Abstract
+  - Key Points
+  - `Programmable Blockchain and fhEVM`
+  - `Empirical Evaluation`
+  - `Comparison with HEPRS`
+  - Discussion and Conclusion
+- Completion criterion:
+  - No mock timing, mock HCU ceiling, or projected cost is described as a live deployment measurement.
+
+## Reviewer 1, Comment 2 — verbatim
+
+> 2. The privacy claims should be stated more cautiously. The manuscript argues that bioETH-PRS removes the trusted evaluator assumption. This is a meaningful architectural contribution, but the system still depends on the correctness and availability of the fhEVM stack, smart contracts, ACL/decryption infrastructure, and blockchain consensus. Terms such as “zero trust” or “trustless” should be softened or carefully qualified.
+
+### R1.2-M1 — Replace absolute trust language with evaluator minimization
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 13 (Front matter and conclusion)
+- Ordering note: moved from first action to last. The trust vocabulary is fixed by the Phase 1 code renames and the Phase 10 trust table before it propagates into the title, graphical abstract, abstract, key points, and conclusion.
+- Type: Manuscript wording
+- Current wording to change:
+  - Title: “without a Trusted Evaluator”
+  - Graphical abstract: “computation verified by blockchain consensus”
+  - Contribution: “four-contract architecture without a trusted evaluator”
+  - Conclusion: “on-chain FHE computation without a trusted evaluator”
+- Suggested replacements:
+  - Title: “bioETH-PRS: Confidential Polygenic Risk Scoring with Auditable fhEVM Orchestration”
+  - “removes the designated application-level evaluator” instead of “removes trust”
+  - “contract execution is publicly auditable, while confidentiality and decryption depend on the fhEVM coprocessor, ACL, Gateway/KMS, and chain assumptions”
+  - “evaluator-minimized” instead of “trustless” or “zero trust”
+- Relevant manuscript sections:
+  - Title, graphical abstract, Abstract, Introduction, Key Points, Discussion, Conclusion
+- Completion criterion:
+  - A full-text search finds no unqualified `trustless`, `zero trust`, or claim that blockchain consensus alone verifies FHE correctness.
+
+### R1.2-M2 — Add a trust and failure-boundary table
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 10 (Security model and release narrative)
+- Type: Manuscript
+- Action:
+  - Add a table to `Security Model → Threat Model` with the following rows:
+    - genotype provider/preprocessor;
+    - model provider;
+    - smart contracts;
+    - blockchain consensus;
+    - fhEVM coprocessor;
+    - Gateway/relayer;
+    - ACL and threshold decryption infrastructure.
+  - For each row, state whether failure can affect confidentiality, correctness, availability, or provenance.
+- Conforming manuscript changes:
+  - Update `Core Privacy Invariants` so invariants are explicitly conditional on these assumptions.
+  - Update Figure `fig_security` caption to call these assumptions rather than “verifiable security properties.”
+- Completion criterion:
+  - Every external component identified by the reviewer appears in the table and is referenced by the revised privacy claims.
+
+## Reviewer 1, Comment 3 — verbatim
+
+> 3. The noisy output oracle does not provide formal differential privacy. The authors acknowledge that the current mechanism is DP-inspired rather than a calibrated (epsilon, delta)-differential privacy guarantee. Given the sensitivity of genomic data, this limitation should be emphasized more prominently. If the authors wish to retain strong privacy language, they should provide a formal adjacency definition, sensitivity analysis, and privacy-parameter calibration.
+
+### R1.3-M1 — Remove differential-privacy framing
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 10 (Security model and release narrative)
+- Type: Manuscript wording
+- Current wording to change:
+  - `Noisy Output Release`: “DP-inspired noisy output release mechanism”
+  - `Limitations`: heading “DP bias”
+  - Any source-code or manuscript references to a DP oracle.
+- Replace with:
+  - “bounded randomized categorical release”
+  - “This heuristic does not provide an \((\varepsilon,\delta)\)-differential privacy guarantee.”
+  - Rename “DP bias” to “One-sided randomization and bias.”
+- Relevant manuscript sections:
+  - Abstract, Key Points, Introduction contributions, `Noisy Output Release`, Limitations, Conclusion
+- Completion criterion:
+  - The paper contains no wording that a reader could interpret as a formal DP claim.
+
+### R1.3-M2 — Describe only the mechanism that is actually implemented
+
+- [ ] Progress: 0%
+- Stage: Split action - code renames execute in Phase 1; manuscript terminology follows in Phase 10. Complete only when both are done.
+- Type: Manuscript method clarification
+- Action:
+  - Retain the current equation \(e_{\mathrm{noisy}}=e+\nu\), with \(\nu\sim\mathrm{Uniform}(0,B)\).
+  - State its one-sided support, expected bias, threshold adjustment, and lack of composition analysis.
+  - Move formal adjacency, sensitivity, and calibrated DP to Future Directions.
+- Code conformity:
+  - Rename test descriptions and documentation in `contracts/ResultOracle.sol` and `test/rate_limit_dp_test.ts` from `DP`/`DP-inspired` to `randomized release`.
+  - Do not change the implemented distribution merely to retain DP terminology.
+- Completion criterion:
+  - Code comments, test names, and manuscript terminology all use the same non-DP name.
+
+## Reviewer 1, Comment 4 — verbatim
+
+> 4. The manuscript estimates that model extraction would require thousands of hours under recommended rate-limiting settings. However, this calculation appears heuristic and does not fully address adaptive querying, multiple-wallet attacks, threshold manipulation, correlated SNP structure, or cross-sample probing. A stronger adversarial analysis is needed before the anti-probing claims can be considered established.
+
+### R1.4-C1 — Remove requester-controlled thresholds from protected classification
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 2 (Release-policy hardening)
+- Type: Contract change
+- Current code behavior:
+  - `PRSComputeEngine.finalizeAndClassify(jobId, oracle, lowThreshold, highThreshold)` accepts thresholds from the requester.
+  - Both paper algorithms show the requester passing \(\tau_L,\tau_H\).
+- Change code to:
+  - Store `lowThreshold`, `highThreshold`, and approved oracle as a per-model release policy in `contracts/ModelMarketplace.sol`.
+  - Set and validate the policy before model finalization.
+  - Make it immutable after model finalization.
+  - Change `PRSComputeEngine.finalizeAndClassify` to load the model policy rather than accept requester thresholds.
+- Manuscript conformity:
+  - Update Algorithms `Classic chunked PRS computation` and `Streaming PRS computation`.
+  - Update `Noisy Output Release` to say thresholds are model-defined and fixed before querying.
+- Completion criterion:
+  - No protected classification entry point allows the requester to choose thresholds.
+
+### R1.4-T1 — Add fixed-threshold and multi-wallet tests
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 2 (Release-policy hardening)
+- Type: Tests
+- Code action:
+  - Extend `test/rate_limit_dp_test.ts` and `test/registry_marketplace_oracle_test.ts`.
+  - Verify requester-supplied thresholds are impossible.
+  - Verify the same registered sample remains sample-rate-limited across wallets.
+  - Verify different wallets with different samples can still create independent windows, documenting the remaining Sybil boundary.
+- Manuscript conformity:
+  - Cite these tests in the anti-probing methods, without calling them proof of extraction resistance.
+- Completion criterion:
+  - Tests fail under the old caller-selected interface and pass under the fixed-policy interface.
+
+### R1.4-E1 — Run the reviewer-requested adversarial analysis
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 6 (Adversarial evidence)
+- Type: Experiment
+- Code action:
+  - Add `scripts/anti_probing_evaluation.ts` or an equivalent reproducible script.
+  - Compare:
+    1. non-adaptive versus adaptive queries;
+    2. one wallet versus multiple wallets;
+    3. fixed thresholds versus the old caller-selected threshold design;
+    4. independent SNPs versus correlated SNP inputs;
+    5. one sample versus multiple samples.
+  - Report query count and a direct extraction metric such as recovered-weight correlation or sign accuracy.
+- Manuscript action:
+  - Add one adversarial-analysis subsection and one compact results figure/table.
+- Completion criterion:
+  - All five attack variations named by the reviewer are evaluated or explicitly identified as outside the remaining threat model.
+
+### R1.4-M1 — Replace the “2,800 hours” claim with measured conclusions
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 11 (Results from measured evidence)
+- Ordering note: blocked until `R1.4-E1` (Phase 6) has produced measured numbers. Do not draft a placeholder sentence.
+- Type: Manuscript wording
+- Current wording to change:
+  - `Anti-Probing: Rate Limiting`: “extracting a single 20-bit weight ... corresponding to approximately 2,800 hours”
+  - Introduction contribution: “raise the cost ... to thousands of hours”
+- Replace with:
+  - A numerical summary derived from R1.4-E1.
+  - A limited conclusion: “The controls reduce output resolution and increase query cost under the evaluated attacker models; they do not prevent Sybil attacks or provide a formal model-confidentiality guarantee.”
+- Completion criterion:
+  - No heuristic wall-clock headline remains unless reproduced by the new experiment with stated assumptions.
+
+## Reviewer 1, Comment 5 — verbatim
+
+> 5. The inability to verify submitted encrypted SNPs is a major unresolved security issue. The system verifies access to a registered sample but cannot confirm that the submitted encrypted SNP values faithfully represent that sample. This allows malicious users to submit crafted inputs, which directly affects model-probing and misuse risks. This issue should be moved from a limitation to the main security discussion.
+
+### R1.5-M1 — Move SNP authenticity into the main Security Model
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 10 (Security model and release narrative)
+- Type: Manuscript restructuring
+- Current location:
+  - `Discussion → Limitations and Open Problems → SNP provenance`
+- Change:
+  - Move the full issue to `Security Model`, immediately after `Threat Model`.
+  - Add an explicit malicious authorized requester who may upload arbitrary encrypted values.
+  - State: “The contracts guarantee computation over submitted ciphertexts; they do not prove that those ciphertexts encode genotypes derived from the registered sample.”
+- Conforming changes:
+  - Keep a shorter cross-reference in Limitations.
+  - Update Figure `fig_security` so ciphertext/sample binding is outside the guaranteed boundary.
+- Completion criterion:
+  - The issue appears before privacy invariants and is treated as a primary security assumption, not a minor future limitation.
+
+### R1.5-T1 — Preserve the crafted-input test as evidence of the boundary
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 1 (Code terminology conformity)
+- Type: Test documentation, not a claimed fix
+- Existing evidence:
+  - `test/prs_compute_engine_chunked_snp_test.ts` already contains: “accepts arbitrary encrypted SNP values today; hardcall enforcement remains off-chain.”
+- Action:
+  - Keep this regression test.
+  - Rename or comment it so its purpose is clearly to document the trust boundary.
+  - Add a supplementary test/evidence reference in the manuscript.
+- Manuscript conformity:
+  - Do not say that `registerSampleWithManifest` cryptographically binds ciphertexts to the sample.
+- Completion criterion:
+  - The test and the paper make the same statement about what is and is not verified.
+
+### R1.5-M2 — Define the practical assumption and future solution without overclaiming
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 10 (Security model and release narrative)
+- Type: Manuscript
+- Action:
+  - Define the evaluated setting as trusted genotype preparation by the patient’s local pipeline, laboratory, or approved data custodian.
+  - Explain that `manifestHash` can record genome build, input-file hash, variant order, and preparation policy but is only a provenance commitment.
+  - Put signed laboratory attestation or a zero-knowledge ciphertext-to-sample proof in Future Directions.
+- Completion criterion:
+  - The response admits that the current code does not solve sample authenticity and does not present metadata hashing as a proof.
+
+## Reviewer 1, Comment 6 — verbatim
+
+> 6. The prototype is evaluated on 100-5,000 SNP fixtures, whereas many PRS models contain tens of thousands to millions of variants. The authors should more clearly define the intended use case, such as curated small-panel PRS models, and avoid implying general applicability to large-scale clinical PRS deployment.
+
+### R1.6-M1 — Define a bounded intended use
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
+- Type: Manuscript wording
+- Current wording to change:
+  - Abstract: “approach may be cost-competitive”
+  - Background: “exactly the primitive that FHE systems are designed to support efficiently”
+  - Comparison table: “5,000 (scalable)”
+  - Conclusion: “bring private, verifiable genomic computation within reach of routine clinical practice”
+- Replace with:
+  - “bounded-size research prototype for curated additive PRS models”
+  - “5,000 variants measured in the Hardhat mock; genome-wide execution was not demonstrated”
+  - “The study does not establish clinical deployment feasibility.”
+- Relevant manuscript sections:
+  - Abstract, Background, Comparison with HEPRS, Empirical Evaluation, Discussion, Conclusion
+- Completion criterion:
+  - No sentence generalizes the 100–5,000 mock range to genome-wide or routine clinical PRS.
+
+### R1.6-E1 — Create a three-class scale evidence table
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 8 (Evidence synthesis)
+- Type: Evaluation synthesis
+- Action:
+  - Build one table with evidence class, variant count, model visibility, transaction count, and latency/cost availability.
+  - Rows:
+    - live fhEVM: successful sizes from R1.1;
+    - Hardhat mock: 100, 500, 1,000, 5,000;
+    - analytic projection: larger counts, clearly marked unexecuted.
+- Manuscript conformity:
+  - Replace claims of broad “linear scalability” with “linear host-contract transaction growth over the measured mock range.”
+- Completion criterion:
+  - Every scale number in the paper can be traced to one of the three evidence classes.
+
+### R1.6-M2 — Make the scale limitation prominent, not only retrospective
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
+- Type: Manuscript structure
+- Action:
+  - Put the bounded scope in Abstract, Key Points, the last paragraph of Introduction, and the opening of Empirical Evaluation.
+  - Retain the detailed ceiling discussion in Limitations.
+- Completion criterion:
+  - A reader knows the maximum demonstrated scale before reaching the Discussion.
+
+## Reviewer 1, Comment 7 — verbatim
+
+> 7. bioETH-PRS improves the trust model by removing the designated evaluator, but HEPRS supports much larger SNP counts and has different computational advantages. The manuscript should separate claims about privacy architecture, scalability, latency, memory use, and deployment assumptions rather than presenting bioETH-PRS as broadly superior.
+
+### R1.7-M1 — Rebuild the HEPRS comparison by dimension
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
+- Type: Manuscript table
+- Change Table `tab:comparison` to separate:
+  - privacy architecture;
+  - designated evaluator;
+  - remaining trust assumptions;
+  - arithmetic scheme;
+  - demonstrated encrypted variant count;
+  - latency evidence type;
+  - memory evidence;
+  - deployment requirements;
+  - output policy;
+  - metadata exposure.
+- Required corrections:
+  - `Max variants tested`: change bioETH-PRS from “5,000 (scalable)” to “5,000 in Hardhat mock; live maximum reported separately.”
+  - `Per-person latency`: do not place `~386 ms` mock time beside HEPRS real FHE time as if directly comparable.
+  - Memory: state that bioETH-PRS memory was not measured if no measurement exists.
+- Completion criterion:
+  - Each comparison row addresses one dimension and identifies whether evidence is measured, inherited, mock, or unavailable.
+
+### R1.7-M2 — Replace superiority language with trade-off language
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
+- Type: Manuscript wording
+- Current wording to change:
+  - Any claim that bioETH-PRS offers broadly stronger privacy or is generally superior.
+  - Discussion language suggesting HEPRS is simply inappropriate where bioETH-PRS is appropriate.
+- Replace with:
+  - “HEPRS demonstrates substantially larger encrypted PRS execution; bioETH-PRS studies auditable contract orchestration and model/output policy at smaller scale.”
+  - “The systems optimize different trust, deployment, and performance properties.”
+- Relevant manuscript sections:
+  - Introduction, `Comparison with HEPRS`, `HEPRS and bioETH-PRS: Complementary Systems`, Related Work, Conclusion
+- Completion criterion:
+  - The comparison can be read as balanced even by an author of HEPRS.
+
+## Reviewer 1, Comment 8 — verbatim
+
+> 8. The cost projections depend on L2-equivalent or application-chain gas pricing and are not based on measured production deployment. Claims that the system may be clinically or commercially practical should be toned down unless supported by real deployment data.
+
+### R1.8-E1 — Replace projected “deployment cost” evidence with measured transaction evidence
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 8 (Evidence synthesis)
+- Type: Experiment synthesis
+- Action:
+  - From R1.1, report observed gas and transaction counts for:
+    - contract deployment;
+    - model publication;
+    - per-sample computation;
+    - result/decryption path.
+  - Do not convert testnet gas into a production USD cost unless a current production fee schedule is documented.
+- Manuscript conformity:
+  - Rename `Deployment Cost Projections` to `Measured transaction use and fee sensitivity`.
+- Completion criterion:
+  - Measured network quantities and hypothetical price conversions appear in separate tables or subsections.
+
+### R1.8-M1 — Remove clinical and commercial practicality conclusions
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
+- Type: Manuscript wording
+- Current wording to remove or replace:
+  - Abstract: “cost-competitive in low-gas deployment environments”
+  - Cost section: comparison with “centralised commercial genomics services”
+  - Discussion: “Commercial viability requires...”
+  - Conclusion: “practical for curated clinical PRS panels”
+- Replace with:
+  - “Fee scenarios are sensitivity analyses derived from measured transaction use; production affordability and clinical feasibility were not evaluated.”
+- Relevant manuscript sections:
+  - Abstract, `Deployment Cost Projections`, Limitations, Conclusion
+- Completion criterion:
+  - No commercial or clinical affordability claim remains without measured production evidence.
+
+---
+
+# Reviewer 2
+
+## Reviewer 2 overall comment — verbatim
+
+> This manuscript presents bioETH-PRS, a blockchain-based protocol for privacy-preserving polygenic risk scoring (PRS) using TFHE/fhEVM smart contracts. The paper’s main claim is that it removes the need for a trusted evaluator found in prior homomorphic-encryption PRS pipelines by moving orchestration to auditable on-chain contracts. Overall, the paper tries to addresses an important problem at the intersection of genomics, privacy, and decentralized computation. The manuscript is interesting and original. However, I do have several comments.
+
+This is the reviewer’s summary, not a separate numbered request. It is addressed collectively by Actions R2.1 through R2.7.
+
+## Reviewer 2, Comment 1 — verbatim
+
+> 1. bioETH-PRS was evaluated only on 100-5000 SNPs, while a real PRS in practice can involve far larger number of SNPs. Although the authors acknowledged that the HCU budget and transaction count made the genome-wide model impractical on current infrastructure. This is still a serious limitation because the method may only apply to a narrow class of PRS models with limited number of SNPs.
+
+### R2.1-M1 — Answer the duplicate scale concern explicitly
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
+- Type: Manuscript and response-letter linkage
+- Action:
+  - Reuse the bounded-scope wording and evidence table from R1.6-M1, R1.6-E1, and R1.6-M2.
+  - Add one direct sentence in Discussion: “The current method applies only to a narrow class of bounded-size PRS models; it is not a practical genome-wide PRS engine.”
+  - Answer Reviewer 2 separately rather than saying only “see response to Reviewer 1.”
+- Completion criterion:
+  - Reviewer 2 receives a self-contained response with the exact demonstrated maximum and the narrowed intended use.
+
+## Reviewer 2, Comment 2 — verbatim
+
+> 2. Does bioETH-PRS require quality control of the genotype data, like missing value, minor allele frequency, etc? Please clarify this in the manuscript.
+
+### R2.2-M1 — Add a genotype preprocessing and QC subsection
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 9 (Methods written from code)
+- Ordering note: written *after* `R2.2-C1` ships. Transcribe the rules from the merged validator; do not specify rules the validator does not implement.
+- Type: Manuscript method addition
+- Action:
+  - Add `Background/Methods → Genotype preprocessing, QC, and model alignment` before the cryptographic pipeline.
+  - Define:
+    - accepted genotype representation: diploid hard calls \(0,1,2\);
+    - genome build and variant-order matching;
+    - missing-variant policy;
+    - invalid-genotype policy;
+    - duplicate/multiallelic handling;
+    - fixture-specific assumptions.
+  - Explain that MAF and Hardy–Weinberg checks are primarily cohort/model-development QC, while missingness and allele/build matching are scoring-time checks.
+- Completion criterion:
+  - The manuscript states exactly what happens to a missing, invalid, or unmatched variant before encryption.
+
+### R2.2-C1 — Implement the documented preprocessing rules in the independent validator
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 3 (Independent validation stack)
+- Ordering note: do not wait for `R2.2-M1`. The implementation defines the specification; the manuscript subsection is derived from it in Phase 9.
+- Type: Validation code
+- Code action:
+  - Add preprocessing functions to the new independent reference script from R2.6-C1.
+  - Make missing-value behavior an explicit option from a manifest, not an implicit zero.
+  - Reject genotype values outside \(0,1,2\) for the hardcall mode used in this paper.
+- Manuscript conformity:
+  - The pseudocode in R2.2-M1 must match the implementation exactly.
+- Completion criterion:
+  - The script emits counts of matched, missing, imputed/rejected, and invalid variants.
+
+### R2.2-T1 — Add QC and missingness tests
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 3 (Independent validation stack)
+- Type: Tests
+- Code action:
+  - Test a complete sample, a missing variant, an invalid value, a wrong build, and a wrong variant order.
+  - Store expected outcomes in known-answer fixtures.
+- Completion criterion:
+  - Every QC rule described in the manuscript has at least one passing or failing test.
+
+## Reviewer 2, Comment 3 — verbatim
+
+> 3. For some cases, the genotype of a SNP may be coded as 0, 1, 2 in terms of the number of risk alleles; but during the weights derivation, the genotype of that SNP in an independent dataset may be coded as 2, 1, 0 in terms of the number of minor alleles (when the risk allele is not the minor allele). Although we can require the genotype and the weights are provided with consistent coding, how to validate this requirement when they are totally blinded to each other? How does bioETH-PRS handle such situation?
+
+### R2.3-M1 — Change “allele dosage” to “effect-allele dosage” and explain blinded alignment
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 9 (Methods written from code)
+- Ordering note: written *after* `R2.3-C1` ships. The pseudocode in the paper is a transcription of the merged harmonization function.
+- Type: Manuscript wording and method
+- Current wording to change:
+  - Equation 1 definition: “\(g_i\) is the allele dosage”
+  - Any wording that implies minor-allele count is sufficient.
+- Replace with:
+  - “\(g_i\) is the dosage of the model-specified effect allele.”
+  - Public model metadata must expose variant identity, genome build, effect allele, other allele, and order even when the weights remain encrypted.
+  - Alignment occurs locally before encryption; encrypted weights do not prevent use of public allele metadata.
+  - If the available dosage is for the opposite allele at a diploid biallelic SNP, use \(g_{\mathrm{effect}}=2-g_{\mathrm{other}}\).
+- Fixture caveat:
+  - State that the supplied HEPRS fixtures are assumed to be pre-aligned and do not independently validate strand/build metadata.
+- Completion criterion:
+  - The paper never treats “minor allele” and “effect/risk allele” as interchangeable.
+
+### R2.3-C1 — Add effect-allele harmonization to the reference/preprocessing script
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 3 (Independent validation stack)
+- Ordering note: do not wait for `R2.3-M1`. The merged decision rules become the paper's pseudocode in Phase 9.
+- Type: Validation code
+- Code action:
+  - Parse a variant manifest with build, REF, ALT, effect allele, other allele, and column order.
+  - Keep matching dosages unchanged.
+  - Convert opposite-allele dosages with \(2-g\).
+  - Reject unresolved A/T or C/G strand ambiguity and incompatible alleles.
+- Manuscript conformity:
+  - Add the same decision rules as pseudocode in the new preprocessing subsection.
+- Completion criterion:
+  - The validator produces a harmonization report with match, flip, strand-ambiguous, and rejected counts.
+
+### R2.3-T1 — Add allele-orientation known-answer tests
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 3 (Independent validation stack)
+- Type: Tests
+- Code action:
+  - Include one already aligned SNP, one reversed effect allele, one strand-compatible SNP, and one unresolved palindromic SNP.
+  - Confirm that the reversed example changes `[0,1,2]` to `[2,1,0]`.
+- Completion criterion:
+  - The documented orientation logic is independently executable and tested.
+
+## Reviewer 2, Comment 4 — verbatim
+
+> 4. How and who to guarantee the final PRS provided by bioETH-PRS is correctly computed? In other words, the bioETH-PRS will eventually provide some numbers. But how do I know I can trust these numbers?
+
+### R2.4-M1 — Add a correctness-guarantee boundary
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 11 (Results from measured evidence)
+- Type: Manuscript
+- Action:
+  - Add a table to `Correctness and Protocol Verification` with:
+    - genotype preprocessor: variant and effect-allele alignment;
+    - model provider: weights, thresholds, and scientific validity;
+    - smart contracts: deterministic encoded weighted sum;
+    - fhEVM infrastructure: encrypted execution/decryption under its assumptions;
+    - independent reference implementation: agreement with Equation 1;
+    - end user: verifies manifest hashes, contract addresses, and transaction record.
+  - State explicitly that the protocol does not guarantee sample authenticity, clinical validity, calibration, or ancestry portability.
+- Completion criterion:
+  - The manuscript answers “who guarantees what” without implying that blockchain consensus guarantees biological correctness.
+
+### R2.4-E1 — Bind every reported result to reproducibility identifiers
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 4 (Evidence provenance)
+- Type: Evaluation provenance
+- Action:
+  - For every final table, record:
+    - repository commit;
+    - model/fixture hashes;
+    - manifest hash;
+    - contract bytecode/address for live runs;
+    - transaction IDs;
+    - independent reference output hash.
+  - Change evaluation code that currently uses `ethers.ZeroHash` for experimental manifests to use real hashes.
+- Relevant code:
+  - `scripts/sepolia_validation.ts`
+  - `scripts/heprs_fixture_profile.ts`
+  - `test/heprs_fixture_test.ts`
+- Completion criterion:
+  - A reported score can be traced to exact inputs, code, and deployment.
+
+## Reviewer 2, Comment 5 — verbatim
+
+> 5. The original PRS calculation is simple and easy to understand/interpret, which is a weighted sum of multiple SNPs. The PRS calculation by bioETH-PRS seems more complicated with certain black boxes. Could the authors comment on that?
+
+### R2.5-M1 — Reframe the existing three-SNP example around the simple PRS
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 9 (Methods written from code)
+- Type: Manuscript explanation and figure
+- Action:
+  - Keep the existing three-SNP worked example but begin with the plaintext weighted sum.
+  - Then show that bioETH-PRS performs the same sum after encoding:
+    1. align effect-allele dosages;
+    2. quantize weights;
+    3. encrypt dosages/weights;
+    4. multiply and sum;
+    5. correct the zero point;
+    6. decrypt and decode.
+  - Add one simple workflow figure with these six steps.
+  - Explain the four contracts in one sentence each and move low-level handle/ACL detail out of the main explanation.
+- Relevant manuscript sections:
+  - `Polygenic Risk Scores`
+  - `Architecture Overview`
+  - `Quantisation Scheme → Worked Example`
+- Completion criterion:
+  - A reader can reproduce the three-SNP result by hand before reading contract details.
+
+## Reviewer 2, Comment 6 — verbatim
+
+> 6. If I need double programming or independent validation of the final calculated PRS, could bioETH-PRS incorporate this?
+
+### R2.6-C1 — Add an independent Python reference implementation
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 3 (Independent validation stack)
+- Type: New validation code
+- Code action:
+  - Add `validation/independent_prs_reference.py`.
+  - Do not import or translate the TypeScript helper functions from `test/utils/heprs.ts`.
+  - Independently implement preprocessing, effect-allele harmonization, Equation 1, quantization, decoding, and comparison.
+  - Read contract-output JSON and generate comparison CSV/JSON.
+- Manuscript action:
+  - Add an “Independent validation” paragraph to `Correctness and Protocol Verification`.
+- Completion criterion:
+  - The Python result agrees with hand-calculated known-answer examples and is code-independent from the TypeScript path.
+
+### R2.6-T1 — Add cross-language known-answer validation
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 3 (Independent validation stack)
+- Type: Test and reproducibility workflow
+- Code action:
+  - Create at least three known-answer cases: positive weights, mixed signed weights, and allele reversal.
+  - Run the TypeScript/contract path and Python path on the same immutable inputs.
+  - Fail the validation command if encoded or decoded outputs disagree beyond the declared quantization tolerance.
+- Manuscript conformity:
+  - Describe this as independent implementation validation, not a formal proof.
+- Completion criterion:
+  - One reproducibility command executes both implementations and returns pass/fail.
+
+## Reviewer 2, Comment 7 — verbatim
+
+> 7. In the Empirical Evaluation section, I was expecting to see that the individual PRS calculated by bioETH-PRS is consistent with the PRS calculated from Equation 1. Could the authors provide that information?
+
+### R2.7-E1 — Produce individual-level Equation 1 comparisons
+
+- [ ] Progress: 0%
+- Stage: Code and evidence - Phase 5 (Individual-level correctness evidence)
+- Type: Experiment
+- Current evidence gap:
+  - `test/heprs_fixture_test.ts` executes the encrypted contract path for only the first individual at each fixture size.
+  - All 50 individuals are currently checked only for TypeScript overflow, not independently against decoded contract results.
+- Action:
+  - Run all 50 individuals for each nominal fixture size: 100, 500, 1,000, and 5,000.
+  - Reuse one published model per size and create one job per individual.
+  - Record plaintext Equation 1 score, decoded bioETH-PRS score, absolute error, and category agreement if categories remain.
+  - Be explicit that each fixture contains a leading intercept/constant column, so the actual encoded vector length is nominal size plus one.
+- Completion criterion:
+  - A machine-readable 200-row comparison file exists.
+
+### R2.7-M1 — Add the requested individual-level results to Empirical Evaluation
+
+- [ ] Progress: 0%
+- Stage: Manuscript - Phase 11 (Results from measured evidence)
+- Type: Manuscript results
+- Action:
+  - Add a scatter plot of Equation 1 versus decoded bioETH-PRS.
+  - Add a summary table reporting MAE, RMSE, maximum absolute error, Pearson correlation, and category agreement.
+  - Put all 200 individual rows in supplementary material.
+  - Rewrite the current claim “all 50 individuals ... machine epsilon” so it cites the new independent comparison rather than only the TypeScript quantization advisor.
+- Completion criterion:
+  - The main paper visibly answers the reviewer’s request, and the full person-level evidence is available.
+
+---
+
+# Editor — verbatim
+
+> (There are no comments.)
+
+No editor-specific technical action is required. The cover response should thank the editor and summarize the major revision.
+
+---
+
+# View 2: execution schedule, code and evidence first
+
+## Scheduling principles
+
+1. Ship the code before describing it. Every method sentence in the revised manuscript
+   is transcribed from a merged, tested implementation - never from an intended one.
+2. Gather every number before writing any results sentence. No placeholder figures.
+3. Harden the protected-release interface before evaluating attacks against it.
+4. Rename in code before renaming in prose, so the paper inherits the codebase's final
+   vocabulary rather than imposing vocabulary the code does not use.
+5. Run live-network experiments only once an independent reference supplies the expected
+   answer, so a live run validates a known result instead of creating a new unverified one.
+6. Write the title, graphical abstract, abstract, key points, and conclusion last.
+7. Use the same action IDs as View 1; do not create untracked work.
+
+## What changed from revision 1 of this plan
+
+| Revision 1 | Revision 2 | Reason |
+|---|---|---|
+| `R1.2-M1` trust wording was action #1 | Moved to Phase 13, the final action | The title and abstract should be written once, against settled vocabulary and final evidence |
+| `R2.2-M1` / `R2.3-M1` specs written before their validators | Validators ship in Phase 3; prose transcribed in Phase 9 | Eliminates the risk of documenting rules the code never implements |
+| `R1.3-M2` mixed prose and code renames in one step | Code renames in Phase 1, prose in Phase 10 | The codebase fixes the non-DP name; the paper adopts it |
+| Old Phase 1 opened with claim wording | All wording now sits behind the evidence stage | A claim cannot be scoped correctly before its evidence exists |
+| Live validation was Phase 5 of 7 | Phase 7, last in Stage A | Live runs are the most expensive and least repeatable step; everything they depend on lands first |
+| Manuscript work interleaved across phases | Contiguous Stage B | One continuous writing pass over a frozen evidence set |
+
+## Phase 0 - Freeze the revision baseline and tracker
+
+Phase progress: **0%**
+
+- [ ] Create a revision branch from snapshot `2d6f21d4560db77da026aa7d5043e5f1e789288c`.
+- [ ] Copy all 35 action IDs into the issue tracker with owner, status, output path, and manuscript location.
+- [ ] Save baseline compile, 137-test, and 100-SNP mock outputs.
+- [ ] Create `evidence/` as the single destination for every artifact produced in Stage A.
+
+Exit gate:
+
+- [ ] Every action in View 1 has an owner and no implementation begins on an untracked action.
+- [ ] No manuscript file is edited until Stage A is complete.
+
+---
+
+# Stage A - Code and evidence (Phases 1-8, 16 actions)
+
+Stage A progress: **0/16 actions (0%)**
+
+Stage A rule: the manuscript is not touched. If a code result contradicts something the
+submitted paper claims, record the contradiction in `evidence/claim_deltas.md` and resolve
+it in Stage B. Do not fix it in the tex file yet.
+
+## Phase 1 - Code terminology conformity
+
+Why first: every later file, test name, report, and eventually the paper inherits these
+names. Renaming now costs minutes; renaming after the experiments costs a re-run.
+
+Phase progress: **0/1 actions (0%)**
+
+- [ ] `R1.3-M2` (code half) Rename `DP` / `DP-inspired` to `randomized release` in
+      `contracts/ResultOracle.sol` comments and `test/rate_limit_dp_test.ts` descriptions.
+      Do not change the implemented noise distribution. The manuscript half completes in Phase 10.
+- [ ] `R1.5-T1` Rename and comment the crafted-input regression test in
+      `test/prs_compute_engine_chunked_snp_test.ts` so its purpose is to document the
+      ciphertext-to-sample trust boundary, not to assert a fix.
+
+Phase exit gate:
+
+- [ ] A repository-wide search for `DP-inspired` returns no hits in contracts or tests.
+- [ ] The compile and the 137-test suite still pass.
+
+## Phase 2 - Release-policy hardening
+
+Why second: the adversarial experiment in Phase 6 must attack the hardened interface, and
+the old caller-selected interface must survive only as a measured baseline.
+
+Phase progress: **0/2 actions (0%)**
+
+- [ ] `R1.4-C1` Move `lowThreshold`, `highThreshold`, and approved oracle into an immutable
+      per-model release policy in `contracts/ModelMarketplace.sol`; change
+      `PRSComputeEngine.finalizeAndClassify` to load the policy instead of accepting
+      requester thresholds.
+- [ ] `R1.4-T1` Add fixed-threshold and multi-wallet tests; confirm the same registered
+      sample stays sample-rate-limited across wallets and document the remaining Sybil boundary.
+
+Dependencies: Phase 1 naming.
+
+Phase exit gate:
+
+- [ ] No protected classification entry point accepts a requester-supplied threshold.
+- [ ] Tests fail against the old interface and pass against the new one.
+- [ ] Security invariants 8, 9, and 10 in `CLAUDE.md` are updated to match the new policy.
+
+## Phase 3 - Independent validation stack
+
+Why third: this produces the expected answers that Phases 5 and 7 validate against, and the
+executable rules that Phase 9 transcribes into the Methods section.
+
+Phase progress: **0/6 actions (0%)**
+
+Build order within the phase is strict - each item consumes the previous one:
+
+- [ ] `R2.6-C1` Create `validation/independent_prs_reference.py`. Implement preprocessing,
+      harmonization, Equation 1, quantization, decoding, and comparison from the paper's
+      definitions only. Do not import or transliterate `test/utils/heprs.ts`.
+- [ ] `R2.2-C1` Add preprocessing and QC: hard-call `{0,1,2}` validation, explicit
+      manifest-driven missing-value policy (never an implicit zero), build and variant-order
+      matching, duplicate and multiallelic handling. Emit matched / missing / imputed /
+      rejected / invalid counts.
+- [ ] `R2.3-C1` Add effect-allele harmonization: parse build, REF, ALT, effect allele, other
+      allele, and column order; pass matching dosages through; apply `2 - g` to
+      opposite-allele dosages; reject unresolved A/T and C/G palindromes. Emit a
+      harmonization report with match / flip / strand-ambiguous / rejected counts.
+- [ ] `R2.2-T1` Test a complete sample, a missing variant, an invalid value, a wrong build,
+      and a wrong variant order against stored known-answer fixtures.
+- [ ] `R2.3-T1` Test one aligned SNP, one reversed effect allele, one strand-compatible SNP,
+      and one unresolved palindromic SNP; confirm the reversed case maps `[0,1,2]` to `[2,1,0]`.
+- [ ] `R2.6-T1` Wire one reproducibility command that runs the TypeScript/contract path and
+      the Python path over the same immutable inputs across three known-answer cases
+      (positive weights, mixed signed weights, allele reversal) and fails on any disagreement
+      beyond the declared quantization tolerance.
+
+Dependencies: Phase 1 naming. Independent of Phase 2 and may run in parallel with it.
+
+Phase exit gate:
+
+- [ ] The Python reference reproduces hand-calculated known-answer examples.
+- [ ] One command returns a single pass/fail for cross-language agreement.
+- [ ] Every preprocessing and harmonization rule that will appear in the paper is executable
+      and covered by at least one test.
+
+## Phase 4 - Evidence provenance
+
+Why before the measuring phases: every artifact produced from here on must be traceable, so
+provenance is fixed before any reportable number is generated.
+
+Phase progress: **0/1 actions (0%)**
+
+- [ ] `R2.4-E1` Replace `ethers.ZeroHash` experimental manifests with real hashes in
+      `scripts/sepolia_validation.ts`, `scripts/heprs_fixture_profile.ts`, and
+      `test/heprs_fixture_test.ts`. Record repository commit, model and fixture hashes,
+      manifest hash, contract bytecode and address for live runs, transaction IDs, and the
+      independent reference output hash for every run.
+
+Dependencies: Phase 3 (the reference output hash requires the reference).
+
+Phase exit gate:
+
+- [ ] No evaluation path writes a zero manifest hash.
+- [ ] A single reported score can be traced to exact inputs, code, and deployment.
+
+## Phase 5 - Individual-level correctness evidence
+
+Phase progress: **0/1 actions (0%)**
+
+- [ ] `R2.7-E1` Run all 50 individuals at each nominal fixture size (100, 500, 1,000, 5,000),
+      one published model per size and one job per individual. Record the plaintext Equation 1
+      score, the decoded bioETH-PRS score, absolute error, and category agreement. State
+      explicitly that each fixture carries a leading intercept column, so the encoded vector
+      length is nominal size plus one.
+
+Dependencies: Phases 3 and 4.
+
+Phase exit gate:
+
+- [ ] A machine-readable 200-row comparison file exists under `evidence/`.
+- [ ] Its summary statistics are computed and saved, not recomputed later by hand.
+
+## Phase 6 - Adversarial evidence
+
+Phase progress: **0/1 actions (0%)**
+
+- [ ] `R1.4-E1` Add `scripts/anti_probing_evaluation.ts` and evaluate all five variations the
+      reviewer named: non-adaptive vs adaptive queries; one wallet vs multiple wallets; fixed
+      thresholds vs the old caller-selected design; independent vs correlated SNP inputs; one
+      sample vs multiple samples. Report query count plus a direct extraction metric
+      (recovered-weight correlation or sign accuracy).
+
+Dependencies: Phase 2 (hardened interface plus retained baseline), Phase 4 (provenance).
+
+Phase exit gate:
+
+- [ ] All five variations are either measured or explicitly recorded as outside the remaining
+      threat model, with the reason stated in the output file.
+- [ ] The measured numbers that will replace the 2,800-hour claim are written down.
+
+## Phase 7 - Live fhEVM validation
+
+Why last in Stage A: this is the least repeatable and most expensive step, and it should
+confirm a known answer rather than generate a new unverified one.
+
+Phase progress: **0/2 actions (0%)**
+
+- [ ] `R1.1-E1` Run a complete 100-SNP public-weight job on the live network using
+      `scripts/sepolia_validation.ts`. Record chain ID, contract addresses, transaction
+      hashes, block numbers, transaction count, host gas, submission-to-result latency,
+      decryption latency, and the decoded result. Save machine-readable JSON plus a short
+      Markdown report.
+- [ ] `R1.1-E2` Parameterize the same script to publish encrypted weights and run one 100-SNP
+      private-weight job over the same genotype and reference score. If the live SDK does not
+      support this path, record the exact blocker in `evidence/` for use in Phase 11.
+
+Dependencies: Phases 3, 4, and 5 (the expected score must already be independently known).
+
+Phase exit gate:
+
+- [ ] At least one real fhEVM end-to-end score matches the independent Equation 1 reference.
+- [ ] The private-weight outcome is recorded as either a transaction record or a documented blocker.
+
+## Phase 8 - Evidence synthesis
+
+Why here: both syntheses read across every prior phase, so they run once the evidence set is
+frozen. These build the data behind two paper tables; the tables are inserted in Stage B.
+
+Phase progress: **0/2 actions (0%)**
+
+- [ ] `R1.6-E1` Build the three-class scale evidence table: evidence class, variant count,
+      model visibility, transaction count, and latency/cost availability. Rows for live fhEVM
+      (sizes achieved in Phase 7), Hardhat mock (100, 500, 1,000, 5,000), and analytic
+      projection (larger counts, marked unexecuted).
+- [ ] `R1.8-E1` Report observed gas and transaction counts for contract deployment, model
+      publication, per-sample computation, and the result/decryption path. Keep measured
+      network quantities and hypothetical fee conversions in separate outputs.
+
+Dependencies: Phases 5, 6, and 7.
+
+Stage A exit gate - do not begin Stage B until all of the following hold:
+
+- [ ] All 16 Stage A actions are complete.
+- [ ] `npm run build` and the full test suite pass.
+- [ ] Every number that will appear in the revised manuscript exists in a saved file under
+      `evidence/`, with a stated evidence class of `Live fhEVM`, `Hardhat mock`, or
+      `Analytic projection`.
+- [ ] `evidence/claim_deltas.md` lists every submitted claim the new evidence contradicts,
+      weakens, or fails to support.
+- [ ] No planned manuscript sentence requires a number that does not yet exist.
+
+---
+
+# Stage B - Manuscript (Phases 9-13, 19 actions)
+
+Stage B progress: **0/19 actions (0%)**
+
+Stage B rule: every edit cites a Stage A artifact. If a sentence cannot name the file,
+table, test, or transaction hash behind it, the sentence is removed rather than softened.
+
+## Phase 9 - Methods written from code
+
+Why first in Stage B: these sections define the objects that the security, results, and
+comparison sections refer to.
+
+Phase progress: **0/3 actions (0%)**
+
+- [ ] `R2.2-M1` Add `Background/Methods -> Genotype preprocessing, QC, and model alignment`,
+      transcribed from the merged `R2.2-C1` implementation. Distinguish cohort-development QC
+      (MAF, Hardy-Weinberg) from scoring-time checks (missingness, allele and build matching).
+- [ ] `R2.3-M1` Redefine `g_i` as the dosage of the model-specified effect allele; state that
+      public model metadata exposes variant identity, build, effect allele, other allele, and
+      order even when weights stay encrypted; give the `2 - g` rule; note that the supplied
+      HEPRS fixtures are assumed pre-aligned.
+- [ ] `R2.5-M1` Lead the three-SNP example with the plaintext weighted sum, then show the six
+      encoding steps, add the workflow figure, and move handle/ACL detail out of the main
+      explanation.
+
+Dependencies: Phase 3.
+
+Step completion: **0/3**
+
+## Phase 10 - Security model and release narrative
+
+Phase progress: **0/5 actions (0%)**
+
+- [ ] `R1.3-M1` Remove all DP framing: `DP-inspired` becomes `bounded randomized categorical
+      release`; the `DP bias` heading becomes `One-sided randomization and bias`; state plainly
+      that the mechanism provides no `(epsilon, delta)` guarantee.
+- [ ] `R1.3-M2` Describe only the implemented mechanism: retain `e_noisy = e + nu` with
+      `nu ~ Uniform(0, B)`, state its one-sided support, expected bias, threshold adjustment,
+      and absent composition analysis; move formal adjacency, sensitivity, and calibrated DP to
+      Future Directions. Completes the split action opened in Phase 1.
+- [ ] `R1.5-M1` Move SNP authenticity from Limitations into `Security Model`, immediately after
+      `Threat Model`; add the malicious authorized requester; state that the contracts compute
+      over submitted ciphertexts without proving those ciphertexts encode the registered
+      sample. Update the `fig_security` caption so ciphertext/sample binding sits outside the
+      guaranteed boundary, and cite the renamed `R1.5-T1` test.
+- [ ] `R1.5-M2` Define the evaluated setting as trusted local genotype preparation; explain
+      that `manifestHash` is a provenance commitment only; move signed laboratory attestation
+      and zero-knowledge ciphertext-to-sample proofs to Future Directions.
+- [ ] `R1.2-M2` Add the trust and failure-boundary table covering genotype
+      provider/preprocessor, model provider, smart contracts, blockchain consensus, fhEVM
+      coprocessor, Gateway/relayer, and ACL/threshold decryption; mark each as affecting
+      confidentiality, correctness, availability, or provenance. Make `Core Privacy Invariants`
+      explicitly conditional on these assumptions, and replace `verifiable security properties`
+      in the `fig_security` caption with the assumptions it actually rests on.
+
+Dependencies: Phases 1, 2, and 9. `R1.4-C1` must already be merged before the release policy
+is described as model-defined.
+
+Step completion: **0/5**
+
+## Phase 11 - Results from measured evidence
+
+Phase progress: **0/4 actions (0%)**
+
+- [ ] `R2.7-M1` Add the Equation 1 versus decoded bioETH-PRS scatter plot and a summary table
+      reporting MAE, RMSE, maximum absolute error, Pearson correlation, and category agreement.
+      Put all 200 rows in supplementary material. Rewrite the current `all 50 individuals ...
+      machine epsilon` claim so it cites the independent comparison rather than the TypeScript
+      quantization advisor.
+- [ ] `R2.4-M1` Add the correctness-guarantee boundary table to `Correctness and Protocol
+      Verification`, naming what the genotype preprocessor, model provider, smart contracts,
+      fhEVM infrastructure, independent reference implementation, and end user each guarantee.
+      State that the protocol guarantees none of sample authenticity, clinical validity,
+      calibration, or ancestry portability.
+- [ ] `R1.4-M1` Replace the 2,800-hour and `thousands of hours` claims with the Phase 6 numbers
+      plus the bounded conclusion that the controls reduce output resolution and raise query
+      cost under the evaluated attacker models without preventing Sybil attacks or providing a
+      formal model-confidentiality guarantee.
+- [ ] `R1.1-M1` Label every result `Live fhEVM`, `Hardhat mock`, or `Analytic projection`. Add
+      the live validation paragraph and table row from Phase 7. Delete the `within 10--20% of
+      real-network deployment` sentence. Stop presenting the `~386 ms` mock latency beside HEPRS
+      real-FHE latency. In `System Design -> Model Marketplace`, separate `implemented in the
+      contracts` from `validated on a live network`, matching the actual `R1.1-E2` outcome.
+
+Dependencies: Phases 5, 6, 7, and 10.
+
+Step completion: **0/4**
+
+## Phase 12 - Scope, cost, and HEPRS comparison
+
+Why after results: each of these is a bounding statement over numbers that must already be on
+the page.
+
+Phase progress: **0/6 actions (0%)**
+
+- [ ] `R1.6-M1` Define the bounded intended use: a bounded-size research prototype for curated
+      additive PRS models. Replace `5,000 (scalable)`, the `exactly the primitive that FHE
+      systems are designed to support efficiently` framing, and the routine-clinical-practice
+      conclusion. State that the study does not establish clinical deployment feasibility.
+- [ ] `R1.6-M2` Surface the bounded scope in the last paragraph of the Introduction and at the
+      opening of `Empirical Evaluation`, keeping the detailed ceiling discussion in Limitations.
+      The Abstract and Key Points instances land in Phase 13.
+- [ ] `R2.1-M1` Add the direct Discussion sentence that the method applies only to a narrow
+      class of bounded-size PRS models and is not a practical genome-wide PRS engine. Answer
+      Reviewer 2 self-containedly in the response letter, not by cross-reference.
+- [ ] `R1.8-M1` Rename `Deployment Cost Projections` to `Measured transaction use and fee
+      sensitivity`; insert the Phase 8 measured table; remove the commercial-genomics
+      comparison, the `Commercial viability requires` passage, and the `practical for curated
+      clinical PRS panels` conclusion. Keep measured quantities and hypothetical price
+      conversions in separate subsections.
+- [ ] `R1.7-M1` Rebuild `tab:comparison` one dimension per row: privacy architecture,
+      designated evaluator, remaining trust assumptions, arithmetic scheme, demonstrated
+      encrypted variant count, latency evidence type, memory evidence, deployment requirements,
+      output policy, metadata exposure. Mark each row measured, inherited, mock, or unavailable.
+      State that bioETH-PRS memory was not measured. Update the `Trust model` row to name
+      contracts, consensus, coprocessor, and ACL/KMS as retained trust anchors.
+- [ ] `R1.7-M2` Replace superiority language with trade-off language across the Introduction,
+      `Comparison with HEPRS`, `HEPRS and bioETH-PRS: Complementary Systems`, Related Work, and
+      Conclusion, so the comparison reads as balanced to an author of HEPRS.
+
+Dependencies: Phases 7, 8, and 11.
+
+Step completion: **0/6**
+
+## Phase 13 - Front matter and conclusion
+
+Why last: the title, graphical abstract, abstract, and key points are the highest-leverage
+claims in the paper and should be written once, over a finished body.
+
+Phase progress: **0/1 actions (0%)**
+
+- [ ] `R1.2-M1` Retitle to `bioETH-PRS: Confidential Polygenic Risk Scoring with Auditable
+      fhEVM Orchestration on a Programmable Blockchain`. Replace `removes trust` with `removes
+      the designated application-level evaluator`; replace `trustless` and `zero trust` with
+      `evaluator-minimized`; delete `computation verified by blockchain consensus` and state
+      that contract execution is publicly auditable while confidentiality and decryption depend
+      on the coprocessor, ACL, Gateway/KMS, and chain assumptions. Propagate through the title,
+      graphical abstract, Abstract, Introduction, Key Points, Discussion, and Conclusion, and
+      carry the Phase 12 scope and cost wording into the Abstract and Key Points in the same pass.
+
+Dependencies: Phases 9 through 12, all complete.
+
+Step completion: **0/1**
+
+Stage B exit gate:
+
+- [ ] Every manuscript claim names the `evidence/` artifact behind it.
+- [ ] No sentence exceeds its evidence class.
+
+---
+
+## Phase 14 - Response letter and final consistency
+
+Phase progress: **0%**
+
+### Step 14.1 - Write the point-by-point response
+
+- [ ] Copy each verbatim comment from View 1.
+- [ ] Under it, list completed action IDs.
+- [ ] State the numerical result where applicable.
+- [ ] Add final manuscript page/line ranges.
+- [ ] Add repository file, figure, table, or transaction references.
+- [ ] If an action could not be completed, state which claim was removed instead.
+
+### Step 14.2 - Final consistency checks
+
+- [ ] Search the manuscript for `trustless`, `zero trust`, `DP-inspired`, `cost-competitive`,
+      `commercial viability`, `clinically practical`, `5,000 (scalable)`, `2,800 hours`, and
+      unqualified `exact score correctness`.
+- [ ] Verify all 35 View 1 action checkboxes agree with the crosswalk and View 2.
+- [ ] Re-run compile, the complete test suite, the independent validator, the adversarial
+      script, and live-result verification.
+- [ ] Regenerate every table and figure from saved `evidence/` outputs.
+- [ ] Confirm `CLAUDE.md` security invariants match the shipped contracts.
+
+Phase exit gate:
+
+- [ ] Overall progress is 35/35 actions.
+- [ ] Every reviewer comment points to at least one completed action and one manuscript location.
+- [ ] No final claim exceeds its evidence class.
+
+---
+
+# Completion summary
+
+| Stage | Phase | Actions | Completed | Progress |
+|---|---|---:|---:|---:|
+| A | 1. Code terminology conformity | 1 | 0 | 0% |
+| A | 2. Release-policy hardening | 2 | 0 | 0% |
+| A | 3. Independent validation stack | 6 | 0 | 0% |
+| A | 4. Evidence provenance | 1 | 0 | 0% |
+| A | 5. Individual-level correctness evidence | 1 | 0 | 0% |
+| A | 6. Adversarial evidence | 1 | 0 | 0% |
+| A | 7. Live fhEVM validation | 2 | 0 | 0% |
+| A | 8. Evidence synthesis | 2 | 0 | 0% |
+| **A** | **Code and evidence subtotal** | **16** | **0** | **0%** |
+| B | 9. Methods written from code | 3 | 0 | 0% |
+| B | 10. Security model and release narrative | 5 | 0 | 0% |
+| B | 11. Results from measured evidence | 4 | 0 | 0% |
+| B | 12. Scope, cost, and HEPRS comparison | 6 | 0 | 0% |
+| B | 13. Front matter and conclusion | 1 | 0 | 0% |
+| **B** | **Manuscript subtotal** | **19** | **0** | **0%** |
+| | **Total reviewer actions** | **35** | **0** | **0%** |
+
+Phase 0 and Phase 14 are coordination and final-integration gates; they do not add reviewer
+action IDs to the 35-action total.
+
+## Reviewer coverage check
+
+| Reviewer comment | Stage A actions | Stage B actions |
+|---|---|---|
+| R1.1 mock-only evaluation | `R1.1-E1`, `R1.1-E2` | `R1.1-M1` |
+| R1.2 trust language | - | `R1.2-M1`, `R1.2-M2` |
+| R1.3 differential privacy | `R1.3-M2` (code half) | `R1.3-M1`, `R1.3-M2` |
+| R1.4 model extraction | `R1.4-C1`, `R1.4-T1`, `R1.4-E1` | `R1.4-M1` |
+| R1.5 SNP authenticity | `R1.5-T1` | `R1.5-M1`, `R1.5-M2` |
+| R1.6 scale | `R1.6-E1` | `R1.6-M1`, `R1.6-M2` |
+| R1.7 HEPRS comparison | - | `R1.7-M1`, `R1.7-M2` |
+| R1.8 cost projections | `R1.8-E1` | `R1.8-M1` |
+| R2.1 narrow SNP class | - | `R2.1-M1` |
+| R2.2 genotype QC | `R2.2-C1`, `R2.2-T1` | `R2.2-M1` |
+| R2.3 effect-allele coding | `R2.3-C1`, `R2.3-T1` | `R2.3-M1` |
+| R2.4 correctness guarantee | `R2.4-E1` | `R2.4-M1` |
+| R2.5 interpretability | - | `R2.5-M1` |
+| R2.6 double programming | `R2.6-C1`, `R2.6-T1` | - |
+| R2.7 Equation 1 agreement | `R2.7-E1` | `R2.7-M1` |
+
+Comments R1.2, R1.7, R2.1, and R2.5 are manuscript-only: they are addressed by rewriting
+claims over evidence produced elsewhere in Stage A, not by new code.
