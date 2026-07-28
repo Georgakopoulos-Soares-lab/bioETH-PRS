@@ -428,4 +428,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `e4c968c` | Phase 0 complete; node 22 pinned; `CD-002` closed |
 | `b0c86a4` | Phase 1: DP framing removed, trust boundary labelled |
 | `7870d4c` | Phase 2: release policy fixed and immutable; requester thresholds removed |
-| `<phase3>` | Phase 3: independent Python reference; cross-language agreement at tolerance 0 |
+| `88ecb89` | Phase 3: independent Python reference; cross-language agreement at tolerance 0 |
