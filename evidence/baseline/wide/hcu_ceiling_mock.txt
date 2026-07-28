@@ -1,0 +1,29 @@
+
+> bioeth-prs@0.1.0 probe:hcu:mock
+> hardhat test scripts/probe_hcu_ceiling.ts
+
+
+
+  HCU ceiling probe
+
+Network  : hardhat (chainId=31337)
+FHE mode : mock — plaintext arithmetic
+Probing chunkSizes: 10, 15, 20, 25, 32 (max=32 = 2048-bit upload-proof budget)
+
+  chunkSize=10 ... PASS  gas/chunk=669007  avg=3ms
+  chunkSize=15 ... PASS  gas/chunk=909697  avg=4ms
+  chunkSize=20 ... PASS  gas/chunk=1150392  avg=6ms
+  chunkSize=25 ... FAIL  VM Exception while processing transaction: reverted with custom error 'HCUTransa
+  chunkSize=32 ... FAIL  VM Exception while processing transaction: reverted with custom error 'HCUTransa
+
+--- HCU ceiling summary ---
+  Max passing chunkSize : 20
+  Min failing chunkSize : 25
+  Ceiling : 20 < ceiling ≤ 25
+
+Report saved to /Users/kap4722/bioETH-PRS/deployments/hardhat-hcu-probe.json
+    ✔ probes computeChunk HCU ceiling across candidate chunk sizes (354ms)
+
+
+  1 passing (354ms)
+

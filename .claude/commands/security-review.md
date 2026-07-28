@@ -54,7 +54,7 @@ Supporting context (read as needed):
 - [ ] `ResultOracle` must generate noise entirely on-chain via `FHE.randEuint64(noiseUpperBound)`. Confirm there is no path for a caller to supply or influence the noise ciphertext — the old caller-supplied noise parameter was removed in April 2026.
 - [ ] `noiseUpperBound` must be immutable. Mutable bounds allow an attacker to set bound=1 (effectively zero noise) before querying.
 - [ ] `expectedNoiseBias()` returns `noiseUpperBound/2`. Confirm callers add this to thresholds before calling `classify` or `finalizeAndClassify`.
-- [ ] Check that threshold values for categorical classification (Low/Med/High) are caller-supplied — confirm the design rationale (generic oracle) is documented and the randomized release mitigates threshold probing.
+- [ ] Check that no classification entry point accepts caller-supplied thresholds. `PRSComputeEngine.finalizeAndClassify(jobId)` must load the oracle and both thresholds from the model's immutable release policy. A threshold parameter anywhere on that path is a critical finding.
 
 ### 6. Standard Solidity Vulnerabilities
 
@@ -120,7 +120,7 @@ After all findings, provide:
 These are documented design decisions that should be noted but not re-flagged as new findings unless the implementation deviates from the documented intent:
 
 - **Permissionless `computeChunk`**: Any address may relay computation. Documented in `docs/design.md`. Griefing impact is limited (no state corruption possible; only wasted compute gas for the relayer).
-- **Caller-supplied thresholds in `ResultOracle.classify()`**: `lowThreshold` and `highThreshold` are caller-supplied. Threshold probing is mitigated by the minimum threshold gap check (`highThreshold - lowThreshold >= noiseUpperBound`) and the bounded randomized release.
+- **`ResultOracle.classify()` remains a generic entry point**: it takes caller-supplied thresholds over a caller-supplied score, which leaks nothing about any model. The *protected* path, `PRSComputeEngine.finalizeAndClassify(jobId)`, takes no thresholds at all and reads them from the model's immutable release policy. The minimum threshold gap (`highThreshold - lowThreshold >= noiseUpperBound`) is enforced at policy-configuration time and re-checked inside `_classifyScore`.
 - **Uniform one-sided noise (not Laplacian)**: `FHE.randEuint64(noiseUpperBound)` produces uniform noise on `[0, B)`. This is a bounded randomized release, not differential privacy; formal calibration is future work. Documented in `docs/design.md §7`.
 - **No job expiry**: Abandoned jobs are a known storage griefing vector. Documented in `docs/design.md §7`.
 - **Sybil attacks bypass per-wallet rate limiting**: Rate limiting is enforced per wallet per model. Multiple wallets circumvent it. The trust boundary is the authorization layer (private model reader approval). Documented in `docs/design.md §7`.

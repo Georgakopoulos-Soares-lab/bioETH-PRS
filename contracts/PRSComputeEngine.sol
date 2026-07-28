@@ -428,31 +428,38 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         return encodedScore;
     }
 
-    /// @notice Computes the final encoded score and immediately routes it into an oracle.
+    /// @notice Computes the final encoded score and routes it into the model's oracle
+    ///         under the model's own release policy.
     ///
-    /// @dev    This additive path preserves the existing finalize() flow while giving
-    ///         requesters an oracle-only alternative that avoids client-side
-    ///         decrypt / re-encrypt.  The engine remains the handle owner during the
-    ///         same transaction, so ResultOracle.classifyPreauthorized(...) can import
-    ///         the score without a new input proof.
-    function finalizeAndClassify(
-        uint256 jobId,
-        address oracle,
-        uint64 lowThreshold,
-        uint64 highThreshold
-    ) external returns (euint8) {
-        require(oracle != address(0), "Invalid oracle");
+    /// @dev    The requester supplies only the job id.  The oracle address and both
+    ///         classification thresholds are loaded from the model's release policy,
+    ///         which its owner fixed before the model was finalized and cannot change
+    ///         afterwards.  This is the only protected classification entry point, and
+    ///         it accepts no requester-chosen release parameters of any kind.
+    ///
+    ///         Why: when the requester could pass lowThreshold/highThreshold per call,
+    ///         repeated queries with shifted thresholds performed a binary search on the
+    ///         encrypted score.  That adaptive channel leaked far more per query than a
+    ///         fixed ternary classification and largely defeated the randomized release.
+    ///         Reading the thresholds from immutable model state removes it: every
+    ///         requester of a model receives the same classification resolution, fixed
+    ///         before any query was possible.
+    ///
+    ///         The engine remains the handle owner during the same transaction, so
+    ///         ResultOracle.classifyPreauthorized(...) imports the score without a new
+    ///         input proof.
+    function finalizeAndClassify(uint256 jobId) external returns (euint8) {
         Job storage job = _requireOwnedCompleteJob(jobId);
         require(!job.finalized, "Job already finalized");
 
-        // When oracle-required mode is active, the oracle must match the address
-        // approved by the model owner — otherwise callers could pass a no-op oracle
-        // contract that skips noise, defeating the oracle-required protection.
-        if (marketplace.isOracleRequired(job.modelId)) {
-            address approved = marketplace.getApprovedOracle(job.modelId);
-            require(approved != address(0), "No approved oracle set for model");
-            require(oracle == approved, "Oracle not approved for model");
-        }
+        (
+            address oracle,
+            uint64 lowThreshold,
+            uint64 highThreshold,
+            ,
+            bool configured
+        ) = marketplace.getReleasePolicy(job.modelId);
+        require(configured, "Model has no release policy");
 
         euint64 encodedScore = _encodeFinalScore(job);
 

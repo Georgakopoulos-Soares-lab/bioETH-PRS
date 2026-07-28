@@ -147,7 +147,7 @@ State transitions:
 - `appendAndComputeChunk(jobId, externalEuint64[], inputProof)` — streaming path; no `snpData` writes (see [§4.2](#42-streaming-path))
 - `finalize(jobId)` — requester-only; applies quantization correction, grants ACL, returns encoded score
 - `finalizeTo(jobId, grantee)` — like `finalize` but grants ACL to another address
-- `finalizeAndClassify(jobId, oracle, lowThreshold, highThreshold)` — oracle-only atomic path; never exposes raw score to requester
+- `finalizeAndClassify(jobId)` — oracle-only atomic path; never exposes raw score to requester. Oracle and both thresholds come from the model's immutable release policy, not from the caller
 - `readPartial(jobId)` — requester-only; returns running encrypted partial sum
 
 **Quantization correction in `finalize`:**
@@ -263,7 +263,7 @@ createPRSJob(modelId, sampleId)
 appendSnpChunk(jobId, encryptedSnps, inputProof)   ← ceil(N/32) times; SNP handles stored in snpData[]
 finalizeSnpUpload(jobId)
 computeChunk(jobId)    ← ceil(N/20) times; permissionless; reads snpData[], accumulates partialSum
-finalizeAndClassify(jobId, oracle, low, high)   ← oracle-only; no raw score exposed to patient
+finalizeAndClassify(jobId)                     ← oracle-only; thresholds from model policy
 # OR: finalize(jobId)  ← patient gets raw encrypted score handle
 ```
 
@@ -465,13 +465,15 @@ Never violate these:
 
 7. **Rate limiting enforced at job creation.** When a model owner configures a rate limit (`setRateLimit`), `createPRSJob` enforces per-model, per-wallet and per-model, per-sample block-windowed job count limits. This throttles repeated probing and closes the simple same-sample/new-wallet bypass, but it is not a full Sybil-resistant identity layer. Default is unlimited (backwards-compatible). Block-based windows (not timestamps) prevent miner manipulation.
 
-8. **Oracle-required mode.** When a model owner enables `setOracleRequired(modelId, true)`, `finalize()`, `finalizeTo()`, and `readPartial()` revert — forcing all output through `finalizeAndClassify()` and the oracle's noisy categorical release. Prevents requesters from bypassing noise by decrypting raw scores directly.
+8. **Oracle-required mode.** When a model's release policy sets `oracleRequired`, `finalize()`, `finalizeTo()`, and `readPartial()` revert — forcing all output through `finalizeAndClassify()` and the oracle's bounded randomized categorical release. Prevents requesters from bypassing noise by decrypting raw scores directly.
 
-9. **Minimum threshold gap.** `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound`. Prevents attackers from choosing thresholds so narrow that classification becomes deterministic, defeating the noisy release.
+9. **Minimum threshold gap.** Enforced at two points. `ModelMarketplace.setReleasePolicy` rejects a gap below the oracle's `noiseUpperBound` when the policy is configured, so a model cannot be published with a policy that would always revert. `ResultOracle._classifyScore` re-checks the same condition, which still guards the generic `classify()` entry point. Prevents thresholds so narrow that classification becomes deterministic, defeating the randomized release.
 
-10. **Approved oracle enforcement.** When `oracleRequired` is true, `finalizeAndClassify()` validates that the caller-supplied oracle address matches the one registered via `setApprovedOracle(modelId, oracle)`. Without this check, the oracle-required flag could be trivially bypassed by passing a no-op oracle that skips noise. Attempting `finalizeAndClassify` without an approved oracle set reverts with "No approved oracle set for model".
+10. **Model-defined release policy; no requester-chosen thresholds.** `PRSComputeEngine.finalizeAndClassify(jobId)` accepts only a job id. The oracle address and both classification thresholds are read from `ModelMarketplace.getReleasePolicy(modelId)`, fixed by the model owner before the model was finalized. A requester able to vary thresholds across calls performs a binary search on the encrypted score, extracting far more per query than a ternary classification and largely defeating the randomized release; removing the parameters removes the channel rather than mitigating it. Calling `finalizeAndClassify` on a model with no policy reverts with "Model has no release policy".
 
-11. **Single-finalize per job.** `finalize()`, `finalizeTo()`, and `finalizeAndClassify()` each set a `finalized` flag on the job and revert on any subsequent call. Prevents a requester from issuing multiple score handles for the same job, which would generate redundant FHE ops and could be exploited to probe the oracle multiple times per rate-limit slot.
+11. **Release policy immutable after model finalization.** `setReleasePolicy` is guarded by `_requireOwnedDraftModel`, so a policy can only be set while the model is a draft, and there is no update or clear function. The superseded `setOracleRequired` and `setApprovedOracle` setters have been removed, because either would have allowed an owner to publish a model under a strict policy and then swap the oracle or relax the thresholds once requesters had committed to it. `getApprovedOracle` and `isOracleRequired` survive as read-only views over the policy.
+
+12. **Single-finalize per job.** `finalize()`, `finalizeTo()`, and `finalizeAndClassify()` each set a `finalized` flag on the job and revert on any subsequent call. Prevents a requester from issuing multiple score handles for the same job, which would generate redundant FHE ops and could be exploited to probe the oracle multiple times per rate-limit slot.
 
 ---
 

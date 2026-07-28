@@ -17,9 +17,24 @@ const HIGH_THRESHOLD = 1_000_000n; // gap >> NOISE_BOUND
 /**
  * Full stack: marketplace + registry + engine + oracle.
  * Public model with weights=[1,2], uploadChunkSize=2, computeChunkSize=2.
+ *
+ * The oracle is deployed BEFORE the model is finalized, because a release policy
+ * names its oracle and can only be set while the model is still a draft
+ * (R1.4-C1).  Ordering the deployment any other way makes the policy unsettable.
+ *
+ * @param configurePolicy  set a release policy before finalizing (default true).
+ *                         Pass false to build a model with no protected
+ *                         classification path at all.
+ * @param requireOracle    value of the policy's oracleRequired flag.
  */
-async function deployFullStack() {
+async function deployFullStack(
+  { configurePolicy = true, requireOracle = false } = {}
+) {
   const [owner, other] = await ethers.getSigners();
+
+  const Oracle = await ethers.getContractFactory("ResultOracle");
+  const oracle = await Oracle.deploy(NOISE_BOUND);
+  const oracleAddr = await oracle.getAddress();
 
   const Marketplace = await ethers.getContractFactory("ModelMarketplace");
   const marketplace = await Marketplace.deploy();
@@ -33,6 +48,13 @@ async function deployFullStack() {
     ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
   );
   await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
+
+  // Draft-only window: after finalizeModel the policy is immutable.
+  if (configurePolicy) {
+    await marketplace.setReleasePolicy(
+      modelId, oracleAddr, LOW_THRESHOLD, HIGH_THRESHOLD, requireOracle
+    );
+  }
   await marketplace.finalizeModel(modelId);
 
   const Registry = await ethers.getContractFactory("GenomicRegistry");
@@ -45,9 +67,6 @@ async function deployFullStack() {
     await marketplace.getAddress(),
     await registry.getAddress()
   );
-
-  const Oracle = await ethers.getContractFactory("ResultOracle");
-  const oracle = await Oracle.deploy(NOISE_BOUND);
 
   return { marketplace, registry, engine, oracle, modelId, sampleId, owner, other };
 }
@@ -76,73 +95,194 @@ async function runCompleteJob(
 // Oracle Approval — finalizeAndClassify validation
 // ---------------------------------------------------------------------------
 
-describe("Oracle approval — finalizeAndClassify oracle validation", function () {
-  it("passes when oracleRequired is false, regardless of approved oracle", async function () {
-    const { engine, oracle, modelId, sampleId, owner } = await deployFullStack();
-    // oracleRequired defaults to false — any oracle (or no approved oracle) is fine
+// R1.4-C1 / R1.4-T1. The requester no longer chooses the oracle or the
+// classification thresholds; both come from an immutable per-model release policy.
+// These tests exist to prove the adaptive threshold-shifting channel is closed by
+// construction rather than by convention.
+describe("Release policy — model-defined thresholds and oracle", function () {
+  it("finalizeAndClassify succeeds using the model's policy, with no release arguments", async function () {
+    const { engine, modelId, sampleId, owner } = await deployFullStack();
     const jobId = await runCompleteJob(engine, modelId, sampleId, [1n, 1n], 2, owner);
-    const oracleAddr = await oracle.getAddress();
+
+    await expect(engine.finalizeAndClassify(jobId)).to.not.be.reverted;
+  });
+
+  it("finalizeAndClassify works identically when the policy mandates the oracle path", async function () {
+    const { engine, modelId, sampleId, owner } =
+      await deployFullStack({ requireOracle: true });
+    const jobId = await runCompleteJob(engine, modelId, sampleId, [1n, 1n], 2, owner);
+
+    await expect(engine.finalizeAndClassify(jobId)).to.not.be.reverted;
+  });
+
+  it("finalizeAndClassify reverts when the model has no release policy", async function () {
+    const { engine, modelId, sampleId, owner } =
+      await deployFullStack({ configurePolicy: false });
+    const jobId = await runCompleteJob(engine, modelId, sampleId, [1n, 1n], 2, owner);
+
+    await expect(engine.finalizeAndClassify(jobId)).to.be.revertedWith(
+      "Model has no release policy"
+    );
+  });
+
+  // The central R1.4-T1 assertion: requester-supplied thresholds are not merely
+  // rejected at runtime, they are absent from the interface. There is no argument to
+  // shift, so a threshold-shifting binary search on the encrypted score cannot be
+  // expressed against this contract at all.
+  it("R1.4-T1: no protected classification entry point accepts requester thresholds", async function () {
+    const { engine, marketplace } = await deployFullStack();
+
+    const overloads = engine.interface.fragments.filter(
+      (f: any) => f.type === "function" && f.name === "finalizeAndClassify"
+    );
+    expect(overloads, "exactly one finalizeAndClassify overload").to.have.lengthOf(1);
+
+    const frag = engine.interface.getFunction("finalizeAndClassify");
+    expect(frag!.inputs).to.have.lengthOf(1);
+    expect(frag!.inputs[0].name).to.equal("jobId");
+
+    // No entry point anywhere on the engine takes a threshold.
+    const thresholdTakers = engine.interface.fragments.filter(
+      (f: any) =>
+        f.type === "function" &&
+        (f.inputs ?? []).some((i: any) => /threshold/i.test(i.name ?? ""))
+    );
+    expect(thresholdTakers, "engine functions accepting a threshold").to.have.lengthOf(0);
+
+    // The superseded mutable setters are gone, so a policy cannot be swapped after
+    // a model starts serving jobs.
+    for (const removed of ["setOracleRequired", "setApprovedOracle"]) {
+      const present = marketplace.interface.fragments.some(
+        (f: any) => f.type === "function" && f.name === removed
+      );
+      expect(present, `${removed} must no longer exist`).to.be.false;
+    }
+  });
+
+  it("the policy is immutable once the model is finalized", async function () {
+    const { marketplace, oracle, modelId } = await deployFullStack();
 
     await expect(
-      engine.finalizeAndClassify(jobId, oracleAddr, LOW_THRESHOLD, HIGH_THRESHOLD)
+      marketplace.setReleasePolicy(
+        modelId, await oracle.getAddress(), 0n, 5_000_000n, true
+      )
+    ).to.be.revertedWith("Model already finalized");
+  });
+
+  it("setReleasePolicy rejects a non-owner", async function () {
+    const Oracle = await ethers.getContractFactory("ResultOracle");
+    const oracle = await Oracle.deploy(NOISE_BOUND);
+    const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+    const marketplace = await Marketplace.deploy();
+    const [, other] = await ethers.getSigners();
+
+    const modelId = await marketplace.createModelShell.staticCall(
+      false, 2n, 2n, 2n, "ipfs://m", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+    );
+    await marketplace.createModelShell(
+      false, 2n, 2n, 2n, "ipfs://m", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+    );
+
+    await expect(
+      marketplace.connect(other).setReleasePolicy(
+        modelId, await oracle.getAddress(), LOW_THRESHOLD, HIGH_THRESHOLD, false
+      )
+    ).to.be.revertedWith("Not owner");
+  });
+
+  it("setReleasePolicy validates the oracle and the thresholds at configuration time", async function () {
+    const Oracle = await ethers.getContractFactory("ResultOracle");
+    const oracle = await Oracle.deploy(NOISE_BOUND);
+    const oracleAddr = await oracle.getAddress();
+    const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+    const marketplace = await Marketplace.deploy();
+
+    const modelId = await marketplace.createModelShell.staticCall(
+      false, 2n, 2n, 2n, "ipfs://m", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+    );
+    await marketplace.createModelShell(
+      false, 2n, 2n, 2n, "ipfs://m", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+    );
+
+    await expect(
+      marketplace.setReleasePolicy(modelId, ethers.ZeroAddress, 0n, 1_000n, false)
+    ).to.be.revertedWith("Invalid oracle");
+
+    await expect(
+      marketplace.setReleasePolicy(modelId, oracleAddr, 500n, 100n, false)
+    ).to.be.revertedWith("lowThreshold must be less than highThreshold");
+
+    await expect(
+      marketplace.setReleasePolicy(modelId, oracleAddr, 200n, 200n, false)
+    ).to.be.revertedWith("lowThreshold must be less than highThreshold");
+
+    // Gap smaller than the oracle's own noise bound is caught here rather than on
+    // first use, so a model cannot be published with a policy that always reverts.
+    await expect(
+      marketplace.setReleasePolicy(
+        modelId, oracleAddr, 0n, NOISE_BOUND - 1n, false
+      )
+    ).to.be.revertedWith("Threshold gap must be >= noise bound");
+
+    // Gap exactly equal to the bound is the documented minimum and is accepted.
+    await expect(
+      marketplace.setReleasePolicy(modelId, oracleAddr, 0n, NOISE_BOUND, false)
     ).to.not.be.reverted;
   });
 
-  it("rejects finalizeAndClassify when oracleRequired but no approved oracle set", async function () {
-    const { marketplace, engine, oracle, modelId, sampleId, owner } =
-      await deployFullStack();
-
-    await marketplace.setOracleRequired(modelId, true);
-    // No setApprovedOracle call — approved oracle is address(0)
-
-    const jobId = await runCompleteJob(engine, modelId, sampleId, [1n, 1n], 2, owner);
+  it("getReleasePolicy reports the fixed policy and getApprovedOracle mirrors it", async function () {
+    const { marketplace, oracle, modelId } =
+      await deployFullStack({ requireOracle: true });
     const oracleAddr = await oracle.getAddress();
 
-    await expect(
-      engine.finalizeAndClassify(jobId, oracleAddr, LOW_THRESHOLD, HIGH_THRESHOLD)
-    ).to.be.revertedWith("No approved oracle set for model");
+    const [addr, low, high, requiresOracle, configured] =
+      await marketplace.getReleasePolicy(modelId);
+
+    expect(addr).to.equal(oracleAddr);
+    expect(low).to.equal(LOW_THRESHOLD);
+    expect(high).to.equal(HIGH_THRESHOLD);
+    expect(requiresOracle).to.be.true;
+    expect(configured).to.be.true;
+
+    expect(await marketplace.getApprovedOracle(modelId)).to.equal(oracleAddr);
+    expect(await marketplace.isOracleRequired(modelId)).to.be.true;
   });
 
-  it("rejects finalizeAndClassify when oracle does not match approved oracle", async function () {
-    const { marketplace, engine, oracle, modelId, sampleId, owner, other } =
-      await deployFullStack();
+  it("an unconfigured model reports an empty policy", async function () {
+    const { marketplace, modelId } = await deployFullStack({ configurePolicy: false });
 
-    await marketplace.setOracleRequired(modelId, true);
-    await marketplace.setApprovedOracle(modelId, await oracle.getAddress());
+    const [addr, low, high, requiresOracle, configured] =
+      await marketplace.getReleasePolicy(modelId);
 
-    const jobId = await runCompleteJob(engine, modelId, sampleId, [1n, 1n], 2, owner);
-
-    // Pass a different (non-approved) address — use `other` as a stand-in
-    await expect(
-      engine.finalizeAndClassify(jobId, other.address, LOW_THRESHOLD, HIGH_THRESHOLD)
-    ).to.be.revertedWith("Oracle not approved for model");
-  });
-
-  it("accepts finalizeAndClassify when oracle matches approved oracle", async function () {
-    const { marketplace, engine, oracle, modelId, sampleId, owner } =
-      await deployFullStack();
-
-    const oracleAddr = await oracle.getAddress();
-    await marketplace.setOracleRequired(modelId, true);
-    await marketplace.setApprovedOracle(modelId, oracleAddr);
-
-    const jobId = await runCompleteJob(engine, modelId, sampleId, [1n, 1n], 2, owner);
-
-    await expect(
-      engine.finalizeAndClassify(jobId, oracleAddr, LOW_THRESHOLD, HIGH_THRESHOLD)
-    ).to.not.be.reverted;
-  });
-
-  it("getApprovedOracle returns address(0) when not set", async function () {
-    const { marketplace, modelId } = await deployFullStack();
+    expect(addr).to.equal(ethers.ZeroAddress);
+    expect(low).to.equal(0n);
+    expect(high).to.equal(0n);
+    expect(requiresOracle).to.be.false;
+    expect(configured).to.be.false;
     expect(await marketplace.getApprovedOracle(modelId)).to.equal(ethers.ZeroAddress);
   });
 
-  it("setApprovedOracle rejects non-owner", async function () {
-    const { marketplace, oracle, modelId, other } = await deployFullStack();
+  it("emits ReleasePolicySet", async function () {
+    const Oracle = await ethers.getContractFactory("ResultOracle");
+    const oracle = await Oracle.deploy(NOISE_BOUND);
+    const oracleAddr = await oracle.getAddress();
+    const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+    const marketplace = await Marketplace.deploy();
+
+    const modelId = await marketplace.createModelShell.staticCall(
+      false, 2n, 2n, 2n, "ipfs://m", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+    );
+    await marketplace.createModelShell(
+      false, 2n, 2n, 2n, "ipfs://m", ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+    );
+
     await expect(
-      marketplace.connect(other).setApprovedOracle(modelId, await oracle.getAddress())
-    ).to.be.revertedWith("Not owner");
+      marketplace.setReleasePolicy(
+        modelId, oracleAddr, LOW_THRESHOLD, HIGH_THRESHOLD, true
+      )
+    )
+      .to.emit(marketplace, "ReleasePolicySet")
+      .withArgs(modelId, oracleAddr, LOW_THRESHOLD, HIGH_THRESHOLD, true);
   });
 });
 
@@ -170,14 +310,13 @@ describe("Double-finalize prevention", function () {
   });
 
   it("rejects a second call to finalizeAndClassify()", async function () {
-    const { engine, oracle, modelId, sampleId, owner } = await deployFullStack();
-    const oracleAddr = await oracle.getAddress();
+    const { engine, modelId, sampleId, owner } = await deployFullStack();
     const jobId = await runCompleteJob(engine, modelId, sampleId, [1n, 1n], 2, owner);
 
-    await engine.finalizeAndClassify(jobId, oracleAddr, LOW_THRESHOLD, HIGH_THRESHOLD);
-    await expect(
-      engine.finalizeAndClassify(jobId, oracleAddr, LOW_THRESHOLD, HIGH_THRESHOLD)
-    ).to.be.revertedWith("Job already finalized");
+    await engine.finalizeAndClassify(jobId);
+    await expect(engine.finalizeAndClassify(jobId)).to.be.revertedWith(
+      "Job already finalized"
+    );
   });
 
   it("isJobFinalized() reflects state correctly", async function () {

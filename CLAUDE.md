@@ -22,7 +22,7 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 | Contract | File | Role |
 |---|---|---|
 | GenomicRegistry | [contracts/GenomicRegistry.sol](contracts/GenomicRegistry.sol) | URI registry + per-address ACL |
-| ModelMarketplace | [contracts/ModelMarketplace.sol](contracts/ModelMarketplace.sol) | Public / private GWAS weight chunks (`ZamaEthereumConfig`) |
+| ModelMarketplace | [contracts/ModelMarketplace.sol](contracts/ModelMarketplace.sol) | Public / private GWAS weight chunks + immutable per-model release policy (`ZamaEthereumConfig`) |
 | PRSComputeEngine | [contracts/PRSComputeEngine.sol](contracts/PRSComputeEngine.sol) | Chunked dot-product state machine (`ZamaEthereumConfig`) |
 | ResultOracle | [contracts/ResultOracle.sol](contracts/ResultOracle.sol) | Bounded randomized release + categorical classification (`ZamaEthereumConfig`) |
 | BioETHPRS | [contracts/legacy/HEPRS.sol](contracts/legacy/HEPRS.sol) | Legacy standalone variant — no marketplace dependency |
@@ -36,10 +36,11 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 5. **Registry ACL enforced** — `PRSComputeEngine.createPRSJob` checks `GenomicRegistry.hasAccess(sampleId, msg.sender)`. Do not assume compute chunks also re-check (they don't).
 6. **State machine integrity** — PRS job transitions: `PENDING → UPLOADING → READY → COMPUTING → DONE`. Never allow compute calls before `finalizeSnpUpload` completes.
 7. **Rate limiting** — `createPRSJob` enforces per-model, per-wallet, block-windowed job count limits when configured via `ModelMarketplace.setRateLimit`. Default is unlimited (backwards-compatible).
-8. **Oracle-required mode** — when `ModelMarketplace.setOracleRequired(modelId, true)` is set, `finalize()`, `finalizeTo()`, and `readPartial()` revert. Only `finalizeAndClassify()` (oracle path with bounded randomized release) is allowed.
-9. **Minimum threshold gap** — `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound` to prevent threshold probing that would narrow the categorical output below the noise bound.
-10. **Approved oracle enforcement** — when `oracleRequired` is true, `finalizeAndClassify()` validates the oracle address against `ModelMarketplace.getApprovedOracle(modelId)`. Model owner must call `setApprovedOracle(modelId, oracleAddr)` before enabling oracle-required mode. Prevents bypass via a custom no-op oracle.
-11. **Single-finalize per job** — `finalize()`, `finalizeTo()`, and `finalizeAndClassify()` set `job.finalized = true` and revert on any second call. Prevents redundant FHE ops and multiple oracle invocations per rate-limit slot.
+8. **Oracle-required mode** — when a model's release policy sets `oracleRequired`, `finalize()`, `finalizeTo()`, and `readPartial()` revert. Only `finalizeAndClassify()` (oracle path with bounded randomized release) is allowed.
+9. **Minimum threshold gap** — enforced twice. `ModelMarketplace.setReleasePolicy` rejects a policy whose gap is below the oracle's `noiseUpperBound` at configuration time, so a model cannot be published with a policy that would always revert. `ResultOracle._classifyScore` re-checks the same condition, which still guards the direct `classify()` entry point.
+10. **Model-defined release policy — no requester-chosen thresholds** — `PRSComputeEngine.finalizeAndClassify(jobId)` takes *only* a job id. The oracle address and both classification thresholds are loaded from `ModelMarketplace.getReleasePolicy(modelId)`. Never add a threshold or oracle parameter to any classification entry point: a requester who can shift thresholds across calls performs a binary search on the encrypted score, which leaks far more per query than a ternary classification and largely defeats the randomized release.
+11. **Release policy is immutable after model finalization** — `setReleasePolicy` is guarded by `_requireOwnedDraftModel`, so the policy can only be set while the model is a draft. There is deliberately no update or clear function, and `setOracleRequired` / `setApprovedOracle` no longer exist. A model that can serve jobs cannot have its oracle or thresholds swapped. `getApprovedOracle` and `isOracleRequired` remain as read-only views over the policy.
+12. **Single-finalize per job** — `finalize()`, `finalizeTo()`, and `finalizeAndClassify()` set `job.finalized = true` and revert on any second call. Prevents redundant FHE ops and multiple oracle invocations per rate-limit slot.
 
 ## Key Conventions
 

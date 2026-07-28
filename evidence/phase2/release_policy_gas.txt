@@ -1,0 +1,13 @@
+
+
+  Release policy gas
+=== Release Policy Gas ===
+setReleasePolicy gas     : 77314
+finalizeAndClassify gas  : 432230
+Note: setReleasePolicy is a fixed one-time per-model cost,
+      independent of variant count.
+    ✔ measures setReleasePolicy and the finalizeAndClassify path (38ms)
+
+
+  1 passing (39ms)
+

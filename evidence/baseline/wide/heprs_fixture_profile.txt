@@ -1,0 +1,54 @@
+
+> bioeth-prs@0.1.0 profile:heprs
+> hardhat test scripts/heprs_fixture_profile.ts
+
+
+
+  HEPRS fixture profiler
+
+HEPRS fixture profile
+fixtures=100,500,1000,5000
+uploadChunkSize=32
+computeChunkSize=20
+
+fixture=100 SNP (vectorLength=101, uploadChunkSize=32, computeChunkSize=20)
+status=full_flow
+advisor: tier=balanced, scale=3000000, bits=16/32
+timings: total=438.53ms, load=0.99ms, quantize=0.07ms, publishModel=6.38ms, createJob=0.90ms, uploadSnps=81.46ms, finalizeSnpUpload=0.68ms, chunkTotal=37.89ms, finalize=44.23ms, stream.uploadAndCompute=110.05ms, stream.finalize=80.32ms
+chunks: count=6, avg=6.32ms, min=1.02ms, max=12.30ms
+gas (classic):  total=17822355, publishModel=1129042, createJob=321148, uploadSnps=10335731, finalizeSnpUpload=37175, compute=5829395, finalize=169864
+gas (streaming): total=11496938, publishModel=1129042, createJob=284148, uploadAndCompute=9913872, finalize=169876
+gas savings (streaming vs classic): 6325417 (35.5%)
+
+fixture=500 SNP (vectorLength=501, uploadChunkSize=32, computeChunkSize=20)
+status=full_flow
+advisor: tier=balanced, scale=3000000, bits=16/32
+timings: total=1975.74ms, load=2.67ms, quantize=0.04ms, publishModel=16.12ms, createJob=0.78ms, uploadSnps=328.50ms, finalizeSnpUpload=0.64ms, chunkTotal=272.64ms, finalize=234.58ms, stream.uploadAndCompute=565.53ms, stream.finalize=365.68ms
+chunks: count=26, avg=10.49ms, min=1.07ms, max=50.99ms
+gas (classic):  total=83943899, publishModel=4257810, createJob=321148, uploadSnps=50964667, finalizeSnpUpload=37175, compute=28193235, finalize=169864
+gas (streaming): total=53022134, publishModel=4257810, createJob=284148, uploadAndCompute=48310300, finalize=169876
+gas savings (streaming vs classic): 30921765 (36.8%)
+
+fixture=1000 SNP (vectorLength=1001, uploadChunkSize=32, computeChunkSize=20)
+status=full_flow
+advisor: tier=balanced, scale=1000000, bits=16/32
+timings: total=3770.72ms, load=2.91ms, quantize=0.06ms, publishModel=32.49ms, createJob=0.84ms, uploadSnps=715.17ms, finalizeSnpUpload=0.92ms, chunkTotal=404.48ms, finalize=462.86ms, stream.uploadAndCompute=1060.96ms, stream.finalize=724.69ms
+chunks: count=51, avg=7.93ms, min=1.02ms, max=23.44ms
+gas (classic):  total=166833256, publishModel=8212354, createJob=321148, uploadSnps=101944680, finalizeSnpUpload=37175, compute=56148035, finalize=169864
+gas (streaming): total=104972363, publishModel=8212354, createJob=284148, uploadAndCompute=96305985, finalize=169876
+gas savings (streaming vs classic): 61860893 (37.1%)
+
+fixture=5000 SNP (vectorLength=5001, uploadChunkSize=32, computeChunkSize=20)
+status=full_flow
+advisor: tier=balanced, scale=1000000, bits=16/32
+timings: total=18571.26ms, load=8.64ms, quantize=0.39ms, publishModel=145.37ms, createJob=0.81ms, uploadSnps=3268.29ms, finalizeSnpUpload=0.96ms, chunkTotal=2006.85ms, finalize=2406.14ms, stream.uploadAndCompute=5294.29ms, stream.finalize=3784.33ms
+chunks: count=251, avg=8.00ms, min=1.03ms, max=28.88ms
+gas (classic):  total=829372571, publishModel=39717477, createJob=321148, uploadSnps=509340472, finalizeSnpUpload=37175, compute=279786435, finalize=169864
+gas (streaming): total=520440926, publishModel=39717477, createJob=284148, uploadAndCompute=480269425, finalize=169876
+gas savings (streaming vs classic): 308931645 (37.2%)
+
+    ✔ profiles all requested fixtures and prints timing summary (24759ms)
+
+
+  1 passing (25s)
+

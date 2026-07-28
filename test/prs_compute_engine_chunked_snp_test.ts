@@ -48,6 +48,37 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     return { marketplace, modelId };
   }
 
+  /**
+   * Same as deployPublicModel but stops short of finalizeModel, leaving the model a
+   * draft.  setReleasePolicy only accepts drafts, so tests asserting on policy
+   * validation need the model in this state.
+   */
+  async function deployPublicModelDraft(
+    weights: bigint[],
+    uploadChunkSize: bigint,
+    computeChunkSize: bigint
+  ) {
+    const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+    const marketplace = await Marketplace.deploy();
+    const args = [
+      false,
+      BigInt(weights.length),
+      uploadChunkSize,
+      computeChunkSize,
+      "ipfs://public-model-draft",
+      ethers.ZeroHash,
+      ethers.ZeroHash,
+      0n,
+      0n,
+    ] as const;
+    const modelId = await marketplace.createModelShell.staticCall(...args);
+    await marketplace.createModelShell(...args);
+    for (const chunk of chunkArray(weights, Number(uploadChunkSize))) {
+      await marketplace.appendPublicModelChunk(modelId, chunk);
+    }
+    return { marketplace, modelId };
+  }
+
   async function deployEngine(marketplaceAddr: string, owner: string) {
     const Registry = await ethers.getContractFactory("GenomicRegistry");
     const registry = await Registry.deploy();
@@ -581,10 +612,13 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
         .to.be.revertedWith("Invalid grantee");
     });
 
-    it("finalizeAndClassify rejects zero oracle address", async function () {
+    // The zero-oracle guard moved to ModelMarketplace.setReleasePolicy (R1.4-C1):
+    // the requester cannot name an oracle at all, so the engine has nothing to
+    // validate. What it does check is that the model HAS a policy.
+    it("finalizeAndClassify rejects a model with no release policy", async function () {
       const { engine, jobId } = await completePublicJob();
-      await expect(engine.finalizeAndClassify(jobId, ethers.ZeroAddress, 100n, 200n))
-        .to.be.revertedWith("Invalid oracle");
+      await expect(engine.finalizeAndClassify(jobId))
+        .to.be.revertedWith("Model has no release policy");
     });
 
     it("finalizeTo rejects call from non-requester", async function () {
@@ -595,10 +629,8 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
 
     it("finalizeAndClassify rejects call from non-requester", async function () {
       const { engine, jobId, stranger } = await completePublicJob();
-      const Oracle = await ethers.getContractFactory("ResultOracle");
-      const oracle = await Oracle.deploy(128n);
       await expect(
-        engine.connect(stranger).finalizeAndClassify(jobId, await oracle.getAddress(), 100n, 200n)
+        engine.connect(stranger).finalizeAndClassify(jobId)
       ).to.be.revertedWith("Not requester");
     });
 
@@ -622,26 +654,31 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
       const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), owner.address);
       const engineAddr = await engine.getAddress();
-      const Oracle = await ethers.getContractFactory("ResultOracle");
-      const oracle = await Oracle.deploy(128n);
       const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
       await engine.createPRSJob(modelId, sampleId);
       const enc = await encryptUint64Array(engineAddr, owner.address, [1n, 2n]);
       await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
       await engine.finalizeSnpUpload(jobId);
-      // SNPs uploaded but computeChunk not called — job not complete
-      await expect(engine.finalizeAndClassify(jobId, await oracle.getAddress(), 100n, 200n))
+      // SNPs uploaded but computeChunk not called — job not complete.
+      // The completeness check precedes the policy lookup.
+      await expect(engine.finalizeAndClassify(jobId))
         .to.be.revertedWith("Job not complete");
     });
 
-    it("finalizeAndClassify propagates oracle threshold guard to requester", async function () {
-      // lowThreshold >= highThreshold is caught inside _classifyScore via classifyPreauthorized,
-      // confirming the guard is exercised through the atomic engine → oracle path.
-      const { engine, jobId } = await completePublicJob();
+    // Previously an inverted threshold pair reached _classifyScore through the
+    // engine, because the requester supplied it per call. Requesters no longer
+    // supply thresholds, so the guard now fires when the model owner configures the
+    // policy — before the model can serve any job at all. Coverage for that lives in
+    // job_lifecycle_test.ts ("setReleasePolicy validates the oracle and the
+    // thresholds at configuration time"). ResultOracle still re-checks the condition
+    // internally; see the "minimum threshold gap" suite in
+    // rate_limit_randomized_release_test.ts.
+    it("a model cannot be published with an inverted threshold pair", async function () {
+      const { marketplace, modelId } = await deployPublicModelDraft([1n, 2n], 2n, 2n);
       const Oracle = await ethers.getContractFactory("ResultOracle");
       const oracle = await Oracle.deploy(128n);
       await expect(
-        engine.finalizeAndClassify(jobId, await oracle.getAddress(), 300n, 100n)
+        marketplace.setReleasePolicy(modelId, await oracle.getAddress(), 300n, 100n, false)
       ).to.be.revertedWith("lowThreshold must be less than highThreshold");
     });
   });

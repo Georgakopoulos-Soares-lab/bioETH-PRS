@@ -1,0 +1,191 @@
+
+> bioeth-prs@0.1.0 test
+> hardhat test
+
+
+
+  BioETHPRS — fhEVM mock coprocessor (Hardhat)
+    ✔ computes correct PRS via chunked dot product (42ms)
+    ✔ emits JobCreated and ChunkComputed events
+    ✔ rejects invalid model id in startPRS
+    ✔ rejects finalize before job is complete
+    ✔ rejects double-computation past completion
+    ✔ readPartial is restricted to the requester
+
+  HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)
+    ✔ matches a plaintext dot product on the HEPRS 100-SNP fixture using the balanced advisor recommendation (207ms)
+    ✔ matches a plaintext dot product on the HEPRS 500-SNP fixture using the balanced advisor recommendation (883ms)
+    ✔ matches a plaintext dot product on the HEPRS 1000-SNP fixture using the balanced advisor recommendation (1773ms)
+    ✔ matches a plaintext dot product on the HEPRS 5000-SNP fixture using chunked SNP ingestion and the balanced advisor recommendation (8942ms)
+
+  HEPRS quantization — overflow safety across all individuals
+    ✔ encoded scores stay within uint64 for all 50 individuals — 100 SNP fixture
+    ✔ encoded scores stay within uint64 for all 50 individuals — 500 SNP fixture
+    ✔ encoded scores stay within uint64 for all 50 individuals — 1000 SNP fixture
+    ✔ encoded scores stay within uint64 for all 50 individuals — 5000 SNP fixture
+
+  Release policy — model-defined thresholds and oracle
+    ✔ finalizeAndClassify succeeds using the model's policy, with no release arguments
+    ✔ finalizeAndClassify works identically when the policy mandates the oracle path
+    ✔ finalizeAndClassify reverts when the model has no release policy
+    ✔ R1.4-T1: no protected classification entry point accepts requester thresholds
+    ✔ the policy is immutable once the model is finalized
+    ✔ setReleasePolicy rejects a non-owner
+    ✔ setReleasePolicy validates the oracle and the thresholds at configuration time
+    ✔ getReleasePolicy reports the fixed policy and getApprovedOracle mirrors it
+    ✔ an unconfigured model reports an empty policy
+    ✔ emits ReleasePolicySet
+
+  Double-finalize prevention
+    ✔ rejects a second call to finalize()
+    ✔ rejects a second call to finalizeTo()
+    ✔ rejects a second call to finalizeAndClassify()
+    ✔ isJobFinalized() reflects state correctly
+
+  Job cancellation
+    ✔ allows requester to cancel an incomplete job
+    ✔ blocks appendSnpChunk after cancellation
+    ✔ blocks appendAndComputeChunk after cancellation
+    ✔ cannot cancel a job twice
+    ✔ cannot cancel a completed job
+    ✔ non-requester cannot cancel
+    ✔ refunds rate limit slot when cancelled within the active window
+    ✔ does not refund rate limit slot after the window has expired
+
+  ModelMarketplace — chunked publication v1
+    shell creation
+      ✔ creates a public shell with the expected geometry and metadata
+      ✔ creates a private shell and auto-authorizes the owner as a private reader
+      ✔ rejects zero weightCount, zero uploadChunkSize, and zero computeChunkSize
+      ✔ chunkCount is based on computeChunkSize, not uploadChunkSize
+      ✔ emits ModelShellCreated with both chunk sizes
+    public chunk publication
+      ✔ appends public chunks sequentially, updates progress, and stores chunk payloads
+      ✔ decoupled: upload in large batches, retrieve in compute-chunk slices
+      ✔ rejects public chunk append by non-owner
+      ✔ rejects public chunk append on an invalid model id
+      ✔ rejects public chunk append to a private model
+      ✔ rejects invalid public chunk lengths for intermediate and final chunks
+      ✔ rejects appends once all public chunks are uploaded but before finalize
+      ✔ emits PublicModelChunkAppended with the derived chunk index
+    private chunk publication
+      ✔ appends encrypted chunks sequentially and stores the encrypted payloads (49ms)
+      ✔ rejects encrypted chunk append by non-owner
+      ✔ rejects encrypted chunk append on an invalid model id
+      ✔ rejects encrypted chunk append to a public model
+      ✔ rejects invalid encrypted chunk lengths and extra encrypted appends after completion
+      ✔ emits EncryptedModelChunkAppended with the derived chunk index
+    finalization
+      ✔ finalizes a complete public model and blocks further mutation
+      ✔ rejects finalize on invalid model, incomplete model, and non-owner finalize
+    private reader management
+      ✔ allows the owner to grant and revoke private readers
+      ✔ rejects private reader changes on public models, invalid models, and by non-owners
+    getters and read-path guards
+      ✔ rejects invalid or missing public chunk reads and private-model public reads
+      ✔ rejects invalid, unauthorized, or missing private chunk reads and public-model private reads
+
+  PRSComputeEngine — chunked SNP ingestion
+    ✔ creates a job shell using finalized model geometry
+    ✔ rejects job creation for invalid or unfinalized models
+    ✔ appends SNP chunks sequentially and finalizes upload
+    ✔ rejects invalid SNP chunk lengths, extra chunks, and non-requester uploads
+    ✔ rejects compute before SNP upload is finalized
+    ✔ TRUST BOUNDARY: accepts arbitrary encrypted SNP values, including invalid hard calls — ciphertext/sample binding is not enforced on-chain
+    ✔ computes a public-model dot product and allows permissionless compute relays
+    ✔ decoupled: upload SNPs in large batches, compute in smaller HCU-safe chunks
+    ✔ requires the requester for readPartial and finalize
+    ✔ requires private-model authorization and computes after authorization (51ms)
+    ✔ applies private-model quantization metadata when weightZeroPoint and scoreOffset are non-zero (39ms)
+    Registry ACL enforcement
+      ✔ owner can create a job for their own sample
+      ✔ delegate with grantAccess can create a job
+      ✔ stranger without access is rejected
+      ✔ revoked grantee is rejected
+      ✔ rejects an unregistered sampleId
+    Private model per-requester authorization
+      ✔ unauthorized requester is rejected even when engine is authorized
+      ✔ authorized requester can create a job after explicit allowlisting
+      ✔ model owner can always run jobs on their own private model
+    finalize delegation guards
+      ✔ finalizeTo rejects zero grantee address
+      ✔ finalizeAndClassify rejects a model with no release policy
+      ✔ finalizeTo rejects call from non-requester
+      ✔ finalizeAndClassify rejects call from non-requester
+      ✔ finalizeTo rejects job that is not yet complete
+      ✔ finalizeAndClassify rejects job that is not yet complete
+      ✔ a model cannot be published with an inverted threshold pair
+    ACL revocation during in-flight jobs
+      ✔ revoking registry sample access after job creation does not block compute or finalize
+      ✔ revoking engine private model reader after SNP upload blocks subsequent computeChunk
+
+  Quantization advisor
+    ✔ produces ranked recommendations for the HEPRS 100-SNP fixture
+    ✔ produces ranked recommendations for the HEPRS 500-SNP fixture
+    ✔ produces ranked recommendations for the HEPRS 1000-SNP fixture
+    ✔ produces ranked recommendations for the HEPRS 5000-SNP fixture
+    ✔ renders a concise summary for CLI-friendly output
+    ✔ builds and validates a hardcall manifest for a recommended candidate
+    ✔ rejects invalid genotype modes and threshold domains in manifests
+
+  Rate Limiting — per-model per-wallet and per-sample job limits
+    ✔ default (no rate limit) allows unlimited job creation
+    ✔ blocks job creation when window is exhausted
+    ✔ resets window after windowBlocks elapse
+    ✔ rate limits are independent across models
+    ✔ blocks the same sample across requesters when the sample window is exhausted
+    ✔ rate limits are independent across different samples and requesters
+    ✔ model owner can change rate limit at any time
+    ✔ only model owner can set rate limit
+    ✔ rejects windowBlocks=0 when maxJobs > 0
+    ✔ emits RateLimitSet event
+    ✔ getRateLimitConfig returns defaults for unconfigured models
+
+  Noisy Release Hardening — oracle-required mode
+    ✔ finalize() works when oracleRequired is false (default)
+    ✔ finalize() reverts when oracleRequired is true
+    ✔ finalizeTo() reverts when oracleRequired is true
+    ✔ readPartial() reverts when oracleRequired is true
+    ✔ finalizeAndClassify() works when oracleRequired is true
+    ✔ only model owner can require the oracle path
+    ✔ the oracle requirement cannot be enabled after the model is finalized
+    ✔ isOracleRequired returns false by default
+
+  Noisy Release Hardening — minimum threshold gap
+    ✔ rejects threshold gap smaller than noiseUpperBound
+    ✔ accepts threshold gap exactly equal to noiseUpperBound
+    ✔ accepts threshold gap larger than noiseUpperBound
+    ✔ threshold gap check also applies via classify with different noise bound
+
+  Registry / Marketplace / Oracle — fhEVM mock (Hardhat)
+    GenomicRegistry ACL
+      ✔ owner can read their own sample
+      ✔ can anchor sample provenance with a manifest hash
+      ✔ rejects manifest-aware registration with an empty hash
+      ✔ stranger is denied before access is granted
+      ✔ grantAccess / revokeAccess work correctly
+    ModelMarketplace → PRSComputeEngine (public model)
+      ✔ computes correct dot product via public weights (64ms)
+      ✔ requester can decrypt the raw engine score without calling the oracle (44ms)
+      ✔ computes correct dot product via encrypted chunks after authorizing the engine (43ms)
+    ResultOracle classification
+      ✔ classifies score well below low threshold as Low (0)
+      ✔ classifies score well within medium band as Medium (1)
+      ✔ classifies score well above high threshold as High (2)
+      ✔ noiseUpperBound is stored and readable
+      ✔ rejects deployment with noiseUpperBound = 0
+      ✔ rejects deployment with non-power-of-two noiseUpperBound
+      ✔ rejects classify when lowThreshold >= highThreshold
+      ✔ noise is added — noisy score exceeds raw score
+    PRSComputeEngine → ResultOracle end-to-end
+      ✔ classifies an engine-produced score correctly (full pipeline) (44ms)
+      ✔ classifies a high-risk engine score as High
+      ✔ supports oracle-only classification through an atomic engine handoff (58ms)
+      ✔ classification reflects the model's policy thresholds, not any caller-supplied value
+
+  Scale ceiling reference
+    ✔ computes the documented quick-screen ceilings
+
+
+  140 passing (14s)
+

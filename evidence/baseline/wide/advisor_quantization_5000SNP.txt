@@ -1,0 +1,22 @@
+
+> bioeth-prs@0.1.0 advisor:quantization
+> ts-node scripts/quantization_advisor.ts test/fixtures/heprs/beta_5000SNP_phenotype0.csv test/fixtures/heprs/genotype_5000SNP_50individual.csv
+
+Quantization advisor summary
+weights=5001, genotypeMax=2, mode=public
+evaluated=11, valid=11, rejected=0
+
+baseline:
+  scale=100
+  weightBits=8, accumulatorBits=16
+  estCost=6501.3, worstCaseErrorBound=5.001e+1, mae=1.502e-1, rmse=1.863e-1
+
+balanced:
+  scale=1000000
+  weightBits=16, accumulatorBits=32
+  estCost=9501.9, worstCaseErrorBound=5.001e-3, mae=2.493e-16, rmse=3.553e-16
+
+max_precision:
+  scale=10000000
+  weightBits=32, accumulatorBits=32
+  estCost=13002.6, worstCaseErrorBound=5.001e-4, mae=2.493e-16, rmse=3.553e-16

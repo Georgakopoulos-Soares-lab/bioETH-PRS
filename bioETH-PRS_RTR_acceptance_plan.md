@@ -42,8 +42,8 @@ Status convention:
 - `[x]` Completed
 - `Progress: 0%` can be changed to an intermediate percentage while work is in progress.
 
-Overall RTR progress: **1/35 actions completed (3%)** — plus `R1.3-M2` at 50%
-Stage A: **1/16** &nbsp;&nbsp; Stage B: **0/19**
+Overall RTR progress: **3/35 actions completed (9%)** — plus `R1.3-M2` at 50%
+Stage A: **3/16** &nbsp;&nbsp; Stage B: **0/19**
 
 ## Baseline already verified
 
@@ -254,7 +254,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.4-C1 — Remove requester-controlled thresholds from protected classification
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 2, 28 July 2026
 - Stage: Code and evidence - Phase 2 (Release-policy hardening)
 - Type: Contract change
 - Current code behavior:
@@ -273,7 +273,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.4-T1 — Add fixed-threshold and multi-wallet tests
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 2, 28 July 2026
 - Stage: Code and evidence - Phase 2 (Release-policy hardening)
 - Type: Tests
 - Code action:
@@ -834,7 +834,7 @@ Exit gate:
 
 # Stage A - Code and evidence (Phases 1-8, 16 actions)
 
-Stage A progress: **1/16 actions (6%)** — Phase 1 complete
+Stage A progress: **3/16 actions (19%)** — Phases 1-2 complete
 
 Stage A rule: the manuscript is not touched. If a code result contradicts something the
 submitted paper claims, record the contradiction in `evidence/claim_deltas.md` and resolve
@@ -876,25 +876,48 @@ Phase exit gate:
 
 ## Phase 2 - Release-policy hardening
 
-Why second: the adversarial experiment in Phase 6 must attack the hardened interface, and
-the old caller-selected interface must survive only as a measured baseline.
+Why second: the adversarial experiment in Phase 6 must attack the hardened interface.
 
-Phase progress: **0/2 actions (0%)**
+Phase progress: **2/2 actions (100%)** — complete 28 July 2026. Record: `evidence/phase2/`.
 
-- [ ] `R1.4-C1` Move `lowThreshold`, `highThreshold`, and approved oracle into an immutable
-      per-model release policy in `contracts/ModelMarketplace.sol`; change
-      `PRSComputeEngine.finalizeAndClassify` to load the policy instead of accepting
-      requester thresholds.
-- [ ] `R1.4-T1` Add fixed-threshold and multi-wallet tests; confirm the same registered
-      sample stays sample-rate-limited across wallets and document the remaining Sybil boundary.
+- [x] `R1.4-C1` `lowThreshold`, `highThreshold`, oracle, and the `oracleRequired` flag now
+      live in a per-model `ReleasePolicy` struct in `contracts/ModelMarketplace.sol`, set by
+      `setReleasePolicy(...)` under `_requireOwnedDraftModel` and therefore immutable after
+      `finalizeModel`. `setOracleRequired` and `setApprovedOracle` were **removed** — both were
+      mutable post-finalization, which was itself a bypass; `isOracleRequired` and
+      `getApprovedOracle` remain as read-only views. `PRSComputeEngine.finalizeAndClassify` is
+      now `finalizeAndClassify(uint256 jobId)` and loads the policy. The threshold-gap check
+      moved forward to configuration time so a model cannot be published with a policy that
+      would revert on first use.
+- [x] `R1.4-T1` New `Release policy` suite in `test/job_lifecycle_test.ts` covering immutability
+      after finalization, owner-only configuration, all four validation rejections, the
+      unconfigured-model case, policy round-trip, and the `ReleasePolicySet` event. The central
+      assertion is at ABI level: `finalizeAndClassify` has exactly one overload with exactly one
+      parameter named `jobId`, no engine function has any parameter matching `/threshold/i`, and
+      the two removed setters are absent. `test/registry_marketplace_oracle_test.ts` gains a
+      behavioural test proving the returned category reflects the **model's** thresholds.
+      Multi-wallet and per-sample quota behaviour was already covered by the two existing tests
+      `blocks the same sample across requesters when the sample window is exhausted` and
+      `rate limits are independent across different samples and requesters`, which document the
+      remaining Sybil boundary; see `CD-004`.
 
 Dependencies: Phase 1 naming.
 
 Phase exit gate:
 
-- [ ] No protected classification entry point accepts a requester-supplied threshold.
-- [ ] Tests fail against the old interface and pass against the new one.
-- [ ] Security invariants 8, 9, and 10 in `CLAUDE.md` are updated to match the new policy.
+- [x] No protected classification entry point accepts a requester-supplied threshold. Verified
+      at ABI level, not by convention: there is no threshold parameter to supply.
+- [x] Tests fail against the old interface and pass against the new one. 19 tests failed
+      pre-migration; **140 passing / 0 failing** after (up from the 137 baseline).
+- [x] Security invariants in `CLAUDE.md` updated: 8 and 9 revised, 10 replaced by
+      `Model-defined release policy — no requester-chosen thresholds`, new 11
+      `Release policy is immutable after model finalization`, old 11 renumbered to 12.
+      `docs/design.md` §6, `docs/roadmap.md`, `.claude/instructions/hardhat-tests.md`,
+      `.claude/instructions/solidity-fhevm.md`, `.claude/commands/security-review.md`, and
+      `docs/onboarding.md` all updated to the one-argument signature.
+- [x] Gas and HCU impact measured: total gas +0.0003% to +0.0009%, HCU ceiling unchanged at
+      `20 < ceiling <= 25`. One-time `setReleasePolicy` cost is 77,314 gas per model,
+      independent of variant count (`npm run profile:policy-gas`).
 
 ## Phase 3 - Independent validation stack
 
@@ -1230,21 +1253,21 @@ Phase exit gate:
 | Stage | Phase | Actions | Completed | Progress |
 |---|---|---:|---:|---:|
 | A | 1. Code terminology conformity | 1 | 1 | **100%** |
-| A | 2. Release-policy hardening | 2 | 0 | 0% |
+| A | 2. Release-policy hardening | 2 | 2 | **100%** |
 | A | 3. Independent validation stack | 6 | 0 | 0% |
 | A | 4. Evidence provenance | 1 | 0 | 0% |
 | A | 5. Individual-level correctness evidence | 1 | 0 | 0% |
 | A | 6. Adversarial evidence | 1 | 0 | 0% |
 | A | 7. Live fhEVM validation | 2 | 0 | 0% |
 | A | 8. Evidence synthesis | 2 | 0 | 0% |
-| **A** | **Code and evidence subtotal** | **16** | **1** | **6%** |
+| **A** | **Code and evidence subtotal** | **16** | **3** | **19%** |
 | B | 9. Methods written from code | 3 | 0 | 0% |
 | B | 10. Security model and release narrative | 5 | 0 | 0% |
 | B | 11. Results from measured evidence | 4 | 0 | 0% |
 | B | 12. Scope, cost, and HEPRS comparison | 6 | 0 | 0% |
 | B | 13. Front matter and conclusion | 1 | 0 | 0% |
 | **B** | **Manuscript subtotal** | **19** | **0** | **0%** |
-| | **Total reviewer actions** | **35** | **1** | **3%** |
+| | **Total reviewer actions** | **35** | **3** | **9%** |
 
 Phase 0 and Phase 14 are coordination and final-integration gates; they do not add reviewer
 action IDs to the 35-action total.

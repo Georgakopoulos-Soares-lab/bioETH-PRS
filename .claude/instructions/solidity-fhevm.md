@@ -95,14 +95,14 @@ createPRSJob(modelId, sampleId)
 appendSnpChunk(jobId, externalEuint64[], inputProof)   ← repeat, max 32/call
 finalizeSnpUpload(jobId)
 computeChunk(jobId)                                    ← repeat, max 20/call (mock)
-finalizeAndClassify(jobId, oracle, low, high)
+finalizeAndClassify(jobId)                             ← oracle + thresholds from model policy
 ```
 
 **Streaming path** (no SNP storage, ~37% cheaper):
 ```
 createPRSJob(modelId, sampleId)
 appendAndComputeChunk(jobId, externalEuint64[], inputProof)  ← repeat, max 20/call
-finalizeAndClassify(jobId, oracle, low, high)
+finalizeAndClassify(jobId)                                   ← oracle + thresholds from model policy
 ```
 
 State machine: `PENDING → UPLOADING → READY → COMPUTING → DONE`
@@ -113,7 +113,9 @@ Model owners configure per-wallet query limits via `ModelMarketplace.setRateLimi
 
 ## Oracle-Required Mode
 
-Model owners can enforce the bounded randomized release on all output: `ModelMarketplace.setOracleRequired(modelId, true)`. When set, `finalize()`, `finalizeTo()`, and `readPartial()` revert — only `finalizeAndClassify()` is allowed.
+Model owners enforce the bounded randomized release on all output by setting `oracleRequired` in the model's release policy: `ModelMarketplace.setReleasePolicy(modelId, oracle, lowThreshold, highThreshold, true)`. When set, `finalize()`, `finalizeTo()`, and `readPartial()` revert — only `finalizeAndClassify(jobId)` is allowed.
+
+The policy is settable only while the model is a draft and is immutable after `finalizeModel`. `finalizeAndClassify` takes only a job id: never add an oracle or threshold parameter to a classification entry point.
 
 ## Minimum Threshold Gap
 

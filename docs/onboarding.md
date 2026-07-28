@@ -221,13 +221,17 @@ genoSum    = Enc(2+1+0+1+2)                           = Enc(6)
 // First, get the noise bias so thresholds are correctly adjusted:
 bias = ResultOracle.expectedNoiseBias()   // = noiseUpperBound / 2 (e.g., 32 if bound=64)
 
-Alice calls:
-  PRSComputeEngine.finalizeAndClassify(
-    jobId=42,
+The model owner already fixed the policy, before finalizing the model:
+  ModelMarketplace.setReleasePolicy(
+    modelId,
     oracle=ResultOracle,
     lowThreshold=intendedLow + bias,    // adjust for uniform noise upward bias
-    highThreshold=intendedHigh + bias
+    highThreshold=intendedHigh + bias,
+    requireOracle=true
   )
+
+Alice calls:
+  PRSComputeEngine.finalizeAndClassify(jobId=42)   // no release parameters
 ```
 
 Engine applies quantization correction:

@@ -1,0 +1,67 @@
+
+> bioeth-prs@0.1.0 validate:mock
+> hardhat test scripts/sepolia_validation.ts
+
+
+
+  Sepolia 100-SNP validation
+
+Network  : hardhat (chainId=31337)
+FHE mode : mock — plaintext arithmetic
+Fixture  : 100 SNPs, uploadChunkSize=32, computeChunkSize=20
+
+Scale     : 3000000
+Expected  : 758685
+
+Deploying fresh contracts...
+  Deployed in 15ms
+  Registry   : 0x5FbDB2315678afecb367f032d93F642f64180aa3
+  Marketplace: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+  Engine     : 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+  SampleId   : 0
+
+Publishing 100-SNP public model...
+  Done in 7ms  gas=1129042
+
+Creating PRS job...
+  Job 0 in 1ms  gas=321170
+
+Uploading 4 SNP chunks (32 SNPs each)...
+  Upload 79ms  gas=10335879
+  finalizeSnpUpload gas=37197
+
+Computing 6 chunks (20 SNPs each)...
+  chunk  1/6  5ms  gas=1150414
+  chunk  2/6  9ms  gas=1118214
+  chunk  3/6  6ms  gas=1118214
+  chunk  4/6  6ms  gas=1118214
+  chunk  5/6  6ms  gas=1118214
+  chunk  6/6  1ms  gas=206257
+  Compute total gas=5829527
+
+Finalizing...
+  finalize 2ms  gas=169898
+  JobFinalized event received
+  Score handle: 0xd16a2b997e1303d3b13b446fc2a5da04bb3742d417ff0000000000007a690500
+
+Decrypting score (debugger path)...
+  Decrypted in 90ms
+  Actual  : 758685
+  Expected: 758685
+  PASS
+
+Report saved to /Users/kap4722/bioETH-PRS/deployments/chain-31337-validation-100snp.json
+
+=== Summary ===
+Network    : chain-31337 (mock)
+Upload     : 4 × uploadChunkSize=32
+Compute    : 6 × computeChunkSize=20
+Total gas  : 17822713
+Avg chunk  : 5.5ms
+Decrypt    : 90ms
+Status     : PASS
+    ✔ runs 100-SNP HEPRS fixture end-to-end and decrypts the score (235ms)
+
+
+  1 passing (240ms)
+

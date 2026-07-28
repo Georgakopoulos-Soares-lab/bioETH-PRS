@@ -1,0 +1,54 @@
+
+> bioeth-prs@0.1.0 profile:gas
+> hardhat test scripts/gas_profile.ts
+
+
+
+  Gas profile — synthetic SNP counts
+
+=== Gas Profile ===
+SNPs: 100
+Upload chunk size: 32
+Compute chunk size: 20
+Chunks: 5
+Model publish gas: 1084966
+Job create gas: 301270
+SNP upload gas: 10287793
+Compute gas: 5626326
+Finalize gas: 186998
+Total gas: 17487353
+Gas price: 30 gwei
+Estimated ETH: 0.52462059
+
+=== Gas Profile ===
+SNPs: 300
+Upload chunk size: 32
+Compute chunk size: 20
+Chunks: 15
+Model publish gas: 2646740
+Job create gas: 301270
+SNP upload gas: 30556438
+Compute gas: 16808466
+Finalize gas: 186998
+Total gas: 50499912
+Gas price: 30 gwei
+Estimated ETH: 1.51499736
+
+=== Gas Profile ===
+SNPs: 600
+Upload chunk size: 32
+Compute chunk size: 20
+Chunks: 30
+Model publish gas: 4989383
+Job create gas: 301270
+SNP upload gas: 61097217
+Compute gas: 33581676
+Finalize gas: 186998
+Total gas: 100156544
+Gas price: 30 gwei
+Estimated ETH: 3.00469632
+    ✔ profiles gas vs SNP count (1084ms)
+
+
+  1 passing (1s)
+

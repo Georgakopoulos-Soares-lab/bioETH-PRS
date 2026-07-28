@@ -32,11 +32,22 @@ function chunkArray<T>(values: T[], chunkSize: number): T[][] {
 /**
  * Deploy a public model + engine + registry stack for testing.
  * Returns all contracts and IDs needed for job creation.
+ *
+ * @param policy  Optional release policy (R1.4-C1).  When supplied, an oracle is
+ *                deployed and the policy is fixed BEFORE finalizeModel, because
+ *                setReleasePolicy only accepts draft models.  `oracle` is returned
+ *                only when a policy was configured.
  */
 async function deployStack(
   weights: bigint[],
   uploadChunkSize: bigint,
-  computeChunkSize: bigint
+  computeChunkSize: bigint,
+  policy?: {
+    noiseBound?: bigint;
+    low?: bigint;
+    high?: bigint;
+    requireOracle?: boolean;
+  }
 ) {
   const [owner] = await ethers.getSigners();
   const Marketplace = await ethers.getContractFactory("ModelMarketplace");
@@ -66,6 +77,21 @@ async function deployStack(
   for (const chunk of chunkArray(weights, Number(uploadChunkSize))) {
     await marketplace.appendPublicModelChunk(modelId, chunk);
   }
+
+  // Draft-only window: the release policy must be fixed before finalizeModel.
+  let oracle: any;
+  if (policy) {
+    const bound = policy.noiseBound ?? 128n;
+    const Oracle = await ethers.getContractFactory("ResultOracle");
+    oracle = await Oracle.deploy(bound);
+    await marketplace.setReleasePolicy(
+      modelId,
+      await oracle.getAddress(),
+      policy.low ?? 0n,
+      policy.high ?? bound,
+      policy.requireOracle ?? false
+    );
+  }
   await marketplace.finalizeModel(modelId);
 
   const Registry = await ethers.getContractFactory("GenomicRegistry");
@@ -79,7 +105,31 @@ async function deployStack(
     await registry.getAddress()
   );
 
-  return { marketplace, registry, engine, modelId, sampleId, owner };
+  return { marketplace, registry, engine, oracle, modelId, sampleId, owner };
+}
+
+/**
+ * Deploy a marketplace holding a model that is still a DRAFT (weights uploaded but
+ * finalizeModel not called).  Used for tests that must reach setReleasePolicy and
+ * assert on a check other than the finalized guard.
+ */
+async function deployDraftModel(weights: bigint[]) {
+  const [owner] = await ethers.getSigners();
+  const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+  const marketplace = await Marketplace.deploy();
+  const count = BigInt(weights.length);
+
+  const modelId = await marketplace.createModelShell.staticCall(
+    false, count, count, count, "ipfs://model",
+    ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+  );
+  await marketplace.createModelShell(
+    false, count, count, count, "ipfs://model",
+    ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+  );
+  await marketplace.appendPublicModelChunk(modelId, weights);
+
+  return { marketplace, modelId, owner };
 }
 
 /**
@@ -327,12 +377,8 @@ describe("Noisy Release Hardening — oracle-required mode", function () {
   it("finalize() reverts when oracleRequired is true", async function () {
     const [signer] = await ethers.getSigners();
     const { marketplace, engine, modelId, sampleId } = await deployStack(
-      [1n, 2n],
-      2n,
-      2n
+      [1n, 2n], 2n, 2n, { requireOracle: true }
     );
-
-    await marketplace.setOracleRequired(modelId, true);
 
     const jobId = await runCompleteJob(
       engine, marketplace, modelId, sampleId,
@@ -346,12 +392,8 @@ describe("Noisy Release Hardening — oracle-required mode", function () {
   it("finalizeTo() reverts when oracleRequired is true", async function () {
     const [signer, grantee] = await ethers.getSigners();
     const { marketplace, engine, modelId, sampleId } = await deployStack(
-      [1n, 2n],
-      2n,
-      2n
+      [1n, 2n], 2n, 2n, { requireOracle: true }
     );
-
-    await marketplace.setOracleRequired(modelId, true);
 
     const jobId = await runCompleteJob(
       engine, marketplace, modelId, sampleId,
@@ -365,12 +407,8 @@ describe("Noisy Release Hardening — oracle-required mode", function () {
   it("readPartial() reverts when oracleRequired is true", async function () {
     const [signer] = await ethers.getSigners();
     const { marketplace, engine, modelId, sampleId } = await deployStack(
-      [1n, 2n],
-      2n,
-      2n
+      [1n, 2n], 2n, 2n, { requireOracle: true }
     );
-
-    await marketplace.setOracleRequired(modelId, true);
 
     // Create job and compute one chunk (not complete yet)
     const engineAddr = await engine.getAddress();
@@ -386,34 +424,21 @@ describe("Noisy Release Hardening — oracle-required mode", function () {
 
   it("finalizeAndClassify() works when oracleRequired is true", async function () {
     const [signer] = await ethers.getSigners();
-    const { marketplace, engine, modelId, sampleId } = await deployStack(
-      [1n, 2n],
-      2n,
-      2n
+    // expected raw: 4*1 + 5*2 = 14 (no quantization correction in this test).
+    // Thresholds are model-defined and respect the noise-bound gap (>= 128):
+    // low = 10 + expectedNoiseBias(64) = 74, high = 74 + 128 = 202.
+    const { marketplace, engine, oracle, modelId, sampleId } = await deployStack(
+      [1n, 2n], 2n, 2n,
+      { noiseBound: 128n, low: 74n, high: 202n, requireOracle: true }
     );
-
-    await marketplace.setOracleRequired(modelId, true);
-
-    // Deploy oracle with noise bound 128
-    const Oracle = await ethers.getContractFactory("ResultOracle");
-    const oracle = await Oracle.deploy(128n);
-    const oracleAddr = await oracle.getAddress();
-
-    // Register the oracle so the engine's oracle-required validation passes
-    await marketplace.setApprovedOracle(modelId, oracleAddr);
 
     const jobId = await runCompleteJob(
       engine, marketplace, modelId, sampleId,
       [4n, 5n], 2, signer
     );
 
-    // expected raw: 4*1 + 5*2 = 14 (no quantization correction in this test)
-    // finalizeAndClassify should work — it's the oracle path
-    // Use thresholds that respect the noise bound gap (>= 128)
-    const noiseBias = await oracle.expectedNoiseBias();
-    const low = 10n + noiseBias; // 10 + 64 = 74
-    const high = low + 128n; // 74 + 128 = 202
-    const tx = await engine.finalizeAndClassify(jobId, oracleAddr, low, high);
+    // The requester passes only the job id — no oracle, no thresholds.
+    const tx = await engine.finalizeAndClassify(jobId);
     const receipt = await tx.wait();
 
     // Verify we got a classified result (euint8 event)
@@ -427,21 +452,31 @@ describe("Noisy Release Hardening — oracle-required mode", function () {
     expect(oracleEvent).to.not.be.undefined;
   });
 
-  it("only model owner can set oracleRequired", async function () {
+  it("only model owner can require the oracle path", async function () {
     const [, stranger] = await ethers.getSigners();
-    const { marketplace, modelId } = await deployStack([1n, 2n], 2n, 2n);
+    // Leave the model a draft so the policy setter is reachable; the revert must
+    // come from the ownership check, not from the finalized check.
+    const { marketplace, modelId } = await deployDraftModel([1n, 2n]);
+    const Oracle = await ethers.getContractFactory("ResultOracle");
+    const oracle = await Oracle.deploy(128n);
 
     await expect(
-      marketplace.connect(stranger).setOracleRequired(modelId, true)
+      marketplace.connect(stranger).setReleasePolicy(
+        modelId, await oracle.getAddress(), 0n, 128n, true
+      )
     ).to.be.revertedWith("Not owner");
   });
 
-  it("emits OracleRequirementSet event", async function () {
-    const { marketplace, modelId } = await deployStack([1n, 2n], 2n, 2n);
+  it("the oracle requirement cannot be enabled after the model is finalized", async function () {
+    const { marketplace, oracle, modelId } = await deployStack(
+      [1n, 2n], 2n, 2n, { requireOracle: false }
+    );
 
-    await expect(marketplace.setOracleRequired(modelId, true))
-      .to.emit(marketplace, "OracleRequirementSet")
-      .withArgs(modelId, true);
+    await expect(
+      marketplace.setReleasePolicy(
+        modelId, await oracle.getAddress(), 0n, 128n, true
+      )
+    ).to.be.revertedWith("Model already finalized");
   });
 
   it("isOracleRequired returns false by default", async function () {

@@ -95,3 +95,49 @@ Two findings inside this scope correction:
 
 **Standing rule for Stage B:** the manuscript adopts **"bounded randomized categorical
 release"** verbatim. Do not coin a third variant.
+
+---
+
+## CD-004 — Two submitted-manuscript algorithms show an interface that no longer exists
+
+- **Opened:** Phase 2, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R1.4-C1` manuscript conformity in Phase 9/10, and `R1.4-M1` in Phase 11
+
+Both paper algorithms — `Classic chunked PRS computation` and `Streaming PRS computation` —
+show the requester passing \(\tau_L, \tau_H\) into classification. After Phase 2 the requester
+passes only a job id; the thresholds are model-defined and immutable. Both algorithm listings
+must be redrawn, and `Noisy Output Release` must state that thresholds are fixed before any
+query is possible.
+
+Two further conformity items found while implementing:
+
+1. **`setOracleRequired` / `setApprovedOracle` are gone**, not merely superseded. Any manuscript
+   or documentation sentence describing a two-step "enable oracle mode, then register an
+   approved oracle" workflow is now wrong. The workflow is a single `setReleasePolicy` call
+   before `finalizeModel`.
+2. **Multi-wallet coverage already existed.** `R1.4-T1` asked for tests proving a registered
+   sample stays rate-limited across wallets. Two such tests were already present and passing
+   (`blocks the same sample across requesters when the sample window is exhausted`,
+   `rate limits are independent across different samples and requesters`). No new tests were
+   needed for that half of the action, but the manuscript must cite the existing tests rather
+   than claim new ones, and must state plainly that they document a **remaining Sybil boundary**
+   rather than closing it: distinct wallets with distinct registered samples still receive
+   independent windows.
+
+## CD-005 — Phase 6's attack baseline cannot come from the shipped contracts
+
+- **Opened:** Phase 2, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R1.4-E1` (Phase 6)
+
+`R1.4-E1` must compare fixed thresholds against "the old caller-selected threshold design."
+Retaining a legacy threshold-taking entry point in the shipped contracts would violate
+`R1.4-C1`'s completion criterion ("No protected classification entry point allows the requester
+to choose thresholds"), so none was kept.
+
+The baseline arm must therefore deploy the pre-Phase-2 contracts from the frozen snapshot
+`2d6f21d`. This is strictly better than a legacy shim: it measures the **genuine submitted
+design** rather than an approximation, and it keeps the shipped contracts free of an attack
+surface that exists only for benchmarking. Phase 6 must record which commit each arm was
+compiled from.

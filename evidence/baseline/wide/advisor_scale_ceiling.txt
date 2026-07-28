@@ -1,0 +1,23 @@
+
+> bioeth-prs@0.1.0 advisor:scale-ceilings
+> ts-node scripts/scale_ceiling_reference.ts
+
+Assumptions:
+- max genotype dosage = 2
+- max absolute quantized signed weight per SNP ~= scaling factor
+- conservative unsigned-encoding intermediate bound = 2 × dosage max × scale × SNPs
+- uint64 max = 18,446,744,073,709,551,615
+
+| Scaling factor | Max intermediate at 5,000 SNPs | Safe SNP ceiling under uint64 |
+|---|---:|---:|
+| `10^2` | `2,000,000` | `46,116,860,184,273,879` |
+| `10^3` | `20,000,000` | `4,611,686,018,427,387` |
+| `10^4` | `200,000,000` | `461,168,601,842,738` |
+| `10^5` | `2,000,000,000` | `46,116,860,184,273` |
+| `10^6` | `20,000,000,000` | `4,611,686,018,427` |
+| `10^7` | `200,000,000,000` | `461,168,601,842` |
+| `10^8` | `2,000,000,000,000` | `46,116,860,184` |
+| `10^9` | `20,000,000,000,000` | `4,611,686,018` |
+| `10^10` | `200,000,000,000,000` | `461,168,601` |
+| `10^11` | `2,000,000,000,000,000` | `46,116,860` |
+| `10^12` | `20,000,000,000,000,000` | `4,611,686` |
