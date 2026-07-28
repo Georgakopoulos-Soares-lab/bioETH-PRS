@@ -229,6 +229,33 @@ construction. The individual-level comparison still belongs in the paper, but as
 the **pipeline** — preprocessing, alignment, encoding, contract execution, decoding — not of
 arithmetic precision. Say which of the two it establishes.
 
+## MS-14 · `R2.4-E1` conformity · Phase 11/12 · Reproducibility identifiers and gas precision
+
+**Status: `READY`** — measured. See `CD-011`, `CD-012`.
+
+**Every final table gains reproducibility identifiers.** For each reported figure, state the
+repository commit, the model and fixture digests, the manifest hash, the contract addresses and
+bytecode digests for live runs, transaction identifiers, and the independent reference output
+digest it was checked against. All of these are now emitted automatically in a `provenance`
+block by the five evidence-producing scripts, so the paper transcribes rather than reconstructs.
+
+**Two corrections to how gas is reported.**
+
+1. **Model publication gas must be restated.** The submitted figures were measured with zero
+   manifest hashes. Recording real provenance — which the paper's own description of
+   `manifestHash` implies — costs a flat **+40,568 gas per model**, independent of variant
+   count: 1,084,966 to 1,125,534 at 100 SNPs (+3.74% of publication, +0.23% of total). State
+   that the increment is fixed per model rather than per variant, and therefore proportionally
+   largest for exactly the small curated panels the paper identifies as its intended use.
+2. **Gas must not be quoted to the individual unit.** `SNP upload gas` is not reproducible at
+   that resolution: three runs at identical commit and inputs spanned ~276 gas, and `Total gas`
+   inherits the variance. `Model publish gas` and `Compute gas` *are* exactly deterministic.
+   Either round to a stated precision or give a spread over repeated runs. A number's
+   presentation should not claim more than its measurement supports.
+
+State plainly that the HCU ceiling is unaffected by provenance, since it uses ordinary storage
+operations and adds no homomorphic work.
+
 ## MS-04 · `R1.4-M1` · Phase 11 · Replace the 2,800-hour claim
 
 **Status: `BLOCKED`** on `R1.4-E1` (Phase 6). Do not draft a placeholder number.
@@ -379,6 +406,19 @@ Verification` (Phase 11), and final page/line refs.
 
 We thank the reviewer for this suggestion, which we adopted, and we would note that acting on it materially improved the paper beyond answering the question. bioETH-PRS now ships an independent reference implementation of the entire scoring pipeline, together with a single command that executes both implementations over the same immutable inputs and returns pass or fail. The reference is written in Python, depends on nothing outside the standard library, and implements preprocessing, effect-allele harmonisation, Equation 1, the three-step quantisation, decoding, and comparison. We were careful about what "independent" is allowed to mean here, because two transliterations of one another agree by construction and demonstrate nothing: the reference was derived from the published specification in the manuscript rather than from the existing TypeScript helpers, and it neither imports nor transcribes them. We record the ordering explicitly, since the ordering is the substance of the claim — the reference was complete and all fifty-six of its known-answer checks were passing before the TypeScript implementation was consulted at all, to build the contract-side arm of the comparison. On the three known-answer cases, chosen to cover all-positive weights, mixed signed weights including a negative score, and a reversed effect allele, the two implementations agree exactly, at a comparison tolerance of zero rather than an approximate one; encoded scores are deterministic integers on both sides, so any difference would be a genuine disagreement rather than a rounding artifact. The reference also reproduces the worked example printed in the manuscript exactly. We would emphasise that the independence was not a formality: three defects in the published specification surfaced precisely because the reference followed the paper rather than the code. The weight zero-point is defined in the manuscript without a clamp that both implementations in fact apply, and would be negative and therefore unstorable for an all-positive weight vector; the rounding operator is written without a tie-breaking convention, and the two implementations had silently chosen different ones; and the reconstruction accuracy we described as machine-epsilon is in fact exactly zero on our fixtures, for the non-generalising reason that the source weights carry six decimal places and the recommended scale therefore quantises them losslessly. All three are corrected in the revised manuscript. Finally, we are explicit about the epistemic status of the exercise: this is independent-implementation agreement, not a proof of correctness, and it establishes nothing about sample authenticity, clinical validity, calibration, or ancestry portability. We describe it in those terms in the paper.
 
+## Reviewer 2, Comment 4 - how do I know I can trust these numbers?
+
+> How and who to guarantee the final PRS provided by bioETH-PRS is correctly computed? In other
+> words, the bioETH-PRS will eventually provide some numbers. But how do I know I can trust
+> these numbers?
+
+**Substantiated now:** `R2.4-E1` (provenance) and `R2.6-C1` (independent reference) -
+`evidence/phase4/`, `evidence/phase3/`.
+**Blocked on:** MS-07 (Phase 11) for the correctness-guarantee table, MS-14 (Phase 11/12) for
+the restated gas figures, and final page/line refs.
+
+We thank the reviewer for this question, which we found to be the most demanding of the review, because answering it honestly required us to admit that the submitted version did not support the trust it invited. Our answer has three parts: what the protocol guarantees, what it explicitly does not, and what a reader can independently check. On the first, we have added a table to Correctness and Protocol Verification that assigns each guarantee to a named party rather than leaving it to the architecture in general. The genotype preprocessor is responsible for variant and effect-allele alignment; the model provider for the weights, the release thresholds, and the scientific validity of the model; the smart contracts for computing a deterministic encoded weighted sum over whatever ciphertexts were submitted; the fhEVM infrastructure for encrypted execution and decryption under its own assumptions; the independent reference implementation for agreement with Equation 1; and the end user for verifying manifest hashes, contract addresses, and the transaction record. On the second, we state without qualification that the protocol guarantees none of sample authenticity, clinical validity, calibration, or ancestry portability, and that blockchain consensus does not establish biological correctness - consensus makes the orchestration auditable, and nothing more. On the third, and this is the substantive change, the reviewer's question exposed a concrete defect: the evaluation code committed a zero hash in place of every model and sample manifest hash, so a figure printed in the manuscript could not be traced back to the fixture that produced it. Trust in a number requires the number to be attributable, and ours were not. Every evaluation script now records the repository commit, the digests of the exact input files, the model manifest, the deployed contract addresses together with their bytecode digests, and the digest of the independent reference output the run was checked against, and a regression test fails the build if any of that is reintroduced as a placeholder. We would highlight that this change immediately justified itself by exposing a second error we would otherwise have published: linking the reference output to the on-chain run forced the two to be compared directly for the first time on real fixture data, and they disagreed by a factor of exactly three, because our reference had been configured with the wrong quantisation scale for two of the four fixtures. Neither implementation was at fault; a parameter was. The reference and the contract path now agree exactly on the fixture we validate end to end. Finally, we report a consequence that bears on the reviewer's question about trusting numbers in general. Recording real provenance costs 40,568 gas per model, so the model-publication figures in the submitted manuscript correspond to a configuration in which provenance was not recorded, and we have restated them. We also found that our upload-path gas measurements are not reproducible to the individual gas unit across runs, although model publication and compute are, so we no longer quote gas at a precision the measurement does not support.
+
 ## Not yet drafted
 
 Do not pre-write these; each needs its Stage A evidence first.
@@ -390,7 +430,6 @@ Do not pre-write these; each needs its Stage A evidence first.
 | R1 C7 | HEPRS comparison by dimension | Phases 7–8 |
 | R1 C8 | Cost projections | `R1.8-E1` (Phase 8) |
 | R2 C1 | Narrow SNP class | Phase 8 |
-| R2 C4 | Who guarantees correctness | `R2.4-E1` (Phase 4), `R2.6-C1` (Phase 3) |
 | R2 C5 | Interpretability of the encoded pipeline | Phase 9 |
 | R2 C7 | Equation 1 agreement | `R2.7-E1` (Phase 5) |
 
@@ -417,6 +456,10 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-13 | reference self test — 56/56 checks, incl. orientation and every QC rule | R2 C2, C3 |
 | EV-14 | `validation/cases/*.json` — 27 hand-computed expectations, all re-derived and agreeing | R2 C6 |
 | EV-15 | `evidence/phase3/reference/heprs_*snp_reference.json` — expected answers, all 200 individuals, round-trip error 0 | MS-13; R2 C7 |
+| EV-16 | `scripts/utils/provenance.ts` - commit, input digests, bytecode digests, reference-output digest | MS-14; R2 C4 |
+| EV-17 | `test/provenance_guard_test.ts` - 9 tests; zero-hash regression guard incl. exemption-list staleness | R2 C4 |
+| EV-18 | `evidence/phase4/gas_delta.md` - +40,568 gas/model for real provenance, attributed by phase | MS-14, MS-08; R1 C8 |
+| EV-19 | 100-SNP cross-validation: reference and contract agree at `encodedScore = 758,685` | R2 C4, C7 |
 
 ## Commit trail
 
@@ -429,3 +472,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `b0c86a4` | Phase 1: DP framing removed, trust boundary labelled |
 | `7870d4c` | Phase 2: release policy fixed and immutable; requester thresholds removed |
 | `88ecb89` | Phase 3: independent Python reference; cross-language agreement at tolerance 0 |
+| `<phase4>` | Phase 4: real provenance across all evidence-producing code; zero-hash guard |

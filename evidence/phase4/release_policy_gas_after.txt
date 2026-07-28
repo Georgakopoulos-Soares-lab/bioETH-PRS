@@ -1,0 +1,20 @@
+
+> bioeth-prs@0.1.0 profile:policy-gas
+> hardhat test scripts/release_policy_gas.ts
+
+
+
+  Release policy gas
+=== Release Policy Gas ===
+setReleasePolicy gas     : 77314
+finalizeAndClassify gas  : 432230
+Evidence class           : Hardhat mock (synthetic inputs)
+Commit                   : 0befa19 (DIRTY)
+manifestHash             : 0x6a153d294cd5bd48b9a436477613fa8182c96648b8bf2ff1c9994616e655a039
+Note: setReleasePolicy is a fixed one-time per-model cost,
+      independent of variant count.
+    ✔ measures setReleasePolicy and the finalizeAndClassify path (69ms)
+
+
+  1 passing (70ms)
+

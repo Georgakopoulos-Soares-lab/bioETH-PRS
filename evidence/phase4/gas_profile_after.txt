@@ -1,0 +1,68 @@
+
+> bioeth-prs@0.1.0 profile:gas
+> hardhat test scripts/gas_profile.ts
+
+
+
+  Gas profile — synthetic SNP counts
+
+=== Gas Profile ===
+SNPs: 100
+Upload chunk size: 32
+Compute chunk size: 20
+Chunks: 5
+Model publish gas: 1125534
+Job create gas: 301270
+SNP upload gas: 10287781
+Compute gas: 5626326
+Finalize gas: 186998
+Total gas: 17527909
+Gas price: 30 gwei
+Estimated ETH: 0.52583727
+Evidence class: Hardhat mock (synthetic inputs)
+Commit: 0befa19 (DIRTY)
+manifestHash: 0x6b12a1710e0194bf1503092bfce456c37825f6e6308f2c63d4e9736888df4f74
+sourceModelHash: 0xe51c9279dd62c33d287ae882724bd861481319ce87320ed1f0042a2b18d90c5e
+
+=== Gas Profile ===
+SNPs: 300
+Upload chunk size: 32
+Compute chunk size: 20
+Chunks: 15
+Model publish gas: 2687308
+Job create gas: 301270
+SNP upload gas: 30556294
+Compute gas: 16808466
+Finalize gas: 186998
+Total gas: 50540336
+Gas price: 30 gwei
+Estimated ETH: 1.51621008
+Evidence class: Hardhat mock (synthetic inputs)
+Commit: 0befa19 (DIRTY)
+manifestHash: 0x1ff7b85928b4f2a9af78916803b964d423ea50e59c6d3a70dbb04df7a8995825
+sourceModelHash: 0xb8a2a8ccd8fa131c6efb9266575763f6741dc33fb8ac7ac149cc084251f7b30d
+
+=== Gas Profile ===
+SNPs: 600
+Upload chunk size: 32
+Compute chunk size: 20
+Chunks: 30
+Model publish gas: 5029939
+Job create gas: 301270
+SNP upload gas: 61097265
+Compute gas: 33581676
+Finalize gas: 186998
+Total gas: 100197148
+Gas price: 30 gwei
+Estimated ETH: 3.00591444
+Evidence class: Hardhat mock (synthetic inputs)
+Commit: 0befa19 (DIRTY)
+manifestHash: 0x2e484994fa51294ad0e96d88b3fb53ca15a3a2d5507d71ec6c6da1e5c7a40686
+sourceModelHash: 0x0de49313f5a7bf3b90ec666ad2e7af625607da4dd126c2c0ca873aa107a00020
+
+Report saved to evidence/phase4/gas-profile-31337.json
+    ✔ profiles gas vs SNP count (1332ms)
+
+
+  1 passing (1s)
+

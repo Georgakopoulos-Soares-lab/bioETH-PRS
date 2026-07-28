@@ -33,6 +33,11 @@ import fs from "fs";
 import path from "path";
 
 import { ethers, fhevm } from "hardhat";
+import {
+  syntheticModelProvenance,
+  buildProvenance,
+  contractIdentity,
+} from "./utils/provenance";
 
 const CANDIDATE_CHUNK_SIZES = [10, 15, 20, 25, 32];
 const DEFAULT_HARDHAT_DEPLOYER =
@@ -68,9 +73,32 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
   await engine.waitForDeployment();
   const engineAddress = await engine.getAddress();
 
-  // Register a sample
-  const sampleId = await registry.registerSample.staticCall("ipfs://hcu-probe");
-  await (await registry.registerSample("ipfs://hcu-probe")).wait();
+  // R2.4-E1: synthetic inputs, so provenance commits to the generation spec.
+  const prov = syntheticModelProvenance({
+    purpose: "hcu_ceiling_probe",
+    spec: {
+      weightCount,
+      uploadChunkSize,
+      computeChunkSize: chunkSize,
+      weightFormula: "Array(weightCount).fill(1n)",
+      dosageFormula: "Array(weightCount).fill(1n)",
+      weightZeroPoint: 0,
+      scoreOffset: 0,
+      deterministic: true,
+    },
+  });
+
+  // Register a sample, committing to the genotype spec rather than a zero hash.
+  const sampleId = await registry.registerSampleWithManifest.staticCall(
+    "ipfs://hcu-probe",
+    prov.genotypeManifestHash
+  );
+  await (
+    await registry.registerSampleWithManifest(
+      "ipfs://hcu-probe",
+      prov.genotypeManifestHash
+    )
+  ).wait();
 
   // Publish model — all weights = 1n (synthetic, value doesn't matter for HCU test)
   const weights = Array(weightCount).fill(1n);
@@ -80,8 +108,8 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
     BigInt(uploadChunkSize),
     BigInt(chunkSize), // computeChunkSize — this is what we're probing
     "ipfs://hcu-probe-model",
-    ethers.ZeroHash,
-    ethers.ZeroHash,
+    prov.manifestHash,
+    prov.sourceModelHash,
     0n, // weightZeroPoint
     0n  // scoreOffset
   );
@@ -92,8 +120,8 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
       BigInt(uploadChunkSize),
       BigInt(chunkSize),
       "ipfs://hcu-probe-model",
-      ethers.ZeroHash,
-      ethers.ZeroHash,
+      prov.manifestHash,
+      prov.sourceModelHash,
       0n,
       0n
     )
@@ -142,7 +170,15 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
       passed: true,
       computeGasPerChunk,
       totalComputeGas: totalComputeGas.toString(),
-      timingsMs
+      timingsMs,
+      provenance: await buildProvenance({
+        model: prov,
+        contracts: [
+          await contractIdentity("ModelMarketplace", marketplace),
+          await contractIdentity("GenomicRegistry", registry),
+          await contractIdentity("PRSComputeEngine", engine),
+        ],
+      })
     };
   } catch (err: any) {
     return {
@@ -151,7 +187,15 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
       errorMessage: String(err?.message ?? err),
       computeGasPerChunk,
       totalComputeGas: totalComputeGas.toString(),
-      timingsMs
+      timingsMs,
+      provenance: await buildProvenance({
+        model: prov,
+        contracts: [
+          await contractIdentity("ModelMarketplace", marketplace),
+          await contractIdentity("GenomicRegistry", registry),
+          await contractIdentity("PRSComputeEngine", engine),
+        ],
+      })
     };
   }
 }
@@ -234,6 +278,11 @@ describe("HCU ceiling probe", function () {
       network: networkKey,
       chainId: chainId.toString(),
       fheMode: isMock ? "mock" : "real",
+      evidenceClass: isMock ? "Hardhat mock" : "Live fhEVM",
+      note: isMock
+        ? "Mock coprocessor: validates the HCU accounting path and transaction " +
+          "geometry. The ceiling on a real fhEVM deployment may differ."
+        : "Live fhEVM measurement.",
       timestamp: new Date().toISOString(),
       candidateChunkSizes: CANDIDATE_CHUNK_SIZES,
       maxPassingChunkSize: maxPassed ?? null,

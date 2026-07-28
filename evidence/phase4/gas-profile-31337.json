@@ -1,0 +1,260 @@
+{
+  "report": "gas_vs_snp_count",
+  "evidenceClass": "Hardhat mock",
+  "note": "Synthetic inputs. Validates transaction geometry and gas scaling; does not measure real fhEVM latency, HCU availability, or production fees.",
+  "capturedAtIso": "2026-07-28T09:19:29.635Z",
+  "results": [
+    {
+      "snpCount": 100,
+      "uploadChunkSize": 32,
+      "computeChunkSize": 20,
+      "chunks": 5,
+      "publishGas": "1125534",
+      "createJobGas": "301270",
+      "snpUploadGas": "10287781",
+      "computeGas": "5626326",
+      "finalizeGas": "186998",
+      "totalGas": "17527909",
+      "gasPriceGwei": "30",
+      "estimatedEth": "0.52583727",
+      "provenance": {
+        "schema": "bioeth-prs/provenance/1",
+        "repository": {
+          "commit": "0befa19561e7c4a20d053aee56bd9d3314e4d58f",
+          "shortCommit": "0befa19",
+          "branch": "rtr-revision",
+          "dirty": true,
+          "dirtyFiles": [
+            "M evidence/phase3/reference/heprs_100snp_reference.json",
+            "M evidence/phase3/reference/heprs_500snp_reference.json",
+            "M scripts/gas_profile.ts",
+            "M scripts/heprs_fixture_profile.ts",
+            "M scripts/probe_hcu_ceiling.ts",
+            "M scripts/sepolia_validation.ts",
+            "M test/heprs_fixture_test.ts",
+            "M validation/independent_prs_reference.py",
+            "M validation/manifests/heprs_100snp.json",
+            "M validation/manifests/heprs_500snp.json",
+            "?? evidence/phase4/",
+            "?? scripts/utils/",
+            "?? test/provenance_guard_test.ts"
+          ]
+        },
+        "runtime": {
+          "node": "v22.23.1",
+          "platform": "darwin"
+        },
+        "network": {
+          "name": "hardhat",
+          "chainId": "31337"
+        },
+        "inputs": [],
+        "model": {
+          "manifestHash": "0x6b12a1710e0194bf1503092bfce456c37825f6e6308f2c63d4e9736888df4f74",
+          "sourceModelHash": "0xe51c9279dd62c33d287ae882724bd861481319ce87320ed1f0042a2b18d90c5e",
+          "genotypeManifestHash": "0x21ae5fa1d1cf6e58227383e2c05f2fce929dfd9bd8c42c9b116f518f46b81c13",
+          "descriptor": {
+            "kind": "synthetic",
+            "purpose": "gas_vs_snp_count_curve",
+            "snpCount": 100,
+            "uploadChunkSize": 32,
+            "computeChunkSize": 20,
+            "weightFormula": "BigInt((i + 1) % 11)",
+            "dosageFormula": "BigInt((i + 2) % 3)",
+            "weightZeroPoint": 0,
+            "scoreOffset": 0,
+            "deterministic": true
+          }
+        },
+        "contracts": [
+          {
+            "name": "ModelMarketplace",
+            "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+            "bytecodeHash": "0x4a64e793f919c00d38b7e0e4a0acf82a917826bdb7d2ace9aa2970b1cdd435b2",
+            "bytecodeBytes": 8151
+          },
+          {
+            "name": "GenomicRegistry",
+            "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+            "bytecodeHash": "0x1b2e38bee44ca3a96c813fc05e41fd0b59e8e08b09320503cdfade32aa1400da",
+            "bytecodeBytes": 2808
+          },
+          {
+            "name": "PRSComputeEngine",
+            "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+            "bytecodeHash": "0x9095f79baa7e79b34c24cb3f03e80510d880f7e6df64a28ff5391421aca82f8a",
+            "bytecodeBytes": 10426
+          }
+        ]
+      }
+    },
+    {
+      "snpCount": 300,
+      "uploadChunkSize": 32,
+      "computeChunkSize": 20,
+      "chunks": 15,
+      "publishGas": "2687308",
+      "createJobGas": "301270",
+      "snpUploadGas": "30556294",
+      "computeGas": "16808466",
+      "finalizeGas": "186998",
+      "totalGas": "50540336",
+      "gasPriceGwei": "30",
+      "estimatedEth": "1.51621008",
+      "provenance": {
+        "schema": "bioeth-prs/provenance/1",
+        "repository": {
+          "commit": "0befa19561e7c4a20d053aee56bd9d3314e4d58f",
+          "shortCommit": "0befa19",
+          "branch": "rtr-revision",
+          "dirty": true,
+          "dirtyFiles": [
+            "M evidence/phase3/reference/heprs_100snp_reference.json",
+            "M evidence/phase3/reference/heprs_500snp_reference.json",
+            "M scripts/gas_profile.ts",
+            "M scripts/heprs_fixture_profile.ts",
+            "M scripts/probe_hcu_ceiling.ts",
+            "M scripts/sepolia_validation.ts",
+            "M test/heprs_fixture_test.ts",
+            "M validation/independent_prs_reference.py",
+            "M validation/manifests/heprs_100snp.json",
+            "M validation/manifests/heprs_500snp.json",
+            "?? evidence/phase4/",
+            "?? scripts/utils/",
+            "?? test/provenance_guard_test.ts"
+          ]
+        },
+        "runtime": {
+          "node": "v22.23.1",
+          "platform": "darwin"
+        },
+        "network": {
+          "name": "hardhat",
+          "chainId": "31337"
+        },
+        "inputs": [],
+        "model": {
+          "manifestHash": "0x1ff7b85928b4f2a9af78916803b964d423ea50e59c6d3a70dbb04df7a8995825",
+          "sourceModelHash": "0xb8a2a8ccd8fa131c6efb9266575763f6741dc33fb8ac7ac149cc084251f7b30d",
+          "genotypeManifestHash": "0xeb9d64c45f40a6636073bfe602ce42dbcc5557a91bc0d8e64b889f1fddc9295a",
+          "descriptor": {
+            "kind": "synthetic",
+            "purpose": "gas_vs_snp_count_curve",
+            "snpCount": 300,
+            "uploadChunkSize": 32,
+            "computeChunkSize": 20,
+            "weightFormula": "BigInt((i + 1) % 11)",
+            "dosageFormula": "BigInt((i + 2) % 3)",
+            "weightZeroPoint": 0,
+            "scoreOffset": 0,
+            "deterministic": true
+          }
+        },
+        "contracts": [
+          {
+            "name": "ModelMarketplace",
+            "address": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1",
+            "bytecodeHash": "0x4a64e793f919c00d38b7e0e4a0acf82a917826bdb7d2ace9aa2970b1cdd435b2",
+            "bytecodeBytes": 8151
+          },
+          {
+            "name": "GenomicRegistry",
+            "address": "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
+            "bytecodeHash": "0x1b2e38bee44ca3a96c813fc05e41fd0b59e8e08b09320503cdfade32aa1400da",
+            "bytecodeBytes": 2808
+          },
+          {
+            "name": "PRSComputeEngine",
+            "address": "0x4A679253410272dd5232B3Ff7cF5dbB88f295319",
+            "bytecodeHash": "0x9095f79baa7e79b34c24cb3f03e80510d880f7e6df64a28ff5391421aca82f8a",
+            "bytecodeBytes": 10426
+          }
+        ]
+      }
+    },
+    {
+      "snpCount": 600,
+      "uploadChunkSize": 32,
+      "computeChunkSize": 20,
+      "chunks": 30,
+      "publishGas": "5029939",
+      "createJobGas": "301270",
+      "snpUploadGas": "61097265",
+      "computeGas": "33581676",
+      "finalizeGas": "186998",
+      "totalGas": "100197148",
+      "gasPriceGwei": "30",
+      "estimatedEth": "3.00591444",
+      "provenance": {
+        "schema": "bioeth-prs/provenance/1",
+        "repository": {
+          "commit": "0befa19561e7c4a20d053aee56bd9d3314e4d58f",
+          "shortCommit": "0befa19",
+          "branch": "rtr-revision",
+          "dirty": true,
+          "dirtyFiles": [
+            "M evidence/phase3/reference/heprs_100snp_reference.json",
+            "M evidence/phase3/reference/heprs_500snp_reference.json",
+            "M scripts/gas_profile.ts",
+            "M scripts/heprs_fixture_profile.ts",
+            "M scripts/probe_hcu_ceiling.ts",
+            "M scripts/sepolia_validation.ts",
+            "M test/heprs_fixture_test.ts",
+            "M validation/independent_prs_reference.py",
+            "M validation/manifests/heprs_100snp.json",
+            "M validation/manifests/heprs_500snp.json",
+            "?? evidence/phase4/",
+            "?? scripts/utils/",
+            "?? test/provenance_guard_test.ts"
+          ]
+        },
+        "runtime": {
+          "node": "v22.23.1",
+          "platform": "darwin"
+        },
+        "network": {
+          "name": "hardhat",
+          "chainId": "31337"
+        },
+        "inputs": [],
+        "model": {
+          "manifestHash": "0x2e484994fa51294ad0e96d88b3fb53ca15a3a2d5507d71ec6c6da1e5c7a40686",
+          "sourceModelHash": "0x0de49313f5a7bf3b90ec666ad2e7af625607da4dd126c2c0ca873aa107a00020",
+          "genotypeManifestHash": "0x57341bd21e5e3bd8d1b92c010e6ef34cd0d7b1f80f936782253f3a76a2e19180",
+          "descriptor": {
+            "kind": "synthetic",
+            "purpose": "gas_vs_snp_count_curve",
+            "snpCount": 600,
+            "uploadChunkSize": 32,
+            "computeChunkSize": 20,
+            "weightFormula": "BigInt((i + 1) % 11)",
+            "dosageFormula": "BigInt((i + 2) % 3)",
+            "weightZeroPoint": 0,
+            "scoreOffset": 0,
+            "deterministic": true
+          }
+        },
+        "contracts": [
+          {
+            "name": "ModelMarketplace",
+            "address": "0x1fA02b2d6A771842690194Cf62D91bdd92BfE28d",
+            "bytecodeHash": "0x4a64e793f919c00d38b7e0e4a0acf82a917826bdb7d2ace9aa2970b1cdd435b2",
+            "bytecodeBytes": 8151
+          },
+          {
+            "name": "GenomicRegistry",
+            "address": "0xdbC43Ba45381e02825b14322cDdd15eC4B3164E6",
+            "bytecodeHash": "0x1b2e38bee44ca3a96c813fc05e41fd0b59e8e08b09320503cdfade32aa1400da",
+            "bytecodeBytes": 2808
+          },
+          {
+            "name": "PRSComputeEngine",
+            "address": "0x4C4a2f8c81640e47606d3fd77B353E87Ba015584",
+            "bytecodeHash": "0x9095f79baa7e79b34c24cb3f03e80510d880f7e6df64a28ff5391421aca82f8a",
+            "bytecodeBytes": 10426
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "genome_build": "UNSPECIFIED_ASSUMED_CONSISTENT",
-  "scale": 1000000,
+  "scale": 3000000,
   "missing_policy": "reject",
   "note": "HEPRS fixture manifest, nominal 500 SNPs plus one intercept column (501 encoded positions). Alleles are placeholders: the fixtures carry no allele or build metadata, so they are assumed pre-aligned and no strand or build validation is performed.",
   "variants": [

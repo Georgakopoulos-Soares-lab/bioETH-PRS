@@ -42,8 +42,8 @@ Status convention:
 - `[x]` Completed
 - `Progress: 0%` can be changed to an intermediate percentage while work is in progress.
 
-Overall RTR progress: **9/35 actions completed (26%)** — plus `R1.3-M2` at 50%
-Stage A: **9/16** &nbsp;&nbsp; Stage B: **0/19**
+Overall RTR progress: **10/35 actions completed (29%)** — plus `R1.3-M2` at 50%
+Stage A: **10/16** &nbsp;&nbsp; Stage B: **0/19**
 
 ## Baseline already verified
 
@@ -648,7 +648,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.4-E1 — Bind every reported result to reproducibility identifiers
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 4, 28 July 2026
 - Stage: Code and evidence - Phase 4 (Evidence provenance)
 - Type: Evaluation provenance
 - Action:
@@ -834,7 +834,7 @@ Exit gate:
 
 # Stage A - Code and evidence (Phases 1-8, 16 actions)
 
-Stage A progress: **9/16 actions (56%)** — Phases 1-3 complete
+Stage A progress: **10/16 actions (63%)** — Phases 1-4 complete
 
 Stage A rule: the manuscript is not touched. If a code result contradicts something the
 submitted paper claims, record the contradiction in `evidence/claim_deltas.md` and resolve
@@ -989,20 +989,52 @@ Phase exit gate:
 Why before the measuring phases: every artifact produced from here on must be traceable, so
 provenance is fixed before any reportable number is generated.
 
-Phase progress: **0/1 actions (0%)**
+Phase progress: **1/1 actions (100%)** — complete 28 July 2026. Record: `evidence/phase4/`.
 
-- [ ] `R2.4-E1` Replace `ethers.ZeroHash` experimental manifests with real hashes in
-      `scripts/sepolia_validation.ts`, `scripts/heprs_fixture_profile.ts`, and
-      `test/heprs_fixture_test.ts`. Record repository commit, model and fixture hashes,
-      manifest hash, contract bytecode and address for live runs, transaction IDs, and the
-      independent reference output hash for every run.
+- [x] `R2.4-E1` All five evidence-producing files now commit to their real inputs via
+      `scripts/utils/provenance.ts`: `scripts/sepolia_validation.ts`,
+      `scripts/heprs_fixture_profile.ts`, `scripts/gas_profile.ts`,
+      `scripts/probe_hcu_ceiling.ts`, `test/heprs_fixture_test.ts`, and
+      `scripts/release_policy_gas.ts`. Zero `ZeroHash` occurrences remain, down from 26. Each run records repository commit and dirty flag,
+      branch, node version, network and chain id, per-input file digests with byte counts, the
+      three model hashes, deployed contract addresses **and bytecode digests**, and the digest
+      of the independent reference output it was checked against. Fixture runs hash the same
+      manifest the Python reference consumes. Sample registration moved to
+      `registerSampleWithManifest`, which the contract already refuses with a zero hash.
+      Synthetic runs commit to a canonical digest of the generation spec, the only
+      reproducibility available for generated inputs. The provenance block carries no
+      timestamp, so two runs at the same commit over the same inputs are byte-identical.
 
-Dependencies: Phase 3 (the reference output hash requires the reference).
+Dependencies: Phase 3 (the reference output digest requires the reference).
 
 Phase exit gate:
 
-- [ ] No evaluation path writes a zero manifest hash.
-- [ ] A single reported score can be traced to exact inputs, code, and deployment.
+- [x] No evaluation path writes a zero manifest hash. Enforced, not merely fixed:
+      `test/provenance_guard_test.ts` (9 tests) fails if a guarded file reintroduces
+      `ZeroHash`, if a guarded file stops importing the helper, or if the
+      behavioural-exemption list goes stale. Suite 140 → **149 passing, 0 failing**.
+- [x] A single reported score can be traced to exact inputs, code, and deployment.
+      Demonstrated: the 100-SNP validation run and the independent Python reference now agree
+      exactly on individual 0 at `encodedScore = 758,685`, `PRS = 0.003843`, round-trip error
+      0 — the first agreement between the reference and real contract execution on fixture
+      data rather than on constructed cases.
+- [x] Scope corrected twice and both corrections recorded. `CD-009`: the rate-limit test is
+      behavioural, not evidence-producing — the rate-limit test is
+      behavioural and reports no measurement, so placeholder hashes are appropriate there and
+      the exemption is guarded against staleness. `CD-013`: the guard list was seeded from
+      `CD-001`'s Phase-0 inventory and missed `scripts/release_policy_gas.ts`, which was added
+      in Phase 2 and reports gas Phase 8 will cite. A `grep` sweep caught it, not the guard —
+      a guard cannot detect its own incompleteness, so the sweep is now part of each phase's
+      exit check. Guarded set is six files.
+- [x] Cost of provenance measured and attributed by phase. Model publication rises a flat
+      **+40,568 gas per model**, independent of variant count (+3.74% of publish at 100 SNPs,
+      +0.23% of total). Job creation, compute, and finalize unchanged; HCU ceiling unchanged at
+      `20 < ceiling <= 25`, since provenance adds no homomorphic work. See `CD-012`.
+- [x] Findings recorded: `CD-010` (Phase 3 used the wrong advisor scale for the 100/500-SNP
+      fixtures — caught here, fixed, all four reference files regenerated), `CD-011`
+      (`SNP upload gas` is not reproducible to the gas, so the paper over-reports precision),
+      `CD-012` (published model-publication gas was measured with zero hashes and understates
+      the system as described).
 
 ## Phase 5 - Individual-level correctness evidence
 
@@ -1282,19 +1314,19 @@ Phase exit gate:
 | A | 1. Code terminology conformity | 1 | 1 | **100%** |
 | A | 2. Release-policy hardening | 2 | 2 | **100%** |
 | A | 3. Independent validation stack | 6 | 6 | **100%** |
-| A | 4. Evidence provenance | 1 | 0 | 0% |
+| A | 4. Evidence provenance | 1 | 1 | **100%** |
 | A | 5. Individual-level correctness evidence | 1 | 0 | 0% |
 | A | 6. Adversarial evidence | 1 | 0 | 0% |
 | A | 7. Live fhEVM validation | 2 | 0 | 0% |
 | A | 8. Evidence synthesis | 2 | 0 | 0% |
-| **A** | **Code and evidence subtotal** | **16** | **9** | **56%** |
+| **A** | **Code and evidence subtotal** | **16** | **10** | **63%** |
 | B | 9. Methods written from code | 3 | 0 | 0% |
 | B | 10. Security model and release narrative | 5 | 0 | 0% |
 | B | 11. Results from measured evidence | 4 | 0 | 0% |
 | B | 12. Scope, cost, and HEPRS comparison | 6 | 0 | 0% |
 | B | 13. Front matter and conclusion | 1 | 0 | 0% |
 | **B** | **Manuscript subtotal** | **19** | **0** | **0%** |
-| | **Total reviewer actions** | **35** | **9** | **26%** |
+| | **Total reviewer actions** | **35** | **10** | **29%** |
 
 Phase 0 and Phase 14 are coordination and final-integration gates; they do not add reviewer
 action IDs to the 35-action total.

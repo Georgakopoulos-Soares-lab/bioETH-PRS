@@ -1100,6 +1100,21 @@ def selftest(verbose: bool = True) -> int:
     except ValidationError:
         check("truncated variant order is rejected", True, True)
 
+    print("Case 7c -- advisor scale table (CD-010 regression guard)")
+    check("100-SNP advisor scale is 3e6", advisor_scale(100), 3_000_000)
+    check("500-SNP advisor scale is 3e6", advisor_scale(500), 3_000_000)
+    check("1000-SNP advisor scale is 1e6", advisor_scale(1000), 1_000_000)
+    check("5000-SNP advisor scale is 1e6", advisor_scale(5000), 1_000_000)
+    try:
+        advisor_scale(250)
+        check("unknown fixture size is rejected, not guessed", False, True)
+    except ValidationError:
+        check("unknown fixture size is rejected, not guessed", True, True)
+    # Exactness holds at every integer multiple of 1e6, so CD-006 survives the fix.
+    check("weights stay exact at s=3e6",
+          Encoding([Decimal("0.000439"), Decimal("-0.009534")], 3_000_000).q,
+          [1317, -28602])
+
     print("Case 8 -- rounding rule")
     check("round_half_away_from_zero(+0.5) == 1",
           round_half_away_from_zero(Decimal("0.5")), 1)
@@ -1123,6 +1138,35 @@ def selftest(verbose: bool = True) -> int:
 # ---------------------------------------------------------------------------
 # Fixture manifest generator
 # ---------------------------------------------------------------------------
+
+# Advisor-recommended "balanced" scale per fixture size.
+#
+# This is a model PARAMETER, not part of the algorithm being independently derived.
+# Independence concerns the arithmetic; the scale is an input, exactly like the fixture
+# data itself, and both arms must use the same value or the comparison is meaningless.
+# It mirrors HEPRS_BALANCED_RECOMMENDATIONS in test/utils/heprs.ts.
+#
+# Recorded because getting this wrong is silent: an incorrect scale produces encoded
+# scores that differ from the contract path by exactly the scale ratio, which looks
+# like a correctness failure rather than a configuration mismatch. It did, once —
+# see CD-010.
+ADVISOR_BALANCED_SCALE = {
+    100: 3_000_000,
+    500: 3_000_000,
+    1000: 1_000_000,
+    5000: 1_000_000,
+}
+
+
+def advisor_scale(nominal: int) -> int:
+    if nominal not in ADVISOR_BALANCED_SCALE:
+        raise ValidationError(
+            "no advisor-recommended scale recorded for a %d-SNP fixture; known sizes "
+            "are %s. Do not guess: an incorrect scale silently rescales every encoded "
+            "score." % (nominal, sorted(ADVISOR_BALANCED_SCALE))
+        )
+    return ADVISOR_BALANCED_SCALE[nominal]
+
 
 def fixture_manifest(nominal: int, scale: int) -> dict:
     """Manifest for the supplied HEPRS fixtures.
@@ -1201,7 +1245,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     fp = sub.add_parser("fixture-manifest", help="emit a manifest for HEPRS fixtures")
     fp.add_argument("--nominal", type=int, required=True)
-    fp.add_argument("--scale", type=int, default=10 ** 6)
+    fp.add_argument("--scale", type=int, default=None,
+                    help="override the advisor-recommended scale for this fixture "
+                         "size; omit to use it (recommended)")
     fp.add_argument("--out")
 
     args = p.parse_args(argv)
@@ -1230,12 +1276,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 1 if bad else 0
 
     if args.cmd == "fixture-manifest":
-        doc = fixture_manifest(args.nominal, args.scale)
+        scale = args.scale if args.scale is not None else advisor_scale(args.nominal)
+        doc = fixture_manifest(args.nominal, scale)
         text = json.dumps(doc, indent=2)
         if args.out:
             with open(args.out, "w") as fh:
                 fh.write(text + "\n")
-            print("wrote %s (%d variants incl. intercept)" % (args.out, len(doc["variants"])))
+            print("wrote %s (%d variants incl. intercept, scale=%d%s)"
+                  % (args.out, len(doc["variants"]), scale,
+                     "" if args.scale is None else " OVERRIDDEN"))
         else:
             print(text)
         return 0

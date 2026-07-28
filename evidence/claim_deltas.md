@@ -223,3 +223,145 @@ reproduces the JavaScript float-and-half-up behaviour: 0 differences.
 The ambiguity is therefore immaterial to this paper's numbers but must still be stated,
 because a future model with weights at finer precision than the scale would diverge between
 the two implementations. Step 1 should name the convention.
+
+---
+
+## CD-009 — `R2.4-E1`'s file scope narrowed after inspection: 5 files, not 6
+
+- **Opened:** Phase 4, 28 July 2026
+- **Status:** **resolved** (Phase 4, 28 July 2026)
+
+`CD-001` widened `R2.4-E1` from the plan's three files to six. On implementing it, one of
+those six turned out not to belong: `test/rate_limit_randomized_release_test.ts` is
+**behavioural**. It asserts contract logic — rate-limit windows, oracle-required mode,
+threshold-gap enforcement — and reports no measurement that reaches a table or figure.
+Placeholder hashes are appropriate there, and forcing real provenance into it would add noise
+without adding traceability.
+
+Final guarded set, all five now wired to `scripts/utils/provenance.ts`:
+`scripts/sepolia_validation.ts`, `scripts/heprs_fixture_profile.ts`, `scripts/gas_profile.ts`,
+`scripts/probe_hcu_ceiling.ts`, `test/heprs_fixture_test.ts`.
+
+The distinction is enforced rather than documented: `test/provenance_guard_test.ts` fails if
+any guarded file contains `ZeroHash`, if any guarded file stops importing the provenance
+helper, **or** if an entry on the behavioural-exemption list becomes stale. The exemption list
+is therefore a recorded decision that cannot quietly rot.
+
+## CD-010 — Phase 3's fixture manifests used the wrong scale for the 100- and 500-SNP fixtures
+
+- **Opened:** Phase 4, 28 July 2026
+- **Status:** **resolved** (Phase 4, 28 July 2026)
+
+The advisor's recommended *balanced* scale is **3 × 10⁶** for the 100- and 500-SNP fixtures and
+**1 × 10⁶** for the 1,000- and 5,000-SNP fixtures. The Phase 3 manifest generator defaulted to
+1 × 10⁶ for all four sizes, so `evidence/phase3/reference/heprs_{100,500}snp_reference.json`
+were produced at one third of the scale the contract path actually uses.
+
+Caught only because Phase 4 wired the model manifest hash and the reference-output hash into
+the same provenance block, which forced the reference and the on-chain run to be compared
+directly for the first time on real fixture data. The 100-SNP validation run reported an
+encoded score of 758,685 against the reference's 252,895 — a ratio of exactly 3.
+
+**Neither implementation was wrong.** The discrepancy was a model *parameter* mismatch. This
+distinction matters for the independence claim: independence concerns the derivation of the
+*algorithm*, not the choice of *inputs and parameters*. The scale is an input, like the fixture
+data itself, and both arms must use the same value or the comparison is meaningless.
+
+Impact had it not been caught: Phase 5 (`R2.7-E1`) would have compared 200 individuals at
+mismatched scales and reported a uniform 3× disagreement, which looks exactly like a
+correctness failure in the encoding.
+
+Fix: the advisor scale is now a recorded table in `independent_prs_reference.py`
+(`ADVISOR_BALANCED_SCALE`) mirroring `HEPRS_BALANCED_RECOMMENDATIONS`, `fixture-manifest` uses
+it by default instead of a flat constant, an unknown fixture size raises rather than guessing,
+and the self test asserts all four values. All four reference files regenerated; the 100-SNP
+individual 0 encoded score now matches the on-chain run exactly at **758,685**.
+
+Note that `CD-006` survives: 3 × 10⁶ is an integer multiple of 10⁶, so the six-decimal-place
+fixture weights remain exactly representable and the round-trip error is still identically zero.
+
+## CD-011 — `SNP upload gas` is not reproducible to the gas, so the paper over-reports precision
+
+- **Opened:** Phase 4, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R1.1-M1` (Phase 11) and `R1.8-M1` (Phase 12)
+
+Three consecutive runs of `scripts/gas_profile.ts` at 100 SNPs, identical commit and inputs:
+
+| Run | Model publish | Compute | SNP upload | Total |
+|---:|---:|---:|---:|---:|
+| 1 | 1,125,534 | 5,626,326 | 10,287,985 | 17,528,113 |
+| 2 | 1,125,534 | 5,626,326 | 10,287,997 | 17,528,125 |
+| 3 | 1,125,534 | 5,626,326 | 10,287,721 | 17,527,849 |
+
+`Model publish gas` and `Compute gas` are **exactly** deterministic. `SNP upload gas` varies
+over a spread of ~276 gas (~0.003%), and `Total gas` inherits that variance. The most likely
+cause is that the mock coprocessor's input-proof bytes depend on generated handle values,
+which differ per run, and calldata is charged per byte at different rates for zero and
+non-zero bytes.
+
+The magnitude is negligible; the **reporting convention** is the issue. The submitted
+manuscript quotes gas figures to the individual gas unit, which implies a determinism the
+upload path does not have. Any table reporting SNP-upload or total gas must either round to a
+stated precision or give a spread over repeated runs. This is a small instance of the general
+point in `R1.1-M1`: a number's presentation should not claim more than its measurement
+supports.
+
+## CD-012 — Model publication gas in the submitted paper is understated, because it was measured with zero hashes
+
+- **Opened:** Phase 4, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R1.8-E1` (Phase 8) and `R1.8-M1` (Phase 12); feeds MS-08
+
+Writing a nonzero `bytes32` to previously-zero storage costs materially more than writing a
+zero. With `manifestHash` and `sourceModelHash` now carrying real digests, `Model publish gas`
+rises by a **flat +40,568 gas per model**, independent of variant count:
+
+| SNPs | Model publish, zero hashes | Model publish, real hashes | Delta | As % of publish | As % of total |
+|---:|---:|---:|---:|---:|---:|
+| 100 | 1,084,966 | 1,125,534 | +40,568 | +3.74% | +0.232% |
+| 300 | 2,646,740 | 2,687,308 | +40,568 | +1.53% | +0.080% |
+| 600 | 4,989,383 | 5,029,939 | +40,556 | +0.81% | +0.041% |
+
+Every other measured quantity is unchanged: job creation, compute, and finalize are identical,
+and the HCU ceiling remains `20 < ceiling <= 25` because provenance is read and written with
+ordinary storage operations and adds no homomorphic work.
+
+Why this is a claim delta rather than a mere cost increase: the submitted manuscript describes
+`manifestHash` as anchoring sample and model provenance, and `R1.5-M2` commits us to describing
+it as a provenance commitment recording genome build, input-file hash, variant order, and
+preparation policy. A deployment that actually does that stores nonzero hashes and therefore
+pays this cost. The published model-publication figures correspond to a configuration in which
+provenance was **not** recorded, so they understate the cost of the system as described.
+
+Phase 8 must report model publication with real hashes, and note that the increment is fixed
+per model rather than per variant — so it is proportionally largest for exactly the small
+curated panels the paper identifies as its intended use.
+
+---
+
+## CD-013 — The guarded file list was built from a stale list rather than a fresh audit
+
+- **Opened:** Phase 4, 28 July 2026
+- **Status:** **resolved** (Phase 4, 28 July 2026)
+
+The provenance guard's `EVIDENCE_PRODUCING` list was populated from `CD-001`, which had been
+written during Phase 0. But `scripts/release_policy_gas.ts` was created later, in **Phase 2**,
+and reports the per-model `setReleasePolicy` gas that Phase 8's cost synthesis will cite. It
+was therefore evidence-producing and unguarded, and a final `grep` audit — not the guard
+itself — is what caught it.
+
+Two lessons recorded rather than quietly fixed:
+
+1. **A guard list derived from an earlier inventory ages badly.** The correct question is not
+   "which files did CD-001 name" but "which files produce a number that reaches the paper",
+   and that set grows as work proceeds. Any script added in Phases 5–8 must be added to
+   `EVIDENCE_PRODUCING` at the time it is written.
+2. **The guard cannot detect its own incompleteness.** It verifies that listed files are clean;
+   it cannot know about a file nobody listed. The `grep` sweep over `scripts/` and `test/` is
+   therefore part of each phase's exit check, not a one-off.
+
+Now wired and guarded: `scripts/release_policy_gas.ts` commits to its synthetic generation
+spec and registers its sample with a real manifest hash. Reported figures are unchanged —
+`setReleasePolicy` 77,314 gas and `finalizeAndClassify` 432,230 gas — because neither
+transaction writes the model hashes. Guarded set is now six files.

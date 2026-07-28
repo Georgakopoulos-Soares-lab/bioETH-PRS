@@ -15,6 +15,15 @@ import {
   quantizeHeprsWeightsWithRecommendation,
   toBigIntVector
 } from "../test/utils/heprs";
+import {
+  fixtureModelProvenance,
+  buildProvenance,
+  contractIdentity,
+  heprsManifestPath,
+  heprsWeightsPath,
+  heprsGenotypePath,
+  heprsReferencePath,
+} from "./utils/provenance";
 
 interface CliOptions {
   fixtureSizes: HeprsFixtureSize[];
@@ -58,6 +67,8 @@ interface SuccessfulFixtureProfile {
   uploadChunkSize: number;
   computeChunkSize: number;
   recommendation: HeprsAdvisorRecommendation;
+  evidenceClass: string;
+  provenance: unknown;
   chunkTiming: ChunkTimingSummary;
   gas: GasSummary;
   streamingGas: StreamingGasSummary;
@@ -207,6 +218,24 @@ async function profileFixture(
   const genoSum = snps.reduce((a, b) => a + b, 0n);
   const expected = naiveDotProduct + quantized.scoreOffset - quantized.weightZeroPoint * genoSum;
 
+  // R2.4-E1: commit to the exact fixture bytes and to the same model manifest the
+  // independent Python reference consumes, so a reported figure ties back to both.
+  const prov = fixtureModelProvenance({
+    manifestPath: heprsManifestPath(fixtureSize),
+    weightsPath: heprsWeightsPath(fixtureSize),
+    genotypePath: heprsGenotypePath(fixtureSize),
+    extra: {
+      nominalSnpCount: fixtureSize,
+      encodedPositions: quantized.weights.length,
+      encodedPositionsNote:
+        "nominal + 1: the fixtures carry a leading intercept column (weight 0, dosage 1)",
+      scale: quantized.scale,
+      uploadChunkSize,
+      computeChunkSize,
+      individual: 0,
+    },
+  });
+
   const deployMarketplaceResult = await timed(async () => {
     const Marketplace = await ethers.getContractFactory("ModelMarketplace");
     return Marketplace.deploy();
@@ -221,8 +250,8 @@ async function profileFixture(
       BigInt(uploadChunkSize),
       BigInt(computeChunkSize),
       `ipfs://heprs/${fixtureSize}`,
-      ethers.ZeroHash,
-      ethers.ZeroHash,
+      prov.manifestHash,
+      prov.sourceModelHash,
       quantized.weightZeroPoint,
       quantized.scoreOffset
     );
@@ -232,8 +261,8 @@ async function profileFixture(
       BigInt(uploadChunkSize),
       BigInt(computeChunkSize),
       `ipfs://heprs/${fixtureSize}`,
-      ethers.ZeroHash,
-      ethers.ZeroHash,
+      prov.manifestHash,
+      prov.sourceModelHash,
       quantized.weightZeroPoint,
       quantized.scoreOffset
     );
@@ -253,8 +282,14 @@ async function profileFixture(
   const deployEngineResult = await timed(async () => {
     const Registry = await ethers.getContractFactory("GenomicRegistry");
     const registry = await Registry.deploy();
-    const sid = await registry.registerSample.staticCall("ipfs://heprs-profile-sample");
-    await registry.registerSample("ipfs://heprs-profile-sample");
+    const sid = await registry.registerSampleWithManifest.staticCall(
+      "ipfs://heprs-profile-sample",
+      prov.genotypeManifestHash
+    );
+    await registry.registerSampleWithManifest(
+      "ipfs://heprs-profile-sample",
+      prov.genotypeManifestHash
+    );
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
     const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
     return { engine, sampleId: sid };
@@ -384,6 +419,15 @@ async function profileFixture(
     uploadChunkSize,
     computeChunkSize,
     recommendation,
+    evidenceClass: "Hardhat mock",
+    provenance: await buildProvenance({
+      model: prov,
+      contracts: [
+        await contractIdentity("ModelMarketplace", marketplace),
+        await contractIdentity("PRSComputeEngine", engine),
+      ],
+      referenceOutputPath: heprsReferencePath(fixtureSize),
+    }),
     gas: {
       publishModel: publishModelGas,
       createJob: createJobGas,

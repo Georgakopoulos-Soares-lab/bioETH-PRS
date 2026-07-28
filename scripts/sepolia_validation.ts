@@ -36,6 +36,16 @@ import { ethers, fhevm } from "hardhat";
 import { FhevmType } from "@fhevm/hardhat-plugin";
 
 import {
+  fixtureModelProvenance,
+  buildProvenance,
+  contractIdentity,
+  heprsManifestPath,
+  heprsWeightsPath,
+  heprsGenotypePath,
+  heprsReferencePath,
+} from "./utils/provenance";
+
+import {
   chunkBigIntVector,
   dotProductBigInt,
   getHeprsBalancedRecommendation,
@@ -114,6 +124,26 @@ describe("Sepolia 100-SNP validation", function () {
     const naiveDot = dotProductBigInt(snps, quantized.weights);
     const expected = naiveDot + quantized.scoreOffset - quantized.weightZeroPoint * genoSum;
 
+    // R2.4-E1: commit to the exact fixture bytes and to the same model manifest the
+    // independent Python reference consumes, before anything is published on-chain.
+    // On a live run these hashes are the only thing tying a transaction to an input.
+    const prov = fixtureModelProvenance({
+      manifestPath: heprsManifestPath(FIXTURE_SIZE),
+      weightsPath: heprsWeightsPath(FIXTURE_SIZE),
+      genotypePath: heprsGenotypePath(FIXTURE_SIZE),
+      extra: {
+        nominalSnpCount: FIXTURE_SIZE,
+        encodedPositions: quantized.weights.length,
+        scale: quantized.scale,
+        uploadChunkSize: UPLOAD_CHUNK_SIZE,
+        computeChunkSize,
+        individual: 0,
+      },
+    });
+    console.log(`manifestHash    : ${prov.manifestHash}`);
+    console.log(`sourceModelHash : ${prov.sourceModelHash}`);
+    console.log(`genotypeHash    : ${prov.genotypeManifestHash}\n`);
+
     console.log(`Scale     : ${recommendation.scale}`);
     console.log(`Expected  : ${expected}\n`);
 
@@ -134,8 +164,16 @@ describe("Sepolia 100-SNP validation", function () {
       console.log(`  Engine     : ${engineAddress}`);
 
       const registry = await ethers.getContractAt("GenomicRegistry", registryAddress);
-      sampleId = await registry.registerSample.staticCall("ipfs://validation-100snp");
-      await (await registry.registerSample("ipfs://validation-100snp")).wait();
+      sampleId = await registry.registerSampleWithManifest.staticCall(
+        "ipfs://validation-100snp",
+        prov.genotypeManifestHash
+      );
+      await (
+        await registry.registerSampleWithManifest(
+          "ipfs://validation-100snp",
+          prov.genotypeManifestHash
+        )
+      ).wait();
       console.log(`  SampleId   : ${sampleId}\n`);
     } else {
       console.log("Deploying fresh contracts...");
@@ -156,8 +194,16 @@ describe("Sepolia 100-SNP validation", function () {
       await engine_.waitForDeployment();
       engineAddress = await engine_.getAddress();
 
-      sampleId = await registry.registerSample.staticCall("ipfs://validation-100snp");
-      await (await registry.registerSample("ipfs://validation-100snp")).wait();
+      sampleId = await registry.registerSampleWithManifest.staticCall(
+        "ipfs://validation-100snp",
+        prov.genotypeManifestHash
+      );
+      await (
+        await registry.registerSampleWithManifest(
+          "ipfs://validation-100snp",
+          prov.genotypeManifestHash
+        )
+      ).wait();
 
       console.log(`  Deployed in ${Date.now() - t0}ms`);
       console.log(`  Registry   : ${registryAddress}`);
@@ -180,8 +226,8 @@ describe("Sepolia 100-SNP validation", function () {
       BigInt(UPLOAD_CHUNK_SIZE),
       BigInt(computeChunkSize),
       `ipfs://heprs/100`,
-      ethers.ZeroHash,
-      ethers.ZeroHash,
+      prov.manifestHash,
+      prov.sourceModelHash,
       quantized.weightZeroPoint,
       quantized.scoreOffset
     );
@@ -191,8 +237,8 @@ describe("Sepolia 100-SNP validation", function () {
       BigInt(UPLOAD_CHUNK_SIZE),
       BigInt(computeChunkSize),
       `ipfs://heprs/100`,
-      ethers.ZeroHash,
-      ethers.ZeroHash,
+      prov.manifestHash,
+      prov.sourceModelHash,
       quantized.weightZeroPoint,
       quantized.scoreOffset
     );
@@ -334,7 +380,23 @@ describe("Sepolia 100-SNP validation", function () {
         GenomicRegistry: registryAddress,
         ModelMarketplace: marketplaceAddress,
         PRSComputeEngine: engineAddress
-      }
+      },
+      // R2.4-E1. On a live network this block is what lets a reader verify the run:
+      // commit, fixture hashes, the manifest the independent reference consumed,
+      // deployed bytecode digests, and the reference output this was checked against.
+      evidenceClass: isMock ? "Hardhat mock" : "Live fhEVM",
+      provenance: await buildProvenance({
+        model: prov,
+        contracts: [
+          await contractIdentity(
+            "GenomicRegistry",
+            await ethers.getContractAt("GenomicRegistry", registryAddress)
+          ),
+          await contractIdentity("ModelMarketplace", marketplace),
+          await contractIdentity("PRSComputeEngine", engine)
+        ],
+        referenceOutputPath: heprsReferencePath(100)
+      })
     };
 
     const deploymentsDir = path.resolve(__dirname, "../deployments");
