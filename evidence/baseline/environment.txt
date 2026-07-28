@@ -1,0 +1,7 @@
+=== git ===
+0ebbfda0f6fb97d5e4f771a201b2b481838c1d40
+rtr-revision
+
+=== node/npm ===
+v25.5.0
+11.8.0

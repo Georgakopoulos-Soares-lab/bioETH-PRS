@@ -1,0 +1,70 @@
+
+> bioeth-prs@0.1.0 validate:mock
+> hardhat test scripts/sepolia_validation.ts
+
+WARNING: You are currently using Node.js v25.5.0, which is not supported by Hardhat. This can lead to unexpected behavior. See https://v2.hardhat.org/nodejs-versions
+
+
+
+
+  Sepolia 100-SNP validation
+
+Network  : hardhat (chainId=31337)
+FHE mode : mock — plaintext arithmetic
+Fixture  : 100 SNPs, uploadChunkSize=32, computeChunkSize=20
+
+Scale     : 3000000
+Expected  : 758685
+
+Deploying fresh contracts...
+  Deployed in 12ms
+  Registry   : 0x5FbDB2315678afecb367f032d93F642f64180aa3
+  Marketplace: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+  Engine     : 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+  SampleId   : 0
+
+Publishing 100-SNP public model...
+  Done in 13ms  gas=1129042
+
+Creating PRS job...
+  Job 0 in 2ms  gas=321148
+
+Uploading 4 SNP chunks (32 SNPs each)...
+  Upload 85ms  gas=10335599
+  finalizeSnpUpload gas=37175
+
+Computing 6 chunks (20 SNPs each)...
+  chunk  1/6  6ms  gas=1150392
+  chunk  2/6  5ms  gas=1118192
+  chunk  3/6  6ms  gas=1118192
+  chunk  4/6  5ms  gas=1118192
+  chunk  5/6  7ms  gas=1118192
+  chunk  6/6  1ms  gas=206235
+  Compute total gas=5829395
+
+Finalizing...
+  finalize 2ms  gas=169864
+  JobFinalized event received
+  Score handle: 0xb0aa255a2fdf540c3e1526e2dbfad7881836a52b93ff0000000000007a690500
+
+Decrypting score (debugger path)...
+  Decrypted in 80ms
+  Actual  : 758685
+  Expected: 758685
+  PASS
+
+Report saved to /Users/kap4722/bioETH-PRS/deployments/chain-31337-validation-100snp.json
+
+=== Summary ===
+Network    : chain-31337 (mock)
+Upload     : 4 × uploadChunkSize=32
+Compute    : 6 × computeChunkSize=20
+Total gas  : 17822223
+Avg chunk  : 5.0ms
+Decrypt    : 80ms
+Status     : PASS
+    ✔ runs 100-SNP HEPRS fixture end-to-end and decrypts the score (231ms)
+
+
+  1 passing (236ms)
+

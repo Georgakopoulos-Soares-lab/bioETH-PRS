@@ -793,17 +793,28 @@ No editor-specific technical action is required. The cover response should thank
 
 ## Phase 0 - Freeze the revision baseline and tracker
 
-Phase progress: **0%**
+Phase progress: **75%** (3/4 items)
 
-- [ ] Create a revision branch from snapshot `2d6f21d4560db77da026aa7d5043e5f1e789288c`.
+- [x] Create a revision branch from snapshot `2d6f21d4560db77da026aa7d5043e5f1e789288c`.
+      Branch `rtr-revision`; baseline commit `0ebbfda` adds the RTR docx, the submitted
+      `bioeth_prs (4).tex`, and this plan with no code changes.
 - [ ] Copy all 35 action IDs into the issue tracker with owner, status, output path, and manuscript location.
-- [ ] Save baseline compile, 137-test, and 100-SNP mock outputs.
-- [ ] Create `evidence/` as the single destination for every artifact produced in Stage A.
+      The crosswalk table above is the import source; owners are still unassigned.
+- [x] Save baseline compile, 137-test, and 100-SNP mock outputs.
+      In `evidence/baseline/`: `npm ci` exit 0, `npm run build` exit 0 (11 contracts, evm
+      `cancun`), `npm run test` **137 passing / 0 failing**, `npm run validate:mock` 1 passing
+      with an end-to-end decrypted score. Caveat recorded: captured on node v25.5.0 against an
+      `.nvmrc` pin of 22, which Hardhat 2.22 reports as unsupported (see `CD-002`).
+- [x] Create `evidence/` as the single destination for every artifact produced in Stage A.
+      `evidence/README.md` fixes the three evidence classes (`Live fhEVM`, `Hardhat mock`,
+      `Analytic projection`), the provenance requirement, and the Stage A to Stage B gate.
+      `evidence/claim_deltas.md` is open with two entries.
 
 Exit gate:
 
 - [ ] Every action in View 1 has an owner and no implementation begins on an untracked action.
-- [ ] No manuscript file is edited until Stage A is complete.
+- [x] No manuscript file is edited until Stage A is complete. `bioeth_prs (4).tex` is committed
+      unmodified at `0ebbfda` and must not be touched before the Stage A exit gate clears.
 
 ---
 

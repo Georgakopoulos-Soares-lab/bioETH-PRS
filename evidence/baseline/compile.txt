@@ -1,0 +1,10 @@
+
+> bioeth-prs@0.1.0 build
+> hardhat compile
+
+WARNING: You are currently using Node.js v25.5.0, which is not supported by Hardhat. This can lead to unexpected behavior. See https://v2.hardhat.org/nodejs-versions
+
+
+Generating typings for: 15 artifacts in dir: typechain-types for target: ethers-v6
+Successfully generated 56 typings!
+Compiled 11 Solidity files successfully (evm target: cancun).
