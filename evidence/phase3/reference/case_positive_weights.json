@@ -1,0 +1,183 @@
+{
+  "tool": "independent_prs_reference.py",
+  "case": "positive_weights",
+  "arithmetic": "exact_decimal",
+  "rounding": "half_away_from_zero",
+  "manifest": {
+    "genomeBuild": "GRCh37",
+    "scale": 100,
+    "missingPolicy": "reject",
+    "variantCount": 3
+  },
+  "encoding": {
+    "weightZeroPoint": 0,
+    "weightZeroPointUnclamped": -5,
+    "scoreOffset": 0,
+    "quantizedWeights": [
+      10,
+      20,
+      5
+    ],
+    "shiftedWeights": [
+      10,
+      20,
+      5
+    ]
+  },
+  "overflow": {
+    "worstCasePartialSum": 70,
+    "worstCaseIntermediate": 70,
+    "uint64Max": 18446744073709551615,
+    "fitsUint64": true,
+    "headroomBits": 7,
+    "maxGenoSum": 6
+  },
+  "handCheckedAgreement": {
+    "checks": [
+      {
+        "check": "q",
+        "got": "[10, 20, 5]",
+        "want": "[10, 20, 5]",
+        "agrees": true
+      },
+      {
+        "check": "z_w",
+        "got": "0",
+        "want": "0",
+        "agrees": true
+      },
+      {
+        "check": "u",
+        "got": "[10, 20, 5]",
+        "want": "[10, 20, 5]",
+        "agrees": true
+      },
+      {
+        "check": "z_s",
+        "got": "0",
+        "want": "0",
+        "agrees": true
+      },
+      {
+        "check": "individual_0.encodedScore",
+        "got": "50",
+        "want": "50",
+        "agrees": true
+      },
+      {
+        "check": "individual_0.prs",
+        "got": "0.50",
+        "want": "0.50",
+        "agrees": true
+      }
+    ],
+    "allAgree": true
+  },
+  "individuals": [
+    {
+      "individual": 0,
+      "status": "scored",
+      "inputDosages": [
+        1,
+        2,
+        0
+      ],
+      "effectAlleleDosages": [
+        1,
+        2,
+        0
+      ],
+      "equation1PRS": "0.50",
+      "encodedScore": 50,
+      "partialSum": 50,
+      "genoSum": 3,
+      "decodedPRS": "0.5",
+      "roundTripAbsError": "0.00",
+      "counts": {
+        "matched": 3,
+        "intercept": 0,
+        "missing": 0,
+        "imputed": 0,
+        "invalid": 0,
+        "rejected": 0,
+        "allele_match": 3,
+        "allele_flip": 0,
+        "strand_flip": 0,
+        "strand_ambiguous": 0,
+        "allele_incompatible": 0,
+        "multiallelic": 0
+      },
+      "notes": []
+    },
+    {
+      "individual": 1,
+      "status": "scored",
+      "inputDosages": [
+        2,
+        2,
+        2
+      ],
+      "effectAlleleDosages": [
+        2,
+        2,
+        2
+      ],
+      "equation1PRS": "0.70",
+      "encodedScore": 70,
+      "partialSum": 70,
+      "genoSum": 6,
+      "decodedPRS": "0.7",
+      "roundTripAbsError": "0.00",
+      "counts": {
+        "matched": 3,
+        "intercept": 0,
+        "missing": 0,
+        "imputed": 0,
+        "invalid": 0,
+        "rejected": 0,
+        "allele_match": 3,
+        "allele_flip": 0,
+        "strand_flip": 0,
+        "strand_ambiguous": 0,
+        "allele_incompatible": 0,
+        "multiallelic": 0
+      },
+      "notes": []
+    },
+    {
+      "individual": 2,
+      "status": "scored",
+      "inputDosages": [
+        0,
+        0,
+        1
+      ],
+      "effectAlleleDosages": [
+        0,
+        0,
+        1
+      ],
+      "equation1PRS": "0.05",
+      "encodedScore": 5,
+      "partialSum": 5,
+      "genoSum": 1,
+      "decodedPRS": "0.05",
+      "roundTripAbsError": "0.00",
+      "counts": {
+        "matched": 3,
+        "intercept": 0,
+        "missing": 0,
+        "imputed": 0,
+        "invalid": 0,
+        "rejected": 0,
+        "allele_match": 3,
+        "allele_flip": 0,
+        "strand_flip": 0,
+        "strand_ambiguous": 0,
+        "allele_incompatible": 0,
+        "multiallelic": 0
+      },
+      "notes": []
+    }
+  ]
+}

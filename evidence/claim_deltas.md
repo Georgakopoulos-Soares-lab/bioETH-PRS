@@ -141,3 +141,85 @@ The baseline arm must therefore deploy the pre-Phase-2 contracts from the frozen
 design** rather than an approximation, and it keeps the shipped contracts free of an attack
 surface that exists only for benchmarking. Phase 6 must record which commit each arm was
 compiled from.
+
+---
+
+## CD-006 — Quantisation on the HEPRS fixtures is *exact*, not "machine-epsilon", and the reason does not generalise
+
+- **Opened:** Phase 3, 28 July 2026
+- **Status:** open
+- **Resolves via:** `R2.7-M1` (Phase 11) and the `Quantisation Accuracy` subsection
+
+Measured with the independent reference over all four fixtures:
+
+| Nominal | Weights | Max decimal places | Exact at `s = 10^6` | Max round-trip \|error\| |
+|---:|---:|---:|:---:|---:|
+| 100 | 101 | 6 | 101 / 101 | **0** |
+| 500 | 501 | 6 | 501 / 501 | **0** |
+| 1,000 | 1,001 | 6 | 1,001 / 1,001 | **0** |
+| 5,000 | 5,001 | 6 | 5,001 / 5,001 | **0** |
+
+Every one of the 6,604 fixture weights is distributed with at most six decimal places.
+At the advisor's recommended scale of \(10^6\), `round(s * beta)` therefore performs **no
+rounding at all** — each weight maps to an exact integer — and the decode round trip is
+exactly zero, not machine epsilon.
+
+Two consequences for the manuscript:
+
+1. **The claim is understated but for a non-generalising reason.** The paper reports
+   "machine-epsilon reconstruction accuracy". The measured error is identically zero. But
+   this is a property of the *source data precision*, not of the encoding scheme: any model
+   whose weights carry more than six decimal places at \(s = 10^6\) would round and would
+   not be exact. The `Quantisation Advisor` subsection already says "the limiting factor is
+   source data precision"; the accuracy claims elsewhere must be connected to that
+   statement rather than presented as a property of the scheme.
+2. **`R2.7-M1` must not report a nonzero MAE/RMSE as though it measured quantisation
+   error.** On these fixtures those statistics are zero by construction. The individual-level
+   comparison in Phase 5 is still worth running — it validates the *pipeline*, not the
+   arithmetic precision — but the paper must say which of the two it establishes.
+
+## CD-007 — The manuscript's `z_w` formula is missing a clamp that both implementations apply
+
+- **Opened:** Phase 3, 28 July 2026
+- **Status:** open
+- **Resolves via:** `Quantisation Scheme`, Step 2, in Phase 9
+
+The manuscript defines the weight zero-point unconditionally:
+
+> \(z_w = -\min_i q_i, \quad u_i = q_i + z_w \geq 0 \;\forall i\)
+
+When every quantised weight is positive, \(-\min_i q_i\) is **negative**. The stated
+invariant \(u_i \geq 0\) still holds, so the mathematics is not wrong — but the on-chain
+`weightZeroPoint` is a `uint64` and cannot store a negative value.
+
+Both implementations clamp, independently of one another: `test/utils/heprs.ts` uses
+`minWeight < 0 ? -minWeight : 0`, and the independent Python reference uses
+`max(0, -min q)`. The paper is the only place the clamp is missing. Step 2 should read
+\(z_w = \max(0, -\min_i q_i)\), with a sentence explaining that the clamp is required by the
+unsigned on-chain representation rather than by the algebra.
+
+Case 2 of the reference self test covers this: all-positive weights, `z_w` clamped to 0
+where the unclamped expression would give −10, and the decode still round-trips exactly.
+
+## CD-008 — `round()` in the quantisation scheme has no stated tie-breaking rule
+
+- **Opened:** Phase 3, 28 July 2026
+- **Status:** open
+- **Resolves via:** `Quantisation Scheme`, Step 1, in Phase 9
+
+The manuscript writes \(q_i = \mathrm{round}(s \cdot \beta_i)\) without naming a convention.
+Three are in common use and they disagree at exact `.5` boundaries: half-away-from-zero
+(±1), half-to-even (Python's builtin, 0), and half-up (JavaScript `Math.round`, +1/0).
+`test/utils/heprs.ts` inherits half-up from `Math.round` and additionally multiplies in
+binary floating point; the independent reference uses half-away-from-zero over exact
+decimals.
+
+**Measured impact on the reported results: none.** Because of `CD-006` no fixture weight
+requires rounding at \(s = 10^6\), so both conventions produce identical quantised vectors,
+identical `weightZeroPoint` and `scoreOffset`, and identical encoded scores across all 200
+individuals. Verified by re-scoring every fixture with `--float-arithmetic`, which
+reproduces the JavaScript float-and-half-up behaviour: 0 differences.
+
+The ambiguity is therefore immaterial to this paper's numbers but must still be stated,
+because a future model with weights at finer precision than the scale would diverge between
+the two implementations. Step 1 should name the convention.

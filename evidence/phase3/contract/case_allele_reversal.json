@@ -1,0 +1,63 @@
+{
+  "tool": "contract_case_run.ts",
+  "arm": "typescript + fhevm mock coprocessor",
+  "case": "allele_reversal",
+  "network": "31337",
+  "provenance": {
+    "manifestHash": "0xf7e616cdfc0b30318c4deaa78e7af14ff9bbb9e73b961d959357821b4b136e0f",
+    "sourceModelHash": "0x57e7ed6fb60b32dfd1a49469f97becbafe390ddf5af5242fcfa76b8253896b3c",
+    "caseFile": "validation/cases/allele_reversal.json"
+  },
+  "encoding": {
+    "weightZeroPoint": 200,
+    "scoreOffset": 400,
+    "quantizedWeights": [
+      "400",
+      "-200"
+    ]
+  },
+  "individuals": [
+    {
+      "individual": 0,
+      "status": "scored",
+      "inputDosages": [
+        0,
+        1
+      ],
+      "effectAlleleDosages": [
+        2,
+        1
+      ],
+      "encodedScore": "1000",
+      "decodedPRS": "0.600"
+    },
+    {
+      "individual": 1,
+      "status": "scored",
+      "inputDosages": [
+        1,
+        2
+      ],
+      "effectAlleleDosages": [
+        1,
+        2
+      ],
+      "encodedScore": "400",
+      "decodedPRS": "0.000"
+    },
+    {
+      "individual": 2,
+      "status": "scored",
+      "inputDosages": [
+        2,
+        0
+      ],
+      "effectAlleleDosages": [
+        0,
+        0
+      ],
+      "encodedScore": "400",
+      "decodedPRS": "0.000"
+    }
+  ]
+}

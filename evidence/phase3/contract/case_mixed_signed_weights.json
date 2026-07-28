@@ -1,0 +1,70 @@
+{
+  "tool": "contract_case_run.ts",
+  "arm": "typescript + fhevm mock coprocessor",
+  "case": "mixed_signed_weights",
+  "network": "31337",
+  "provenance": {
+    "manifestHash": "0x664362804661a02affe27e91418f750b4179a633054220639bf3e19153867450",
+    "sourceModelHash": "0xafefbdb77b9650ad42ccc186536829e676a9ee2ac2ed8f65168ce35553162a54",
+    "caseFile": "validation/cases/mixed_signed_weights.json"
+  },
+  "encoding": {
+    "weightZeroPoint": 30,
+    "scoreOffset": 60,
+    "quantizedWeights": [
+      "-30",
+      "10",
+      "25"
+    ]
+  },
+  "individuals": [
+    {
+      "individual": 0,
+      "status": "scored",
+      "inputDosages": [
+        0,
+        2,
+        1
+      ],
+      "effectAlleleDosages": [
+        0,
+        2,
+        1
+      ],
+      "encodedScore": "105",
+      "decodedPRS": "0.45"
+    },
+    {
+      "individual": 1,
+      "status": "scored",
+      "inputDosages": [
+        2,
+        0,
+        0
+      ],
+      "effectAlleleDosages": [
+        2,
+        0,
+        0
+      ],
+      "encodedScore": "0",
+      "decodedPRS": "-0.60"
+    },
+    {
+      "individual": 2,
+      "status": "scored",
+      "inputDosages": [
+        2,
+        0,
+        1
+      ],
+      "effectAlleleDosages": [
+        2,
+        0,
+        1
+      ],
+      "encodedScore": "25",
+      "decodedPRS": "-0.35"
+    }
+  ]
+}

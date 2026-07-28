@@ -1,0 +1,70 @@
+{
+  "tool": "contract_case_run.ts",
+  "arm": "typescript + fhevm mock coprocessor",
+  "case": "positive_weights",
+  "network": "31337",
+  "provenance": {
+    "manifestHash": "0xeb777d32e4b6bc2895af47097607febbfa8123d310d86ea1dcd228660c7f4f32",
+    "sourceModelHash": "0x6813e2a9ba34f05fa71e7ac96e0697146867005f9de2c188337d70e3beb1d6d4",
+    "caseFile": "validation/cases/positive_weights.json"
+  },
+  "encoding": {
+    "weightZeroPoint": 0,
+    "scoreOffset": 0,
+    "quantizedWeights": [
+      "10",
+      "20",
+      "5"
+    ]
+  },
+  "individuals": [
+    {
+      "individual": 0,
+      "status": "scored",
+      "inputDosages": [
+        1,
+        2,
+        0
+      ],
+      "effectAlleleDosages": [
+        1,
+        2,
+        0
+      ],
+      "encodedScore": "50",
+      "decodedPRS": "0.50"
+    },
+    {
+      "individual": 1,
+      "status": "scored",
+      "inputDosages": [
+        2,
+        2,
+        2
+      ],
+      "effectAlleleDosages": [
+        2,
+        2,
+        2
+      ],
+      "encodedScore": "70",
+      "decodedPRS": "0.70"
+    },
+    {
+      "individual": 2,
+      "status": "scored",
+      "inputDosages": [
+        0,
+        0,
+        1
+      ],
+      "effectAlleleDosages": [
+        0,
+        0,
+        1
+      ],
+      "encodedScore": "5",
+      "decodedPRS": "0.05"
+    }
+  ]
+}

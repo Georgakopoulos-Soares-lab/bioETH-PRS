@@ -1,0 +1,54 @@
+{
+  "compared": 3,
+  "encodedMismatches": 0,
+  "decodedMismatches": 0,
+  "maxAbsError": "0",
+  "tolerance": "0",
+  "encodingParameters": [
+    {
+      "field": "weightZeroPoint",
+      "reference": 200,
+      "contract": 200,
+      "agrees": true
+    },
+    {
+      "field": "scoreOffset",
+      "reference": 400,
+      "contract": 400,
+      "agrees": true
+    }
+  ],
+  "rows": [
+    {
+      "individual": 0,
+      "referenceEncoded": 1000,
+      "contractEncoded": 1000,
+      "encodedAgrees": true,
+      "referenceDecoded": "0.6",
+      "absError": "0.000",
+      "decodedWithinTolerance": true,
+      "verdict": "PASS"
+    },
+    {
+      "individual": 1,
+      "referenceEncoded": 400,
+      "contractEncoded": 400,
+      "encodedAgrees": true,
+      "referenceDecoded": "0",
+      "absError": "0.000",
+      "decodedWithinTolerance": true,
+      "verdict": "PASS"
+    },
+    {
+      "individual": 2,
+      "referenceEncoded": 400,
+      "contractEncoded": 400,
+      "encodedAgrees": true,
+      "referenceDecoded": "0",
+      "absError": "0.000",
+      "decodedWithinTolerance": true,
+      "verdict": "PASS"
+    }
+  ],
+  "pass": true
+}

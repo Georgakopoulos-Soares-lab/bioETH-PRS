@@ -132,6 +132,103 @@ Do not describe a two-step "enable oracle mode, then register an approved oracle
 `setOracleRequired` and `setApprovedOracle` no longer exist. The workflow is one
 `setReleasePolicy` call on a draft model.
 
+## MS-10 · `R2.2-M1` · Phase 9 · Genotype preprocessing, QC, and model alignment
+
+**Status: `READY`** — transcribe from the shipped validator, do not re-specify.
+
+Add `Background/Methods -> Genotype preprocessing, QC, and model alignment` **before** the
+cryptographic pipeline. Every rule below is implemented and tested in
+`validation/independent_prs_reference.py`; the pseudocode in the paper must match it exactly.
+
+| Rule | What the paper must state |
+|---|---|
+| Accepted representation | diploid hard calls, integers in \(\{0,1,2\}\) only |
+| Non-integer / out-of-range | **rejected, never clamped** — clamping silently alters the score |
+| Missing variants | the policy is a **required** manifest field (`reject`, `zero_dosage`, `mean_dosage`); there is deliberately no default, because an implicit zero is a silent imputation |
+| Genome build | must be declared alongside the genotypes and must match the model; a mismatch is fatal. Build cannot be inferred from dosage values |
+| Variant order | verified element-by-element, not by length: the dot product is positional, so a reordering pairs every dosage with the wrong weight while still returning a plausible number |
+| Duplicates | duplicate variant ids rejected |
+| Multiallelic / indel | rejected; this study evaluates biallelic SNP hard calls only |
+| Intercept column | the fixtures carry a leading constant column (weight 0, dosage 1), so the encoded vector length is nominal **+ 1** |
+
+State explicitly that MAF and Hardy–Weinberg filtering are **cohort and model-development
+QC**, performed upstream when the weights are derived, whereas missingness, allele
+orientation, and build matching are **scoring-time** checks performed per request. Conflating
+the two is what makes the reviewer's question necessary.
+
+Report that every run emits counts of matched, intercept, missing, imputed, invalid, and
+rejected variants, so a partially-scored sample cannot be mistaken for a complete one.
+
+Fixture caveat to state plainly: the HEPRS fixtures are bare numeric matrices with no
+identifiers, build, or allele labels, so they are **assumed** pre-aligned and no build or
+strand validation is possible on them.
+
+## MS-11 · `R2.3-M1` · Phase 9 · Effect-allele dosage and blinded alignment
+
+**Status: `READY`** — transcribe the merged harmonisation function.
+
+Redefine \(g_i\) in Equation 1 as **the dosage of the model-specified effect allele**, not
+the allele dosage and not the minor-allele count. The paper must never treat "minor allele"
+and "effect allele" as interchangeable.
+
+Answer the reviewer's blinding question directly: alignment does **not** require seeing the
+weights. Public model metadata exposes variant identity, genome build, effect allele, other
+allele, and column order even when the weight values are encrypted, and alignment happens
+locally, before encryption. Encrypting the weights conceals their magnitudes, not the allele
+labels needed to orient a genotype.
+
+Give the decision rules as pseudocode, matching `harmonize_dosage`:
+
+1. Multiallelic or non-SNP → reject.
+2. Palindromic `REF`/`ALT` pair (`A/T`, `C/G`) without explicit strand resolution → reject as
+   strand-ambiguous. State *why* a literal match is insufficient: for an `A/T` SNP, effect
+   allele `A` is consistent with both the forward `ALT` and the reverse-strand reading of
+   `REF`, so aligning on the label alone would silently flip roughly half of such variants.
+3. Effect allele is the counted allele → keep \(g\).
+4. Effect allele is the other allele → \(g_{\mathrm{effect}} = 2 - g\).
+5. Complement of the effect allele matches on a non-palindromic pair → strand flip, then
+   re-apply 3–4.
+6. Otherwise → reject as incompatible.
+
+Report that the validator emits match / flip / strand-ambiguous / rejected counts, and cite
+the orientation tests (EV-13).
+
+## MS-12 · Phase 9 · Quantisation Scheme corrections
+
+**Status: `READY`** — two defects found by the independent derivation. See `CD-007`, `CD-008`.
+
+**Step 2 clamp.** The paper writes \(z_w = -\min_i q_i\) unconditionally. When every
+quantised weight is positive that expression is negative and cannot be stored in the
+on-chain `uint64`. Change to \(z_w = \max(0, -\min_i q_i)\) and add one sentence: the clamp
+is required by the unsigned on-chain representation, not by the algebra — the invariant
+\(u_i \geq 0\) already holds at \(z_w = 0\) in that case. Both implementations clamp
+independently; only the paper omits it.
+
+**Step 1 rounding rule.** \(\mathrm{round}(\cdot)\) needs a stated tie-breaking convention,
+since half-away-from-zero, half-to-even, and half-up disagree at exact `.5` and the two
+implementations use different ones. State the convention. Note that the measured impact on
+this paper's results is nil, and say why: see MS-13.
+
+## MS-13 · `R2.7-M1` conformity · Phase 11 · Quantisation accuracy is *exact*, and why
+
+**Status: `READY`** — measured. See `CD-006`.
+
+The `Quantisation Accuracy` subsection currently claims machine-epsilon reconstruction. The
+measured error is **identically zero** across all 200 individuals at all four fixture sizes.
+The reason must be stated, because it does not generalise: all 6,604 fixture weights carry at
+most six decimal places, so at the advisor's recommended scale \(s = 10^6\) the quantisation
+is **lossless by construction** — `round` performs no rounding at all.
+
+Connect this to the `Quantisation Advisor` subsection, which already says "the limiting factor
+is source data precision." Presented together, the accuracy result is honest; presented alone,
+it reads as a property of the encoding scheme rather than of the input data.
+
+Consequence for `R2.7-M1`: do **not** report a nonzero MAE, RMSE, or maximum absolute error as
+though it measured quantisation error. Those statistics are zero on these fixtures by
+construction. The individual-level comparison still belongs in the paper, but as validation of
+the **pipeline** — preprocessing, alignment, encoding, contract execution, decoding — not of
+arithmetic precision. Say which of the two it establishes.
+
 ## MS-04 · `R1.4-M1` · Phase 11 · Replace the 2,800-hour claim
 
 **Status: `BLOCKED`** on `R1.4-E1` (Phase 6). Do not draft a placeholder number.
@@ -247,6 +344,41 @@ numerical replacement, MS-09 (Phase 9/10) for the algorithm listings.
 
 We thank the reviewer for this comment, which identified a genuine design flaw rather than only a weakness in our estimate, and we have changed the protocol in response. Working through the reviewer's list of adaptive capabilities made clear that threshold manipulation was not one attack among five but the enabling one: because `finalizeAndClassify` accepted `lowThreshold` and `highThreshold` from the requester on every call, an attacker could hold a genotype fixed and sweep the thresholds across successive jobs, performing a binary search on the encrypted score. That extracts far more information per query than the ternary Low/Medium/High output suggests, and it undermines the randomized release, whose protection assumes the adversary observes a coarse categorical answer rather than a comparison at a precision they chose. Widening the minimum threshold gap, which was our original mitigation, bounds the resolution of any single query but leaves the adaptive channel intact. We therefore removed the capability rather than bounding it. Both thresholds and the oracle address now live in a per-model release policy that the model owner fixes before the model is finalized and that is immutable afterwards; `finalizeAndClassify` takes only a job identifier. We also removed the two setters that previously allowed the oracle and the oracle-required flag to be changed after publication, since either would have let an owner advertise a strict policy and then relax it once requesters had committed. We want to be precise about the strength of this claim: requester-chosen thresholds are not rejected at runtime, they are absent from the interface, and our test suite asserts this at the ABI level — that the classification entry point has exactly one parameter, that no function on the compute engine accepts any parameter matching "threshold", and that the removed setters are absent from the compiled ABI. The change is inexpensive: total gas moves by under 0.001%, the HCU ceiling is unchanged because the policy is read with ordinary storage loads and adds no homomorphic operations, and the one-time cost of fixing a policy is 77,314 gas per model, independent of variant count. On the remaining capabilities the reviewer lists, we report a full adversarial evaluation of non-adaptive versus adaptive querying, single versus multiple wallets, fixed versus caller-selected thresholds, independent versus correlated SNP inputs, and single versus multiple samples, and we have replaced the heuristic wall-clock figure with those measurements. We are explicit that multiple-wallet attacks are bounded but not solved: per-sample rate limiting means a registered sample stays throttled across wallets, and two tests in the suite demonstrate this, but distinct wallets holding distinct registered samples still receive independent quotas. We state as a limitation, not a result, that the controls reduce output resolution and raise query cost under the evaluated attacker models while providing neither Sybil resistance nor a formal model-confidentiality guarantee.
 
+## Reviewer 2, Comment 2 — genotype quality control
+
+> Does bioETH-PRS require quality control of the genotype data, like missing value, minor
+> allele frequency, etc? Please clarify this in the manuscript.
+
+**Substantiated now:** `R2.2-C1`, `R2.2-T1` — `validation/`, `evidence/phase3/`.
+**Blocked on:** MS-10 (Phase 9) for the Methods subsection and page/line refs.
+
+We thank the reviewer for raising this, because the submitted manuscript genuinely did not say what happens to a genotype that fails quality control, and on re-reading we found the omission was not merely editorial: the pipeline's behaviour was defined only in code, and in one respect it was defined badly. We have added a Methods subsection, "Genotype preprocessing, QC, and model alignment," placed before the cryptographic pipeline, and we have implemented every rule it states in an independent validator so that the description is a transcription of executable behaviour rather than an intention. We also want to distinguish two categories that the question productively conflates. Minor allele frequency and Hardy–Weinberg filtering are cohort and model-development quality control: they are applied upstream, when the GWAS weights are derived, and bioETH-PRS neither performs nor can perform them, because it never sees a cohort — it scores one individual against a published model. Missingness, allele orientation, and genome-build matching are by contrast scoring-time checks that must happen per request, and those are the ones the protocol is responsible for. On each of them we now state a definite rule. Genotypes must be diploid hard calls in {0, 1, 2}; a non-integer dosage such as 0.7 from imputation, or an out-of-range value such as 9, is rejected rather than clamped, because clamping silently changes the score and produces a plausible number from invalid input. Missing variants are governed by a policy that is a required field of the model manifest, with no default value: the caller must choose explicitly between rejecting the sample, imputing a zero dosage, and imputing the cohort mean hard call. We made the absence of a default deliberate, having concluded that an implicit zero is the most dangerous option available, since it is indistinguishable from a genuine homozygous-reference call and silently biases the score downward for every missing risk allele. Genome build must be declared alongside the genotypes and must match the model's, and a mismatch is fatal rather than a warning, because the same variant identifier can denote different positions across builds and scoring would otherwise return a meaningless number that looks entirely normal. Variant order is verified element by element rather than by length, since the dot product is positional and a reordering pairs every dosage with the wrong weight. Duplicate variant identifiers, multiallelic sites, and indels are rejected, as this study evaluates biallelic SNP hard calls only. Every run emits counts of matched, missing, imputed, invalid, and rejected variants, so a partially scored sample cannot be mistaken for a complete one. We also state a caveat about our own fixtures: the HEPRS fixtures are bare numeric matrices carrying no identifiers, build, or allele labels, so they are assumed pre-aligned and no build or strand validation is possible on them; the QC and alignment logic is exercised instead by known-answer cases in which the metadata is specified.
+
+## Reviewer 2, Comment 3 — effect-allele versus minor-allele coding
+
+> For some cases, the genotype of a SNP may be coded as 0, 1, 2 in terms of the number of
+> risk alleles; but during the weights derivation, the genotype of that SNP in an independent
+> dataset may be coded as 2, 1, 0 in terms of the number of minor alleles (when the risk
+> allele is not the minor allele). Although we can require the genotype and the weights are
+> provided with consistent coding, how to validate this requirement when they are totally
+> blinded to each other? How does bioETH-PRS handle such situation?
+
+**Substantiated now:** `R2.3-C1`, `R2.3-T1` — `validation/`, `evidence/phase3/`.
+**Blocked on:** MS-11 (Phase 9) for the Methods text and page/line refs.
+
+We thank the reviewer for this comment, which identified a real imprecision in our formulation rather than only a gap in our exposition. Equation 1 defined the dosage as "the allele dosage," which is ambiguous in exactly the way the reviewer describes, and we have corrected it to state that it is the dosage of the model-specified effect allele. The manuscript no longer treats "minor allele" and "effect allele" as interchangeable anywhere. On the substance of the question — how alignment can be validated when the genotypes and the weights are blinded to one another — we think the premise deserves a direct answer, because the blinding is narrower than it first appears. Encrypting the weights conceals their magnitudes; it does not conceal the allele labels needed to orient a genotype. The model's public metadata exposes variant identity, genome build, effect allele, other allele, and column order even when the weight values themselves remain encrypted, and alignment is performed locally by the requester before any encryption takes place. The two parties are therefore blinded with respect to the quantities that must stay private, and not blinded with respect to the metadata that alignment actually requires; there is no need to inspect a weight in order to know which allele it refers to. Concretely, when the available dosage counts the opposite allele at a diploid biallelic SNP, we apply g_effect = 2 - g_other, and our tests confirm that a reversed effect allele maps [0, 1, 2] to [2, 1, 0] while an already-aligned variant is left unchanged. We also handle the harder case the question implies. Where the effect allele matches neither the reference nor the alternate allele but its complement does, and the allele pair is not self-complementary, the effect allele has been reported on the opposite strand and we complement it before applying the flip rule. Where the pair is palindromic — A/T or C/G — we reject the variant as strand-ambiguous even when the effect allele appears to match a label literally, and we want to be explicit that this is the case we cannot solve rather than one we solve quietly: for an A/T SNP, effect allele A is consistent both with the forward alternate allele and with the reverse-strand reading of the reference, so aligning on the label alone would silently flip roughly half of such variants. Rejecting them is the only honest behaviour available without external strand information, and the validator accepts them only when a manifest explicitly records that the strand has been resolved from another source. The validator reports match, flip, strand-ambiguous, and rejected counts for every run.
+
+## Reviewer 2, Comment 6 — double programming and independent validation
+
+> If I need double programming or independent validation of the final calculated PRS, could
+> bioETH-PRS incorporate this?
+
+**Substantiated now:** `R2.6-C1`, `R2.6-T1` — `validation/`, `evidence/phase3/`.
+**Blocked on:** an "Independent validation" paragraph in `Correctness and Protocol
+Verification` (Phase 11), and final page/line refs.
+
+We thank the reviewer for this suggestion, which we adopted, and we would note that acting on it materially improved the paper beyond answering the question. bioETH-PRS now ships an independent reference implementation of the entire scoring pipeline, together with a single command that executes both implementations over the same immutable inputs and returns pass or fail. The reference is written in Python, depends on nothing outside the standard library, and implements preprocessing, effect-allele harmonisation, Equation 1, the three-step quantisation, decoding, and comparison. We were careful about what "independent" is allowed to mean here, because two transliterations of one another agree by construction and demonstrate nothing: the reference was derived from the published specification in the manuscript rather than from the existing TypeScript helpers, and it neither imports nor transcribes them. We record the ordering explicitly, since the ordering is the substance of the claim — the reference was complete and all fifty-six of its known-answer checks were passing before the TypeScript implementation was consulted at all, to build the contract-side arm of the comparison. On the three known-answer cases, chosen to cover all-positive weights, mixed signed weights including a negative score, and a reversed effect allele, the two implementations agree exactly, at a comparison tolerance of zero rather than an approximate one; encoded scores are deterministic integers on both sides, so any difference would be a genuine disagreement rather than a rounding artifact. The reference also reproduces the worked example printed in the manuscript exactly. We would emphasise that the independence was not a formality: three defects in the published specification surfaced precisely because the reference followed the paper rather than the code. The weight zero-point is defined in the manuscript without a clamp that both implementations in fact apply, and would be negative and therefore unstorable for an all-positive weight vector; the rounding operator is written without a tie-breaking convention, and the two implementations had silently chosen different ones; and the reconstruction accuracy we described as machine-epsilon is in fact exactly zero on our fixtures, for the non-generalising reason that the source weights carry six decimal places and the recommended scale therefore quantises them losslessly. All three are corrected in the revised manuscript. Finally, we are explicit about the epistemic status of the exercise: this is independent-implementation agreement, not a proof of correctness, and it establishes nothing about sample authenticity, clinical validity, calibration, or ancestry portability. We describe it in those terms in the paper.
+
 ## Not yet drafted
 
 Do not pre-write these; each needs its Stage A evidence first.
@@ -258,11 +390,8 @@ Do not pre-write these; each needs its Stage A evidence first.
 | R1 C7 | HEPRS comparison by dimension | Phases 7–8 |
 | R1 C8 | Cost projections | `R1.8-E1` (Phase 8) |
 | R2 C1 | Narrow SNP class | Phase 8 |
-| R2 C2 | Genotype QC | `R2.2-C1`, `R2.2-T1` (Phase 3) |
-| R2 C3 | Effect-allele coding | `R2.3-C1`, `R2.3-T1` (Phase 3) |
 | R2 C4 | Who guarantees correctness | `R2.4-E1` (Phase 4), `R2.6-C1` (Phase 3) |
 | R2 C5 | Interpretability of the encoded pipeline | Phase 9 |
-| R2 C6 | Double programming | `R2.6-C1`, `R2.6-T1` (Phase 3) |
 | R2 C7 | Equation 1 agreement | `R2.7-E1` (Phase 5) |
 
 ---
@@ -283,6 +412,11 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-08 | `test/job_lifecycle_test.ts` → `R1.4-T1: no protected classification entry point accepts requester thresholds` | MS-09; R1 C4 |
 | EV-09 | `evidence/phase2/gas_delta.md` and `release_policy_gas.txt` — +0.0009% total gas, 77,314 gas per policy | R1 C4; MS-08 |
 | EV-10 | `test/rate_limit_randomized_release_test.ts` → `blocks the same sample across requesters when the sample window is exhausted` | R1 C4 (Sybil boundary) |
+| EV-11 | `validation/independent_prs_reference.py` — independent Python reference, stdlib only | MS-10, MS-11, MS-12, MS-13; R2 C2, C3, C6 |
+| EV-12 | `npm run validate:cross-language` — one-command pass/fail, tolerance 0, 3 cases | R2 C6 |
+| EV-13 | reference self test — 56/56 checks, incl. orientation and every QC rule | R2 C2, C3 |
+| EV-14 | `validation/cases/*.json` — 27 hand-computed expectations, all re-derived and agreeing | R2 C6 |
+| EV-15 | `evidence/phase3/reference/heprs_*snp_reference.json` — expected answers, all 200 individuals, round-trip error 0 | MS-13; R2 C7 |
 
 ## Commit trail
 
@@ -294,3 +428,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `e4c968c` | Phase 0 complete; node 22 pinned; `CD-002` closed |
 | `b0c86a4` | Phase 1: DP framing removed, trust boundary labelled |
 | `7870d4c` | Phase 2: release policy fixed and immutable; requester thresholds removed |
+| `<phase3>` | Phase 3: independent Python reference; cross-language agreement at tolerance 0 |

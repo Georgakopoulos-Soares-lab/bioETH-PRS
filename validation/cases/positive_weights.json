@@ -1,0 +1,99 @@
+{
+  "name": "positive_weights",
+  "description": "All weights positive, so the weight zero-point clamps to 0 and the score offset is 0. Exercises the degenerate branch of Step 2 that the manuscript's unconditional z_w = -min q would make negative (CD-007). Allele pairs are deliberately non-palindromic: an A/T or C/G pair cannot have its strand resolved from allele labels alone and is rejected by design (covered in selftest case 5).",
+  "scale": 100,
+  "weights": [
+    "0.10",
+    "0.20",
+    "0.05"
+  ],
+  "variants": [
+    {
+      "id": "rsP1",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G"
+    },
+    {
+      "id": "rsP2",
+      "ref": "C",
+      "alt": "T",
+      "effect_allele": "T",
+      "other_allele": "C"
+    },
+    {
+      "id": "rsP3",
+      "ref": "G",
+      "alt": "T",
+      "effect_allele": "T",
+      "other_allele": "G"
+    }
+  ],
+  "genotypes": [
+    [
+      1,
+      2,
+      0
+    ],
+    [
+      2,
+      2,
+      2
+    ],
+    [
+      0,
+      0,
+      1
+    ]
+  ],
+  "hand_checked": {
+    "q": [
+      10,
+      20,
+      5
+    ],
+    "z_w": 0,
+    "u": [
+      10,
+      20,
+      5
+    ],
+    "z_s": 0,
+    "individual_0": {
+      "prs": "0.50",
+      "encodedScore": 50
+    },
+    "note": "1*0.10 + 2*0.20 + 0*0.05 = 0.50; e = (1*10+2*20+0*5) + 0 - 0*3 = 50"
+  },
+  "manifest": {
+    "manifest_version": 1,
+    "genome_build": "GRCh37",
+    "scale": 100,
+    "missing_policy": "reject",
+    "note": "known-answer case: positive_weights",
+    "variants": [
+      {
+        "id": "rsP1",
+        "ref": "G",
+        "alt": "A",
+        "effect_allele": "A",
+        "other_allele": "G"
+      },
+      {
+        "id": "rsP2",
+        "ref": "C",
+        "alt": "T",
+        "effect_allele": "T",
+        "other_allele": "C"
+      },
+      {
+        "id": "rsP3",
+        "ref": "G",
+        "alt": "T",
+        "effect_allele": "T",
+        "other_allele": "G"
+      }
+    ]
+  }
+}

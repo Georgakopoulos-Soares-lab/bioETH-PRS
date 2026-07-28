@@ -42,8 +42,8 @@ Status convention:
 - `[x]` Completed
 - `Progress: 0%` can be changed to an intermediate percentage while work is in progress.
 
-Overall RTR progress: **3/35 actions completed (9%)** — plus `R1.3-M2` at 50%
-Stage A: **3/16** &nbsp;&nbsp; Stage B: **0/19**
+Overall RTR progress: **9/35 actions completed (26%)** — plus `R1.3-M2` at 50%
+Stage A: **9/16** &nbsp;&nbsp; Stage B: **0/19**
 
 ## Baseline already verified
 
@@ -551,7 +551,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.2-C1 — Implement the documented preprocessing rules in the independent validator
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 3, 28 July 2026
 - Stage: Code and evidence - Phase 3 (Independent validation stack)
 - Ordering note: do not wait for `R2.2-M1`. The implementation defines the specification; the manuscript subsection is derived from it in Phase 9.
 - Type: Validation code
@@ -566,7 +566,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.2-T1 — Add QC and missingness tests
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 3, 28 July 2026
 - Stage: Code and evidence - Phase 3 (Independent validation stack)
 - Type: Tests
 - Code action:
@@ -600,7 +600,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.3-C1 — Add effect-allele harmonization to the reference/preprocessing script
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 3, 28 July 2026
 - Stage: Code and evidence - Phase 3 (Independent validation stack)
 - Ordering note: do not wait for `R2.3-M1`. The merged decision rules become the paper's pseudocode in Phase 9.
 - Type: Validation code
@@ -616,7 +616,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.3-T1 — Add allele-orientation known-answer tests
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 3, 28 July 2026
 - Stage: Code and evidence - Phase 3 (Independent validation stack)
 - Type: Tests
 - Code action:
@@ -700,7 +700,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.6-C1 — Add an independent Python reference implementation
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 3, 28 July 2026
 - Stage: Code and evidence - Phase 3 (Independent validation stack)
 - Type: New validation code
 - Code action:
@@ -715,7 +715,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.6-T1 — Add cross-language known-answer validation
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 3, 28 July 2026
 - Stage: Code and evidence - Phase 3 (Independent validation stack)
 - Type: Test and reproducibility workflow
 - Code action:
@@ -834,7 +834,7 @@ Exit gate:
 
 # Stage A - Code and evidence (Phases 1-8, 16 actions)
 
-Stage A progress: **3/16 actions (19%)** — Phases 1-2 complete
+Stage A progress: **9/16 actions (56%)** — Phases 1-3 complete
 
 Stage A rule: the manuscript is not touched. If a code result contradicts something the
 submitted paper claims, record the contradiction in `evidence/claim_deltas.md` and resolve
@@ -921,41 +921,68 @@ Phase exit gate:
 
 ## Phase 3 - Independent validation stack
 
-Why third: this produces the expected answers that Phases 5 and 7 validate against, and the
-executable rules that Phase 9 transcribes into the Methods section.
+Why third: this produces the expected answers that Phases 5 and 7 validate against, and
+the executable rules that Phase 9 transcribes into the Methods section.
 
-Phase progress: **0/6 actions (0%)**
+Phase progress: **6/6 actions (100%)** — complete 28 July 2026. Record: `evidence/phase3/`,
+implementation in `validation/`.
 
-Build order within the phase is strict - each item consumes the previous one:
+Headline: two implementations derived independently from the manuscript agree **exactly**
+(tolerance zero) on encoding parameters, encoded scores, and decoded scores for every
+known-answer case. The reference reproduces the manuscript's worked example exactly.
+One command, `npm run validate:cross-language`, returns pass/fail and also gates
+`npm run validate:local`.
 
-- [ ] `R2.6-C1` Create `validation/independent_prs_reference.py`. Implement preprocessing,
-      harmonization, Equation 1, quantization, decoding, and comparison from the paper's
-      definitions only. Do not import or transliterate `test/utils/heprs.ts`.
-- [ ] `R2.2-C1` Add preprocessing and QC: hard-call `{0,1,2}` validation, explicit
-      manifest-driven missing-value policy (never an implicit zero), build and variant-order
-      matching, duplicate and multiallelic handling. Emit matched / missing / imputed /
-      rejected / invalid counts.
-- [ ] `R2.3-C1` Add effect-allele harmonization: parse build, REF, ALT, effect allele, other
-      allele, and column order; pass matching dosages through; apply `2 - g` to
-      opposite-allele dosages; reject unresolved A/T and C/G palindromes. Emit a
-      harmonization report with match / flip / strand-ambiguous / rejected counts.
-- [ ] `R2.2-T1` Test a complete sample, a missing variant, an invalid value, a wrong build,
-      and a wrong variant order against stored known-answer fixtures.
-- [ ] `R2.3-T1` Test one aligned SNP, one reversed effect allele, one strand-compatible SNP,
-      and one unresolved palindromic SNP; confirm the reversed case maps `[0,1,2]` to `[2,1,0]`.
-- [ ] `R2.6-T1` Wire one reproducibility command that runs the TypeScript/contract path and
-      the Python path over the same immutable inputs across three known-answer cases
-      (positive weights, mixed signed weights, allele reversal) and fails on any disagreement
-      beyond the declared quantization tolerance.
+- [x] `R2.6-C1` `validation/independent_prs_reference.py`, standard library only. Implements
+      Equation 1, the three-step encoding, decoding, preprocessing, harmonisation, and
+      comparison. Written from `bioeth_prs (4).tex` and `docs/design.md`; does not import,
+      translate, or transcribe `test/utils/heprs.ts`. The **ordering is recorded** because it
+      is the substance of the claim: the Python was finished and all 56 self-checks passing
+      before the TypeScript helper was opened to build the contract-side arm.
+- [x] `R2.2-C1` Preprocessing and QC, all at scoring time: hard calls restricted to
+      `{0,1,2}` with `0.7` and `9` **rejected rather than clamped**; missing-value policy
+      **required** in the manifest (`reject` / `zero_dosage` / `mean_dosage`) with no default,
+      so an implicit zero is impossible; genome build must be declared and must match;
+      variant order verified element-by-element, not by length; duplicates, multiallelics, and
+      indels rejected. Emits matched / intercept / missing / imputed / invalid / rejected counts.
+- [x] `R2.3-C1` Effect-allele harmonisation with the full six-rule decision table: reject
+      multiallelic; reject palindromic `A/T` and `C/G` pairs as strand-ambiguous unless
+      explicitly resolved (a literal label match is *not* sufficient there); keep matching
+      dosages; apply `2 - g` on reversal; resolve non-palindromic complement matches as strand
+      flips; reject incompatible. Emits match / flip / strand-flip / strand-ambiguous /
+      incompatible counts.
+- [x] `R2.2-T1` QC coverage in the self test: complete sample, missing variant under each
+      policy, non-integer dosage, out-of-range dosage, non-numeric dosage, wrong genome build,
+      undeclared build, swapped variant order, truncated variant order, duplicate ids,
+      multiallelic, and intercept handling.
+- [x] `R2.3-T1` Orientation coverage: aligned SNP unchanged; reversed effect allele maps
+      `[0,1,2]` to `[2,1,0]`; strand-compatible SNP resolved via complement; unresolved
+      palindromic SNP rejected; explicitly strand-resolved palindrome accepted.
+- [x] `R2.6-T1` `npm run validate:cross-language` runs both arms over three immutable
+      known-answer cases (positive weights, mixed signed weights, allele reversal) and fails
+      on any disagreement. Default tolerance is **zero**, since encoded scores are
+      deterministic integers on both sides. Each case carries hand-computed expectations that
+      `run-case` re-derives rather than trusts — which caught a real defect in the fixtures
+      themselves during construction.
 
-Dependencies: Phase 1 naming. Independent of Phase 2 and may run in parallel with it.
+Dependencies: Phase 1 naming. Independent of Phase 2.
 
 Phase exit gate:
 
-- [ ] The Python reference reproduces hand-calculated known-answer examples.
-- [ ] One command returns a single pass/fail for cross-language agreement.
-- [ ] Every preprocessing and harmonization rule that will appear in the paper is executable
+- [x] The Python reference reproduces hand-calculated known-answer examples. 56/56 self-checks
+      and 27/27 hand-computed case expectations agree, including the manuscript's worked
+      example (`e = 105`, `PRS = 0.45`).
+- [x] One command returns a single pass/fail for cross-language agreement, and **it can
+      actually fail**: both negative controls exercised — mismatched arms report
+      `COMPARISON FAILED` with exit 1, and a corrupted expectation is detected.
+- [x] Every preprocessing and harmonisation rule that will appear in the paper is executable
       and covered by at least one test.
+- [x] Expected answers exist for all 200 fixture individuals across all four sizes, 0 rejected,
+      round-trip error identically zero. Phases 5 and 7 now have known answers to validate against.
+- [x] Findings recorded rather than silently reconciled: `CD-006` (quantisation is exact, not
+      machine-epsilon, and the reason does not generalise), `CD-007` (the paper's `z_w` formula
+      is missing a clamp both implementations apply), `CD-008` (`round()` has no stated
+      tie-breaking rule; measured impact on this paper's numbers is nil).
 
 ## Phase 4 - Evidence provenance
 
@@ -1254,20 +1281,20 @@ Phase exit gate:
 |---|---|---:|---:|---:|
 | A | 1. Code terminology conformity | 1 | 1 | **100%** |
 | A | 2. Release-policy hardening | 2 | 2 | **100%** |
-| A | 3. Independent validation stack | 6 | 0 | 0% |
+| A | 3. Independent validation stack | 6 | 6 | **100%** |
 | A | 4. Evidence provenance | 1 | 0 | 0% |
 | A | 5. Individual-level correctness evidence | 1 | 0 | 0% |
 | A | 6. Adversarial evidence | 1 | 0 | 0% |
 | A | 7. Live fhEVM validation | 2 | 0 | 0% |
 | A | 8. Evidence synthesis | 2 | 0 | 0% |
-| **A** | **Code and evidence subtotal** | **16** | **3** | **19%** |
+| **A** | **Code and evidence subtotal** | **16** | **9** | **56%** |
 | B | 9. Methods written from code | 3 | 0 | 0% |
 | B | 10. Security model and release narrative | 5 | 0 | 0% |
 | B | 11. Results from measured evidence | 4 | 0 | 0% |
 | B | 12. Scope, cost, and HEPRS comparison | 6 | 0 | 0% |
 | B | 13. Front matter and conclusion | 1 | 0 | 0% |
 | **B** | **Manuscript subtotal** | **19** | **0** | **0%** |
-| | **Total reviewer actions** | **35** | **3** | **9%** |
+| | **Total reviewer actions** | **35** | **9** | **26%** |
 
 Phase 0 and Phase 14 are coordination and final-integration gates; they do not add reviewer
 action IDs to the 35-action total.
