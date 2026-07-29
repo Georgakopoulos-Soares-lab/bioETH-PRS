@@ -639,4 +639,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `bb0ddfd` | Phase 4: real provenance across all evidence-producing code; zero-hash guard |
 | `29836a6` | Phase 5: 200-individual Equation 1 comparison, all exact |
 | `7c1ffd2` | Phase 6: adversarial evaluation; 2,800-hour claim refuted and replaced |
-| `<phase7>` | Phase 7: live runs blocked on credentials; HCU/optimisation/private-cost findings |
+| `33014aa` | Phase 7: live runs blocked on credentials; HCU/optimisation/private-cost findings |
