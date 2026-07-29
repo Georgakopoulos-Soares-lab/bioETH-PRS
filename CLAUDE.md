@@ -45,7 +45,7 @@ npm run advisor:scale-ceilings   # quick uint64 overflow screen
 ## Key Conventions
 
 - **Encrypted types**: `euint64` for SNP values and weights, `euint8` for categorical outputs, `ebool` for comparisons.
-- **Multiplication**: Public weights use `FHE.mul(snp, FHE.asEuint64(weight))` (trivially encrypted — coprocessor optimizes C×P internally). Private weights use `FHE.mul(weight, snp)` (C×C).
+- **Multiplication**: Public weights use `FHE.mul(snp, FHE.asEuint64(weight))`; private weights use `FHE.mul(weight, snp)`. **Both are charged as ciphertext×ciphertext.** `FHE.asEuint64(w)` produces a real (trivially encrypted) handle, so the subsequent `mul` takes the `euint64 × euint64` overload, which passes `scalar = false` and costs 596,000 HCU for `Uint64` — not the 365,000 the scalar path costs. The scalar discount is only obtained via the `FHE.mul(euint64, uint64)` overload, which the code does not currently use. See `CD-022`: switching would save 38.8% HCU per multiplication and raise the compute-chunk ceiling from 21 to roughly 34. Public models are still ~28% cheaper than private ones in *host gas*, but that is from packed `uint64[]` storage reads, not from any coprocessor optimisation.
 - **Classic chunked pattern**: `createPRSJob → appendSnpChunk (×N) → finalizeSnpUpload → computeChunk (×N) → finalize`. Each step is a separate transaction. SNP handles persisted in `snpData[]`.
 - **Streaming pattern**: `createPRSJob → appendAndComputeChunk (×N) → finalize`. Upload and compute combined per chunk; no SNP handle storage. Saves ~37% gas. Preferred for single-requester flows.
 - **Import path**: Contracts import directly from `@fhevm/solidity/lib/FHE.sol` and inherit `ZamaEthereumConfig` from `@fhevm/solidity/config/ZamaConfig.sol`.

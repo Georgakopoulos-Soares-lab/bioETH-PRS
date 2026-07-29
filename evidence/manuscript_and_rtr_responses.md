@@ -367,16 +367,49 @@ Removing the raw-score path is the single largest control — exact extraction i
 
 ## MS-05 · `R1.1-M1` · Phase 11 · Evidence-class labelling
 
-**Status: `BLOCKED`** on `R1.1-E1` / `R1.1-E2` (Phase 7).
+**Status: `READY` (branch B)** — Phase 7 is blocked on credentials, so the fallback branch
+applies. See `CD-024`, `CD-021`, `CD-022`, `CD-023`.
 
-Label every result `Live fhEVM`, `Hardhat mock`, or `Analytic projection`. Delete `gas numbers
-are expected to be within 10--20\% of real-network deployment`. Stop placing the `~386 ms` mock
-latency beside HEPRS real-FHE latency. Replace with: *Hardhat results validate contract logic and
-transaction geometry but do not measure real fhEVM latency, HCU availability, or production fees.*
+Label every result `Live fhEVM`, `Hardhat mock`, or `Analytic projection`. Delete the sentence
+"gas numbers are expected to be within 10--20\% of real-network deployment" — it is an
+unsupported extrapolation. Stop placing the `~386 ms` mock latency beside HEPRS real-FHE latency
+as though comparable. Replace with: *Hardhat results validate contract logic and transaction
+geometry but do not measure real fhEVM latency, HCU availability, or production fees.*
 
-**Carry forward from `CD-002`:** every mock number in the paper must state its runtime, or be
-re-measured on node 22. The Phase 0 baseline was re-captured on node v22.23.1 precisely so this
-sentence can be written truthfully.
+**Two branches. Take B unless a live run has happened.**
+
+*Branch A — a live run exists.* Add the "Live fhEVM validation" paragraph and table row, with
+chain ID, contract addresses, transaction hashes, block numbers, host gas, submission-to-result
+latency, decryption latency, and the decoded result. In `System Design -> Model Marketplace`,
+separate "implemented in the contracts" from "validated on a live network", matching the actual
+`R1.1-E2` outcome.
+
+*Branch B — no live run (current state).* State plainly that **every result in the paper is
+Hardhat-mock validated**, that no live-network execution was performed, and that live deployment
+feasibility is therefore not established. Make no live claim anywhere, including the abstract and
+conclusion. `R1.1-E2`'s own fallback wording — "the manuscript explicitly says private-weight
+execution is mock-validated only" — applies to **both** the public and private paths, not just
+the private one.
+
+Under branch B the paper should also record, because it is verified and strengthens the honesty
+of the scope statement, that the contracts are within the EIP-170 size limit (largest 42.4%), the
+harness is ready, and the measured Sepolia budget is ~0.13 ETH — i.e. the obstacle is a
+credential, not a technical barrier.
+
+**Three measurement corrections that must land regardless of branch:**
+
+1. **The mock HCU ceiling is 21, not 20**, and it is *identical for public and private models*
+   (`CD-021`). The old figure came from a coarse candidate list. Report the measured ceiling and
+   note that the shipped default of 20 leaves one slot of headroom.
+2. **Delete the C×P optimisation claim** (`CD-022`). The paper inherits from `docs/design.md` the
+   assertion that the coprocessor optimises ciphertext×plaintext multiplication, making public
+   models "~60% cheaper". It does not: `FHE.asEuint64` yields a real handle and the multiplication
+   is charged as non-scalar. The true public-vs-private gap is **28%**, from packed storage reads.
+   If the scalability discussion mentions per-op cost, note that a 38.8% HCU saving is available
+   via the scalar overload and would raise the ceiling to ~34, cutting compute transactions for
+   5,000 SNPs from 239 to ~148 — as Future Directions, since it is not implemented.
+3. **The Sepolia HCU ceiling is unmeasured** for both visibilities. It must remain `TBD`, not be
+   inferred from the mock.
 
 ## MS-06 · `R1.2-M2` · Phase 10 · Trust and failure-boundary table
 
@@ -406,6 +439,13 @@ validity, calibration, or ancestry portability.
 
 **Status: `BLOCKED`** on `R1.8-E1` (Phase 8) only. `R2.4-E1` landed in Phase 4, which also
 quantified the cost of recording provenance — see `CD-012`.
+
+Two further inputs now exist for Phase 8. Provenance adds a flat **+40,568 gas per model**
+(`CD-012`). And **private-weight jobs cost 2.01x public ones** — 23.51 M vs 11.69 M gas, 17 vs 15
+transactions for a 100-SNP job (`CD-023`). The second matters for framing: the cost discussion is
+built on public models while the anti-probing discussion is explicitly about private ones, and
+Phase 6 established that extraction is only a threat for private models. The paper must not quote
+the public figure while discussing the private threat model.
 
 `CD-001` found that `scripts/gas_profile.ts` and `scripts/probe_hcu_ceiling.ts` write
 `ethers.ZeroHash` manifests, and both feed numbers **already printed in the submitted
@@ -581,6 +621,9 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-25 | `contracts/attack-baseline/` - frozen `2d6f21d` design, byte-faithful | MS-04; R1 C4 |
 | EV-26 | `test/attack_baseline_isolation_test.ts` - 6 tests: fidelity + never deployable | R1 C4 |
 | EV-27 | `scripts/anti_probing_evaluation.ts` - `npm run evaluate:anti-probing` | MS-04 |
+| EV-28 | `evidence/phase7/live_preflight.json` - deployment gas, both job variants, Sepolia budget, harness readiness | MS-05, MS-08 |
+| EV-29 | `evidence/phase7/hcu_public.txt`, `hcu_private.txt` - ceiling 21 for both visibilities | MS-05 |
+| EV-30 | `scripts/live_preflight.ts` - `npm run preflight:live` | MS-05 |
 
 ## Commit trail
 
@@ -596,3 +639,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `bb0ddfd` | Phase 4: real provenance across all evidence-producing code; zero-hash guard |
 | `29836a6` | Phase 5: 200-individual Equation 1 comparison, all exact |
 | `7c1ffd2` | Phase 6: adversarial evaluation; 2,800-hour claim refuted and replaced |
+| `<phase7>` | Phase 7: live runs blocked on credentials; HCU/optimisation/private-cost findings |

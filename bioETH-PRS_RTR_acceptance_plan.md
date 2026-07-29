@@ -114,7 +114,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.1-E1 — Run and record a live public-model fhEVM experiment
 
-- [ ] Progress: 0%
+- [ ] Progress: 60% — BLOCKED on a funded Sepolia wallet (Phase 7, 29 July 2026). Harness verified ready, budget measured, no live number fabricated. See `CD-024`.
 - Stage: Code and evidence - Phase 7 (Live fhEVM validation)
 - Type: Experiment and existing script update
 - Code action:
@@ -130,7 +130,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.1-E2 — Run one live private-weight validation
 
-- [ ] Progress: 0%
+- [ ] Progress: 60% — BLOCKED on a funded Sepolia wallet (Phase 7, 29 July 2026). Harness verified ready, budget measured, no live number fabricated. See `CD-024`.
 - Stage: Code and evidence - Phase 7 (Live fhEVM validation)
 - Type: Experiment
 - Code action:
@@ -834,7 +834,7 @@ Exit gate:
 
 # Stage A - Code and evidence (Phases 1-8, 16 actions)
 
-Stage A progress: **12/16 actions (75%)** — Phases 1-6 complete
+Stage A progress: **12/16 actions (75%)** — Phases 1-6 complete; Phase 7 blocked on credentials
 
 Stage A rule: the manuscript is not touched. If a code result contradicts something the
 submitted paper claims, record the contradiction in `evidence/claim_deltas.md` and resolve
@@ -1153,28 +1153,76 @@ Phase exit gate:
       these are **lower bounds** on attacker effort. A better attack may exist; the absence of one
       here is not a security proof.
 
-## Phase 7 - Live fhEVM validation
+## Phase 7 - Live fhEVM validation — **BLOCKED**
 
-Why last in Stage A: this is the least repeatable and most expensive step, and it should
-confirm a known answer rather than generate a new unverified one.
+Why after correctness: the live run should validate known answers, not create another unverified
+number. That intent is preserved — the harness asserts the decoded score against the Phase 3/5
+known answer, so a live pass would be a validation rather than a new claim.
 
-Phase progress: **0/2 actions (0%)**
+Phase progress: **0/2 actions (0%)** — **blocked on credentials**, not on work.
+Record: `evidence/phase7/`.
 
-- [ ] `R1.1-E1` Run a complete 100-SNP public-weight job on the live network using
-      `scripts/sepolia_validation.ts`. Record chain ID, contract addresses, transaction
-      hashes, block numbers, transaction count, host gas, submission-to-result latency,
-      decryption latency, and the decoded result. Save machine-readable JSON plus a short
-      Markdown report.
-- [ ] `R1.1-E2` Parameterize the same script to publish encrypted weights and run one 100-SNP
-      private-weight job over the same genotype and reference score. If the live SDK does not
-      support this path, record the exact blocker in `evidence/` for use in Phase 11.
+- [ ] `R1.1-E1` Public-weight live run. **Cannot execute here.** No `MNEMONIC` is configured and
+      `scripts/sepolia_validation.ts` correctly refuses the public Hardhat test mnemonic. The
+      guard was not worked around and no live result was synthesised.
+- [ ] `R1.1-E2` Private-weight live run. Same blocker. The pre-flight confirms the private path
+      works end to end on the mock, so the remaining work is parameterising the script rather
+      than discovery. One live-specific risk is flagged: `classifyPreauthorized` imports the
+      score with an empty-proof `FHE.fromExternal`, which holds within a transaction but has not
+      been exercised against a real coprocessor.
 
-Dependencies: Phases 3, 4, and 5 (the expected score must already be independently known).
+### What Phase 7 did establish
+
+The remaining gap is now exactly "fund a wallet and run one command".
+
+| Check | Result |
+|---|---|
+| Sepolia RPC reachable | yes — chain ID 11155111, block 11374028 |
+| Sepolia gas price, read from network | 1.048 gwei |
+| All contracts within EIP-170 | yes — largest `PRSComputeEngine` 10,426 B (42.4%) |
+| Live harness readiness | 5/5 asserted, not eyeballed |
+| Deployment gas | 5,892,613 (0.00617 ETH) |
+| 100-SNP job, public / private | 15 tx / 11.69 M gas · 17 tx / 23.51 M gas |
+| **Recommended Sepolia budget** | **~0.13 ETH** with 3x headroom |
+
+New: `npm run preflight:live` (`scripts/live_preflight.ts`), which measures all of the above
+without contacting a network.
 
 Phase exit gate:
 
 - [ ] At least one real fhEVM end-to-end score matches the independent Equation 1 reference.
-- [ ] The private-weight outcome is recorded as either a transaction record or a documented blocker.
+      **Blocked.** The expected answer already exists and is agreed by both arms — 100-SNP
+      individual 0, encoded score **758,685** — so the live run has a known answer waiting.
+- [ ] The paper's live private-weight claim matches the actual result.
+      **Taking the plan's own fallback.** `R1.1-E2` provides that absent a successful run the
+      manuscript must say private-weight execution is mock-validated only; absent credentials
+      that applies to **both** runs. `MS-05` now carries both branches so Stage B can proceed
+      either way. Until a live run exists the paper must state that all results are Hardhat-mock
+      validated, must not claim live-network deployment, and must leave the Sepolia HCU ceiling
+      unmeasured for both model visibilities.
+
+### Findings, three of them unrelated to the blocker
+
+- [x] `CD-021` The HCU ceiling is **21, not 20**, and is **identical for public and private
+      models** (21 pass / 22 fail for both). The old figure was an artefact of a coarse candidate
+      list. `probe_hcu_ceiling.ts` now takes `MODEL_VISIBILITY` and `HCU_CHUNK_SIZES`.
+- [x] `CD-022` **The documented C×P optimisation does not happen.** `CLAUDE.md` claimed the
+      coprocessor "optimizes C×P internally" and `docs/design.md` claimed that made public models
+      "~60% cheaper" — both false. `FHE.asEuint64(w)` yields a real handle, so the following
+      `mul` takes the `euint64 x euint64` overload and passes `scalar = false`, paying the full
+      596,000 HCU instead of 365,000. The discount exists and is unused
+      (`FHE.mul(euint64, uint64)` passes `true`): a **38.8%** HCU saving per multiplication that
+      would raise the public ceiling from 21 to roughly **34** and cut compute transactions for a
+      5,000-SNP job from **239 to about 148**. The real public-vs-private gas gap is **28%**, from
+      packed storage reads, not FHE work. Documentation corrected in four places; the optimisation
+      **deliberately deferred**, since changing `computeChunk` would invalidate the Phase 4-6
+      measurements.
+- [x] `CD-023` **Private-weight jobs cost 2.01x public ones** (23.51 M vs 11.69 M gas, 17 vs 15
+      transactions). The manuscript prices public models while its anti-probing discussion is
+      explicitly about private ones, and Phase 6 established extraction is only a threat for
+      private models — so the configuration needing protection costs double the one priced.
+- [x] `CD-024` The blocker recorded with the exact commands, measured budget, and the manuscript
+      fallback.
 
 ## Phase 8 - Evidence synthesis
 
@@ -1399,7 +1447,7 @@ Phase exit gate:
 | A | 4. Evidence provenance | 1 | 1 | **100%** |
 | A | 5. Individual-level correctness evidence | 1 | 1 | **100%** |
 | A | 6. Adversarial evidence | 1 | 1 | **100%** |
-| A | 7. Live fhEVM validation | 2 | 0 | 0% |
+| A | 7. Live fhEVM validation | 2 | 0 | **blocked** |
 | A | 8. Evidence synthesis | 2 | 0 | 0% |
 | **A** | **Code and evidence subtotal** | **16** | **12** | **75%** |
 | B | 9. Methods written from code | 3 | 0 | 0% |

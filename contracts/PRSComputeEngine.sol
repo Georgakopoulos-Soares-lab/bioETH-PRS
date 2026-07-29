@@ -21,7 +21,9 @@ interface IResultOracle {
 ///                      accepted per appendSnpChunk call (≤ 32 for fhEVM input-proof budget).
 ///   computeChunkSize — inherited from the model; governs how many SNP×weight pairs are
 ///                      processed per computeChunk call (HCU-constrained).
-///                      Mock ceiling: 20. Sepolia ceiling: TBD (run `npm run probe:hcu`).
+///                      Mock ceiling: 21 (measured, identical for public and private
+///                      models — see CD-021). Shipped default is 20, one slot of
+///                      headroom. Sepolia ceiling: TBD (run `npm run probe:hcu`).
 ///
 /// SNPs are stored flat (one contiguous array per job) and sliced by computeChunkSize during compute.
 /// v1 enforces ACL and chunk geometry on-chain, but SNP provenance and hardcall-range
@@ -291,7 +293,8 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     ///
     ///         Chunk size is governed by computeChunkSize (HCU budget) rather than
     ///         uploadChunkSize.  The fhEVM input-proof budget is 32 euint64s per tx;
-    ///         this is satisfied so long as computeChunkSize <= 32 (mock ceiling: 20).
+    ///         this is satisfied so long as computeChunkSize <= 32 (measured mock HCU
+    ///         ceiling: 21, for both public and private models).
     ///
     ///         This path is mutually exclusive with the classic appendSnpChunk path.
     ///         Call createPRSJob first, then call this function ceil(N/computeChunkSize)

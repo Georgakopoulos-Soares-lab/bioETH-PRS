@@ -116,7 +116,7 @@ Chunked publication of GWAS weight arrays, public or encrypted. Stores models; d
 
 **Compute paths:**
 
-- Public weights → `FHE.mul(snp, FHE.asEuint64(weight))` — trivially encrypted C×P, coprocessor-optimised (~60% cheaper than C×C)
+- Public weights → `FHE.mul(snp, FHE.asEuint64(weight))` — trivially encrypted, but charged as C×C (see §HCU note); ~28% cheaper than private in host gas, from packed storage reads rather than coprocessor optimisation
 - Private weights → `FHE.mul(encryptedWeight, snp)` — C×C, full FHE multiply
 
 **Access control:** Only `owner` may append chunks, finalize, and manage private readers. Private model compute requires `setPrivateModelReader(modelId, reader, true)` for both the engine contract address and the individual requester.
@@ -217,7 +217,11 @@ Every `euint64` is a 32-byte handle — an identifier pointing to a ciphertext m
 
 `externalEuint64` is the wire type for ciphertexts arriving from a user. The contract calls `FHE.fromExternal(handle, inputProof)` to validate the proof and receive a usable on-chain handle, then `FHE.allowThis(result)` before storing. In the streaming path, `allowThis` is intentionally skipped on intermediate SNP handles because they are consumed within the same transaction and never stored.
 
-`FHE.asEuint64(plainValue)` creates a trivially encrypted handle for a plaintext constant. The coprocessor internally optimises C×P multiplications — this is why public-weight models are ~60% cheaper to compute than private models.
+`FHE.asEuint64(plainValue)` creates a trivially encrypted handle for a plaintext constant. **It does not obtain a scalar-multiplication discount.** Because the result is a genuine `euint64` handle, `FHE.mul` resolves to the `euint64 × euint64` overload, which passes `scalar = false`; the mock's own HCU table charges 596,000 for `Uint64` non-scalar versus 365,000 scalar. Measured consequence: the compute-chunk HCU ceiling is **21 for both public and private models**, not higher for public ones.
+
+Public-weight models are nonetheless cheaper to compute — measured at 1,150,414 vs 1,604,024 gas per 20-SNP chunk, about 28% — but the saving comes from reading packed `uint64[]` weights instead of one 32-byte `euint64` handle per weight, not from any coprocessor optimisation.
+
+The scalar discount is available: `FHE.mul(euint64 a, uint64 b)` passes `scalar = true`. Adopting it would cut 231,000 HCU per multiplication (38.8%) and raise the public ceiling to roughly 34 SNPs per chunk, reducing compute transactions for a 5,000-SNP job from 239 to about 148. This is recorded as `CD-022` and deferred rather than applied, because changing `computeChunk` would invalidate the gas and adversarial measurements already taken in Phases 4-6.
 
 ### 3.2 ACL discipline
 

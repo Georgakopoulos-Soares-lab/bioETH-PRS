@@ -18,7 +18,9 @@ interface INoiseBoundedOracle {
 ///                      by the fhEVM 2048-bit input-proof budget (max 32 euint64s per call).
 ///   computeChunkSize — weights per getPublicWeightChunk / getEncryptedWeightChunk call, which maps
 ///                      1:1 to the PRSComputeEngine computeChunk HCU budget.
-///                      Mock ceiling: 20. Sepolia ceiling: TBD (run `npm run probe:hcu`).
+///                      Mock ceiling: 21 (measured, identical for public and private
+///                      models — see CD-021). Shipped default is 20, one slot of
+///                      headroom. Sepolia ceiling: TBD (run `npm run probe:hcu`).
 ///
 /// Weights are stored flat (one contiguous array per model) and sliced by computeChunkSize on read.
 /// This lets model publishers use large upload batches while compute remains within HCU limits.

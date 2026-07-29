@@ -565,3 +565,145 @@ and the adversarial subsection must state that the measured protection assumes a
 declines to use the freedom the protocol grants them.
 
 The honest measure of attacker capability is the independent-probe arm, not the correlated one.
+
+---
+
+## CD-021 — The HCU ceiling is 21, not 20, and is identical for public and private models
+
+- **Opened:** Phase 7, 29 July 2026
+- **Status:** **resolved in code documentation** (Phase 7); manuscript wording pending
+- **Resolves via:** `R1.1-M1` (Phase 11)
+
+The submitted manuscript and the contract headers state a mock HCU ceiling of 20 without
+qualifying model visibility. Two problems.
+
+**The ceiling is 21.** The probe's candidate list was coarse — 10, 15, 20, 25, 32 — so 20 was
+simply the largest candidate that passed. Bracketing finely gives 21 pass / 22 fail. The
+shipped default of 20 is therefore one slot of headroom rather than the limit, which is fine,
+but the *measured ceiling* is 21 and should be reported as such.
+
+**It does not depend on model visibility.** This was worth checking because private models
+compute `FHE.mul(encryptedWeight, snp)` (ciphertext x ciphertext) while public models compute
+`FHE.mul(snp, FHE.asEuint64(weight))`, and the mock's own HCU table prices non-scalar `Uint64`
+multiplication at 596,000 against 365,000 scalar. A 63% difference would have moved the
+ceiling substantially. Measured:
+
+| Model visibility | Max passing | Min failing | gas/chunk at 20 |
+|---|---:|---:|---:|
+| public | **21** | 22 | 1,150,414 |
+| private | **21** | 22 | 1,604,024 |
+
+Identical ceilings, 39% different gas. The explanation is `CD-022`: the public path does not
+obtain the scalar discount, so both paths are charged as ciphertext x ciphertext, and the gas
+difference comes from storage layout rather than from FHE work.
+
+`probe_hcu_ceiling.ts` now takes `MODEL_VISIBILITY` and `HCU_CHUNK_SIZES`, so both figures are
+reproducible. The Sepolia ceiling remains unmeasured for both visibilities — see `CD-024`.
+
+## CD-022 — `FHE.asEuint64` does not obtain the scalar discount, so the documented C×P optimisation does not happen
+
+- **Opened:** Phase 7, 29 July 2026
+- **Status:** documentation **corrected**; the optimisation itself is **deferred**
+- **Resolves via:** Future Directions, and a post-revision contract change
+
+`CLAUDE.md` stated:
+
+> Public weights use `FHE.mul(snp, FHE.asEuint64(weight))` (trivially encrypted — coprocessor
+> optimizes C×P internally).
+
+and `docs/design.md` went further:
+
+> The coprocessor internally optimises C×P multiplications — this is why public-weight models
+> are ~60% cheaper to compute than private models.
+
+**Both claims are false.** `FHE.asEuint64(w)` returns a genuine `euint64` handle, so the
+following `FHE.mul` resolves to the `euint64 x euint64` overload, which calls
+`Impl.mul(a, b, false)` — the third argument is the scalar flag. The mock determines scalar
+pricing from that flag (`scalarByte === "0x01"`), so the public path is charged **596,000 HCU**
+per multiplication, exactly as the private path is, not the 365,000 a scalar multiplication
+costs.
+
+The scalar discount is available and unused: `FHE.mul(euint64 a, uint64 b)` calls
+`Impl.mul(..., true)`.
+
+| Path | HCU per `Uint64` mul |
+|---|---:|
+| `FHE.mul(snp, FHE.asEuint64(w))` — current | 596,000 |
+| `FHE.mul(snp, w)` — scalar overload | **365,000** |
+| Saving | 231,000 (**38.8%**) |
+
+Projected effect of adopting it, from the measured ceiling of 21: the public compute-chunk
+ceiling rises to roughly **34** SNPs, cutting compute transactions for a 5,000-SNP job from
+**239 to about 148**. Since transaction count is the binding constraint on cost and latency in
+this design, that is a material improvement to the scalability story — and it is available
+without any change to the protocol or its security properties.
+
+The "~60% cheaper" figure is also wrong on its own terms. Measured at chunk size 20, public
+compute costs 1,150,414 gas against private 1,604,024 — **28% cheaper, not 60%** — and the
+saving comes from reading packed `uint64[]` weights rather than one 32-byte `euint64` handle
+per weight, not from coprocessor optimisation.
+
+**Deliberately not applied now.** Changing `computeChunk` would invalidate the gas, HCU, and
+adversarial measurements taken in Phases 4 through 6, and Stage A is meant to freeze evidence
+rather than churn it. The corrected documentation is in place; the optimisation belongs in
+Future Directions and a follow-up change.
+
+## CD-023 — Private-weight jobs cost about twice as much as public ones, and the paper prices the wrong one
+
+- **Opened:** Phase 7, 29 July 2026
+- **Status:** open
+- **Resolves via:** `R1.8-E1` (Phase 8) and `R1.8-M1` (Phase 12)
+
+Measured end to end for a 100-SNP job, model publication through finalize:
+
+| | Transactions | Total gas | Ratio |
+|---|---:|---:|---:|
+| Public weights | 15 | 11,690,033 | 1.00x |
+| Private weights | 17 | 23,507,892 | **2.01x** |
+
+The two extra transactions are the `setPrivateModelReader` authorisations for the engine and
+the requester. The gas difference is dominated by encrypted weight upload and by reading one
+32-byte handle per weight during compute.
+
+Why this is a claim delta and not just a number: the manuscript's cost discussion is built on
+public-model measurements, while its **anti-probing** discussion is explicitly about private
+models — "at suggested settings for private models" — and Phase 6 showed that model extraction
+is only a threat for private models, because public weights are plaintext by construction. So
+the configuration that needs the protection costs roughly double the configuration that was
+priced. Phase 8 must report both, and the paper must not quote the public figure while
+discussing the private threat model.
+
+## CD-024 — Phase 7's live runs are blocked on a funded wallet; the manuscript must take the plan's own fallback
+
+- **Opened:** Phase 7, 29 July 2026
+- **Status:** **blocked** — not resolvable in this environment
+- **Resolves via:** `R1.1-E1`, `R1.1-E2` once credentials exist; otherwise `R1.1-M1` narrows the claim
+
+`R1.1-E1` and `R1.1-E2` require transactions on a live fhEVM network. No `MNEMONIC` is
+configured (`npx hardhat vars list` is empty), and `scripts/sepolia_validation.ts` correctly
+refuses to run against the public Hardhat test mnemonic. The runs therefore cannot be executed
+here, and no live number has been fabricated.
+
+**Everything else about the live run is verified.** Sepolia RPC is reachable (chain ID
+11155111, block 11374028 at time of check). All four contracts are far inside the EIP-170 limit
+— the largest, `PRSComputeEngine`, is 10,426 B or 42.4%. The live harness passes a readiness
+check for all five properties it needs: refuses the default mnemonic, emits a provenance block,
+labels its evidence class, compares against the independent reference, and uses real manifest
+hashes.
+
+Measured budget, at a Sepolia gas price of 1.048 gwei read from the network:
+
+| | Gas | ETH |
+|---|---:|---:|
+| Deployment, all four contracts | 5,892,613 | 0.00617 |
+| + public 100-SNP job | 11,690,033 | 0.01842 cumulative |
+| + private 100-SNP job | 23,507,892 | 0.04305 cumulative |
+| Recommended with 3x headroom | | **~0.13** |
+
+**What the manuscript must do meanwhile.** `R1.1-E2` already provides for this: "either a
+successful private-weight transaction record exists, or the manuscript explicitly says
+private-weight execution is mock-validated only." Absent credentials that fallback applies to
+**both** runs, not just the private one. Until a live run exists, the paper must state that all
+results are Hardhat-mock validated, must not claim live-network deployment, and must leave the
+Sepolia HCU ceiling as unmeasured for both model visibilities. `MS-05` is updated accordingly
+with both branches.

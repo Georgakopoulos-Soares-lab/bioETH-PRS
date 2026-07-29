@@ -1,0 +1,176 @@
+{
+  "report": "live_preflight",
+  "action": "R1.1-E1 / R1.1-E2 preparation",
+  "evidenceClass": "Hardhat mock",
+  "note": "No network was contacted. Gas figures are mock measurements; the ETH estimate multiplies them by an assumed Sepolia gas price. Deployment and transaction counts are expected to carry over to a live network; per-transaction gas may not.",
+  "assumedGasPriceWei": "1047758262",
+  "assumedGasPriceGwei": 1.047758262,
+  "deployment": {
+    "contracts": [
+      {
+        "contract": "GenomicRegistry",
+        "deploymentGas": "660271",
+        "deployedBytecodeBytes": 2808,
+        "percentOfEip170Limit": 11.4
+      },
+      {
+        "contract": "ModelMarketplace",
+        "deploymentGas": "1891790",
+        "deployedBytecodeBytes": 8151,
+        "percentOfEip170Limit": 33.2
+      },
+      {
+        "contract": "ResultOracle",
+        "deploymentGas": "909851",
+        "deployedBytecodeBytes": 3594,
+        "percentOfEip170Limit": 14.6
+      },
+      {
+        "contract": "PRSComputeEngine",
+        "deploymentGas": "2430701",
+        "deployedBytecodeBytes": 10426,
+        "percentOfEip170Limit": 42.4
+      }
+    ],
+    "totalDeploymentGas": "5892613",
+    "totalDeploymentEth": "0.006174033955518606",
+    "eip170LimitBytes": 24576,
+    "allWithinSizeLimit": true
+  },
+  "jobs": [
+    {
+      "visibility": "public",
+      "encodedPositions": 101,
+      "computeChunkSize": 20,
+      "uploadChunkSize": 32,
+      "transactionCount": 15,
+      "computeTransactions": 6,
+      "gas": {
+        "modelPublication": "1169682",
+        "sampleRegistration": "115291",
+        "jobCreation": "321170",
+        "streamingUploadCompute": "9913980",
+        "finalize": "169898",
+        "totalExcludingDeployment": "11690021"
+      },
+      "ethExcludingDeployment": "0.012248316085703502"
+    },
+    {
+      "visibility": "private",
+      "encodedPositions": 101,
+      "computeChunkSize": 20,
+      "uploadChunkSize": 32,
+      "transactionCount": 17,
+      "computeTransactions": 6,
+      "gas": {
+        "modelPublication": "10687063",
+        "sampleRegistration": "115291",
+        "jobCreation": "326695",
+        "streamingUploadCompute": "12208933",
+        "finalize": "169898",
+        "totalExcludingDeployment": "23507880"
+      },
+      "ethExcludingDeployment": "0.02463057549210456"
+    }
+  ],
+  "provenance": {
+    "schema": "bioeth-prs/provenance/1",
+    "repository": {
+      "commit": "5f4ab99c9ea4ab671104e7a6f7506a51a40259d2",
+      "shortCommit": "5f4ab99",
+      "branch": "rtr-revision",
+      "dirty": true,
+      "dirtyFiles": [
+        "M CLAUDE.md",
+        "M bioETH-PRS_RTR_acceptance_plan.md",
+        "M contracts/ModelMarketplace.sol",
+        "M contracts/PRSComputeEngine.sol",
+        "M docs/design.md",
+        "M docs/onboarding.md",
+        "M evidence/claim_deltas.md",
+        "M evidence/manuscript_and_rtr_responses.md",
+        "M package.json",
+        "M scripts/probe_hcu_ceiling.ts",
+        "M test/provenance_guard_test.ts",
+        "?? evidence/phase7/",
+        "?? scripts/live_preflight.ts"
+      ]
+    },
+    "runtime": {
+      "node": "v22.23.1",
+      "platform": "darwin"
+    },
+    "network": {
+      "name": "hardhat",
+      "chainId": "31337"
+    },
+    "inputs": [
+      {
+        "role": "model_manifest",
+        "path": "validation/manifests/heprs_100snp.json",
+        "hash": "0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75",
+        "bytes": 17524
+      },
+      {
+        "role": "model_weights",
+        "path": "test/fixtures/heprs/beta_100SNP_phenotype0.csv",
+        "hash": "0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5",
+        "bytes": 940
+      },
+      {
+        "role": "genotypes",
+        "path": "test/fixtures/heprs/genotype_100SNP_50individual.csv",
+        "hash": "0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a",
+        "bytes": 10100
+      }
+    ],
+    "model": {
+      "manifestHash": "0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75",
+      "sourceModelHash": "0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5",
+      "genotypeManifestHash": "0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a",
+      "descriptor": {
+        "kind": "heprs_fixture",
+        "manifest": "validation/manifests/heprs_100snp.json",
+        "weights": "test/fixtures/heprs/beta_100SNP_phenotype0.csv",
+        "genotypes": "test/fixtures/heprs/genotype_100SNP_50individual.csv",
+        "nominalSnpCount": 100,
+        "visibility": "public",
+        "purpose": "live_preflight"
+      }
+    },
+    "contracts": [
+      {
+        "name": "ModelMarketplace",
+        "address": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+        "bytecodeHash": "0xbe6163c1267e3aa83c56ebdc292138e457ed853396d170bd445b1905dc92f0ff",
+        "bytecodeBytes": 8151
+      },
+      {
+        "name": "GenomicRegistry",
+        "address": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+        "bytecodeHash": "0x1b2e38bee44ca3a96c813fc05e41fd0b59e8e08b09320503cdfade32aa1400da",
+        "bytecodeBytes": 2808
+      },
+      {
+        "name": "PRSComputeEngine",
+        "address": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
+        "bytecodeHash": "0x66c177bca198e6ff8f19f4133cb5a104f9c94662198930aa779b3aa1faa9da4f",
+        "bytecodeBytes": 10426
+      }
+    ]
+  },
+  "liveRunReadiness": {
+    "refusesDefaultHardhatMnemonic": true,
+    "emitsProvenanceBlock": true,
+    "labelsEvidenceClass": true,
+    "comparesAgainstIndependentReference": true,
+    "usesRealManifestHashes": true
+  },
+  "sepoliaBudget": {
+    "note": "Faucet-planning estimate. Deployment is one-off; each additional validated job costs the per-job figure again. Add headroom for failed transactions.",
+    "deploymentOnly": "0.006174033955518606",
+    "deploymentPlusPublicJob": "0.018422350041222108",
+    "deploymentPlusBothJobs": "0.043052925533326668",
+    "recommendedWithHeadroom": "0.129158776599980004"
+  }
+}

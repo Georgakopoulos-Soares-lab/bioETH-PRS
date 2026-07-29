@@ -46,6 +46,10 @@ const EVIDENCE_PRODUCING = [
   // Added at the time of writing rather than after the fact, per the CD-013 lesson:
   // this produces the 200-row individual-level comparison the manuscript reports.
   "scripts/individual_level_validation.ts",
+  // Phase 7. Caught by the CD-013 sweep rather than remembered — the sweep has now
+  // found an unguarded evidence producer three times, so it stays in every phase's
+  // exit check.
+  "scripts/live_preflight.ts",
 ];
 
 // Behavioural tests: they assert contract logic and report no measurement, so

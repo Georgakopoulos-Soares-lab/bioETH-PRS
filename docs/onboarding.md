@@ -202,7 +202,7 @@ Engine:
 1. Loads model chunk 0: `[0, 40, 55, 25, 70]` (public weights)
 2. Loads SNP chunk 0: `[h0, h1, h2, h3, h4]` (encrypted)
 3. For each pair:
-   - `FHE.mul(snp_i, FHE.asEuint64(weight_i))` → product (C×P, trivially encrypted)
+   - `FHE.mul(snp_i, FHE.asEuint64(weight_i))` → product. Note: trivially encrypting the weight does **not** make this a discounted scalar multiplication; it is charged as ciphertext×ciphertext. See `CD-022`.
    - `FHE.add(partialSum, product)` → update running sum
 4. After all SNPs: marks job DONE
 

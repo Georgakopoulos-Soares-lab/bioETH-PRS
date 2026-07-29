@@ -39,7 +39,13 @@ import {
   contractIdentity,
 } from "./utils/provenance";
 
-const CANDIDATE_CHUNK_SIZES = [10, 15, 20, 25, 32];
+// Overridable so the ceiling can be bracketed finely. Model visibility changes the
+// per-multiplication HCU cost substantially (365,000 scalar vs 596,000 non-scalar for
+// Uint64 in the mock's own table), so the two ceilings must be measured separately
+// rather than assumed equal. See CD-021.
+const CANDIDATE_CHUNK_SIZES = (process.env.HCU_CHUNK_SIZES
+  ? process.env.HCU_CHUNK_SIZES.split(",").map((v) => Number(v.trim()))
+  : [10, 15, 20, 25, 32]);
 const DEFAULT_HARDHAT_DEPLOYER =
   "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
 
@@ -101,9 +107,17 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
   ).wait();
 
   // Publish model — all weights = 1n (synthetic, value doesn't matter for HCU test)
+  //
+  // MODEL VISIBILITY MATTERS FOR HCU (CD-021). A public model computes
+  // FHE.mul(snp, FHE.asEuint64(weight)) — ciphertext x PLAINTEXT. A private model
+  // computes FHE.mul(encryptedWeight, snp) — ciphertext x CIPHERTEXT, which is
+  // materially more expensive in HCU. A ceiling measured on a public model therefore
+  // does NOT transfer to private models, which is the configuration the paper's
+  // anti-probing discussion is about.
+  const isPrivate = (process.env.MODEL_VISIBILITY ?? "public") === "private";
   const weights = Array(weightCount).fill(1n);
   const modelId = await marketplace.createModelShell.staticCall(
-    false,
+    isPrivate,
     BigInt(weightCount),
     BigInt(uploadChunkSize),
     BigInt(chunkSize), // computeChunkSize — this is what we're probing
@@ -115,7 +129,7 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
   );
   await (
     await marketplace.createModelShell(
-      false,
+      isPrivate,
       BigInt(weightCount),
       BigInt(uploadChunkSize),
       BigInt(chunkSize),
@@ -130,7 +144,22 @@ async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
   // Append weight chunks using uploadChunkSize batches
   for (let start = 0; start < weightCount; start += uploadChunkSize) {
     const slice = weights.slice(start, start + uploadChunkSize);
-    await (await marketplace.appendPublicModelChunk(modelId, slice)).wait();
+    if (isPrivate) {
+      const wIn = fhevm.createEncryptedInput(marketplaceAddress, signer.address);
+      for (const w of slice) wIn.add64(w);
+      const wEnc = await wIn.encrypt();
+      await (
+        await marketplace.appendEncryptedModelChunk(modelId, wEnc.handles, wEnc.inputProof)
+      ).wait();
+    } else {
+      await (await marketplace.appendPublicModelChunk(modelId, slice)).wait();
+    }
+  }
+  if (isPrivate) {
+    // Private models require explicit reader authorisation for the engine and the
+    // requester before a job can be created.
+    await (await marketplace.setPrivateModelReader(modelId, engineAddress, true)).wait();
+    await (await marketplace.setPrivateModelReader(modelId, signer.address, true)).wait();
   }
   await (await marketplace.finalizeModel(modelId)).wait();
 
@@ -278,6 +307,11 @@ describe("HCU ceiling probe", function () {
       network: networkKey,
       chainId: chainId.toString(),
       fheMode: isMock ? "mock" : "real",
+      modelVisibility: (process.env.MODEL_VISIBILITY ?? "public"),
+      multiplicationKind:
+        (process.env.MODEL_VISIBILITY ?? "public") === "private"
+          ? "ciphertext x ciphertext (C x C)"
+          : "ciphertext x plaintext (C x P)",
       evidenceClass: isMock ? "Hardhat mock" : "Live fhEVM",
       note: isMock
         ? "Mock coprocessor: validates the HCU accounting path and transaction " +
