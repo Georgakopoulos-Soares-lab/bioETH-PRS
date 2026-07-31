@@ -42,8 +42,8 @@ Status convention:
 - `[x]` Completed
 - `Progress: 0%` can be changed to an intermediate percentage while work is in progress.
 
-Overall RTR progress: **16/35 actions completed (46%)** — plus `R1.3-M2` at 50%
-Stage A: **16/16** &nbsp;&nbsp; Stage B: **0/19**
+Overall RTR progress: **35/35 actions completed (100%)**
+Stage A: **16/16** &nbsp;&nbsp; Stage B: **19/19**
 
 ## Baseline already verified
 
@@ -153,7 +153,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.1-M1 — Separate live, mock, and projected evidence everywhere
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 11, 31 July 2026
 - Stage: Manuscript - Phase 11 (Results from measured evidence)
 - Type: Manuscript
 - Current wording to change:
@@ -178,7 +178,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.2-M1 — Replace absolute trust language with evaluator minimization
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 13, 31 July 2026
 - Stage: Manuscript - Phase 13 (Front matter and conclusion)
 - Ordering note: moved from first action to last. The trust vocabulary is fixed by the Phase 1 code renames and the Phase 10 trust table before it propagates into the title, graphical abstract, abstract, key points, and conclusion.
 - Type: Manuscript wording
@@ -199,7 +199,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.2-M2 — Add a trust and failure-boundary table
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 10, 31 July 2026
 - Stage: Manuscript - Phase 10 (Security model and release narrative)
 - Type: Manuscript
 - Action:
@@ -224,7 +224,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.3-M1 — Remove differential-privacy framing
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 10, 31 July 2026
 - Stage: Manuscript - Phase 10 (Security model and release narrative)
 - Type: Manuscript wording
 - Current wording to change:
@@ -242,7 +242,8 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.3-M2 — Describe only the mechanism that is actually implemented
 
-- [ ] Progress: 50% — code half done in Phase 1 (28 July 2026); manuscript half pending Phase 10
+- [x] Progress: 100% — code half completed Phase 1 and manuscript half completed Phase 10,
+  31 July 2026
 - Stage: Split action - code renames execute in Phase 1; manuscript terminology follows in Phase 10. Complete only when both are done.
 - Type: Manuscript method clarification
 - Action:
@@ -315,7 +316,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.4-M1 — Replace the “2,800 hours” claim with measured conclusions
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 11, 31 July 2026
 - Stage: Manuscript - Phase 11 (Results from measured evidence)
 - Ordering note: blocked until `R1.4-E1` (Phase 6) has produced measured numbers. Do not draft a placeholder sentence.
 - Type: Manuscript wording
@@ -334,7 +335,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.5-M1 — Move SNP authenticity into the main Security Model
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 10, 31 July 2026
 - Stage: Manuscript - Phase 10 (Security model and release narrative)
 - Type: Manuscript restructuring
 - Current location:
@@ -367,7 +368,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.5-M2 — Define the practical assumption and future solution without overclaiming
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 10, 31 July 2026
 - Stage: Manuscript - Phase 10 (Security model and release narrative)
 - Type: Manuscript
 - Action:
@@ -383,7 +384,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.6-M1 — Define a bounded intended use
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 12, 31 July 2026
 - Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
 - Type: Manuscript wording
 - Current wording to change:
@@ -420,7 +421,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.6-M2 — Make the scale limitation prominent, not only retrospective
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 12, 31 July 2026
 - Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
 - Type: Manuscript structure
 - Action:
@@ -435,7 +436,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.7-M1 — Rebuild the HEPRS comparison by dimension
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 12, 31 July 2026
 - Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
 - Type: Manuscript table
 - Change Table `tab:comparison` to separate:
@@ -458,7 +459,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.7-M2 — Replace superiority language with trade-off language
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 12, 31 July 2026
 - Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
 - Type: Manuscript wording
 - Current wording to change:
@@ -497,7 +498,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.8-M1 — Remove clinical and commercial practicality conclusions
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 12, 31 July 2026
 - Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
 - Type: Manuscript wording
 - Current wording to remove or replace:
@@ -528,7 +529,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.1-M1 — Answer the duplicate scale concern explicitly
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 12, 31 July 2026
 - Stage: Manuscript - Phase 12 (Scope, cost, and HEPRS comparison)
 - Type: Manuscript and response-letter linkage
 - Action:
@@ -544,7 +545,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.2-M1 — Add a genotype preprocessing and QC subsection
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 9, 31 July 2026
 - Stage: Manuscript - Phase 9 (Methods written from code)
 - Ordering note: written *after* `R2.2-C1` ships. Transcribe the rules from the merged validator; do not specify rules the validator does not implement.
 - Type: Manuscript method addition
@@ -593,7 +594,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.3-M1 — Change “allele dosage” to “effect-allele dosage” and explain blinded alignment
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 9, 31 July 2026
 - Stage: Manuscript - Phase 9 (Methods written from code)
 - Ordering note: written *after* `R2.3-C1` ships. The pseudocode in the paper is a transcription of the merged harmonization function.
 - Type: Manuscript wording and method
@@ -643,7 +644,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.4-M1 — Add a correctness-guarantee boundary
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 11, 31 July 2026
 - Stage: Manuscript - Phase 11 (Results from measured evidence)
 - Type: Manuscript
 - Action:
@@ -685,7 +686,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.5-M1 — Reframe the existing three-SNP example around the simple PRS
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 9, 31 July 2026
 - Stage: Manuscript - Phase 9 (Methods written from code)
 - Type: Manuscript explanation and figure
 - Action:
@@ -761,7 +762,7 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R2.7-M1 — Add the requested individual-level results to Empirical Evaluation
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — completed Phase 11, 31 July 2026
 - Stage: Manuscript - Phase 11 (Results from measured evidence)
 - Type: Manuscript results
 - Action:
@@ -1298,7 +1299,7 @@ Stage A exit gate - do not begin Stage B until all of the following hold:
 
 # Stage B - Manuscript (Phases 9-13, 19 actions)
 
-Stage B progress: **0/19 actions (0%)**
+Stage B progress: **19/19 actions (100%)**
 
 Stage B rule: every edit cites a Stage A artifact. If a sentence cannot name the file,
 table, test, or transaction hash behind it, the sentence is removed rather than softened.
@@ -1308,43 +1309,43 @@ table, test, or transaction hash behind it, the sentence is removed rather than 
 Why first in Stage B: these sections define the objects that the security, results, and
 comparison sections refer to.
 
-Phase progress: **0/3 actions (0%)**
+Phase progress: **3/3 actions (100%)**
 
-- [ ] `R2.2-M1` Add `Background/Methods -> Genotype preprocessing, QC, and model alignment`,
+- [x] `R2.2-M1` Add `Background/Methods -> Genotype preprocessing, QC, and model alignment`,
       transcribed from the merged `R2.2-C1` implementation. Distinguish cohort-development QC
       (MAF, Hardy-Weinberg) from scoring-time checks (missingness, allele and build matching).
-- [ ] `R2.3-M1` Redefine `g_i` as the dosage of the model-specified effect allele; state that
+- [x] `R2.3-M1` Redefine `g_i` as the dosage of the model-specified effect allele; state that
       public model metadata exposes variant identity, build, effect allele, other allele, and
       order even when weights stay encrypted; give the `2 - g` rule; note that the supplied
       HEPRS fixtures are assumed pre-aligned.
-- [ ] `R2.5-M1` Lead the three-SNP example with the plaintext weighted sum, then show the six
+- [x] `R2.5-M1` Lead the three-SNP example with the plaintext weighted sum, then show the six
       encoding steps, add the workflow figure, and move handle/ACL detail out of the main
       explanation.
 
 Dependencies: Phase 3.
 
-Step completion: **0/3**
+Step completion: **3/3**
 
 ## Phase 10 - Security model and release narrative
 
-Phase progress: **0/5 actions (0%)**
+Phase progress: **5/5 actions (100%)**
 
-- [ ] `R1.3-M1` Remove all DP framing: `DP-inspired` becomes `bounded randomized categorical
+- [x] `R1.3-M1` Remove all DP framing: `DP-inspired` becomes `bounded randomized categorical
       release`; the `DP bias` heading becomes `One-sided randomization and bias`; state plainly
       that the mechanism provides no `(epsilon, delta)` guarantee.
-- [ ] `R1.3-M2` Describe only the implemented mechanism: retain `e_noisy = e + nu` with
+- [x] `R1.3-M2` Describe only the implemented mechanism: retain `e_noisy = e + nu` with
       `nu ~ Uniform(0, B)`, state its one-sided support, expected bias, threshold adjustment,
       and absent composition analysis; move formal adjacency, sensitivity, and calibrated DP to
       Future Directions. Completes the split action opened in Phase 1.
-- [ ] `R1.5-M1` Move SNP authenticity from Limitations into `Security Model`, immediately after
+- [x] `R1.5-M1` Move SNP authenticity from Limitations into `Security Model`, immediately after
       `Threat Model`; add the malicious authorized requester; state that the contracts compute
       over submitted ciphertexts without proving those ciphertexts encode the registered
       sample. Update the `fig_security` caption so ciphertext/sample binding sits outside the
       guaranteed boundary, and cite the renamed `R1.5-T1` test.
-- [ ] `R1.5-M2` Define the evaluated setting as trusted local genotype preparation; explain
+- [x] `R1.5-M2` Define the evaluated setting as trusted local genotype preparation; explain
       that `manifestHash` is a provenance commitment only; move signed laboratory attestation
       and zero-knowledge ciphertext-to-sample proofs to Future Directions.
-- [ ] `R1.2-M2` Add the trust and failure-boundary table covering genotype
+- [x] `R1.2-M2` Add the trust and failure-boundary table covering genotype
       provider/preprocessor, model provider, smart contracts, blockchain consensus, fhEVM
       coprocessor, Gateway/relayer, and ACL/threshold decryption; mark each as affecting
       confidentiality, correctness, availability, or provenance. Make `Core Privacy Invariants`
@@ -1354,27 +1355,27 @@ Phase progress: **0/5 actions (0%)**
 Dependencies: Phases 1, 2, and 9. `R1.4-C1` must already be merged before the release policy
 is described as model-defined.
 
-Step completion: **0/5**
+Step completion: **5/5**
 
 ## Phase 11 - Results from measured evidence
 
-Phase progress: **0/4 actions (0%)**
+Phase progress: **4/4 actions (100%)**
 
-- [ ] `R2.7-M1` Add the Equation 1 versus decoded bioETH-PRS scatter plot and a summary table
+- [x] `R2.7-M1` Add the Equation 1 versus decoded bioETH-PRS scatter plot and a summary table
       reporting MAE, RMSE, maximum absolute error, Pearson correlation, and category agreement.
       Put all 200 rows in supplementary material. Rewrite the current `all 50 individuals ...
       machine epsilon` claim so it cites the independent comparison rather than the TypeScript
       quantization advisor.
-- [ ] `R2.4-M1` Add the correctness-guarantee boundary table to `Correctness and Protocol
+- [x] `R2.4-M1` Add the correctness-guarantee boundary table to `Correctness and Protocol
       Verification`, naming what the genotype preprocessor, model provider, smart contracts,
       fhEVM infrastructure, independent reference implementation, and end user each guarantee.
       State that the protocol guarantees none of sample authenticity, clinical validity,
       calibration, or ancestry portability.
-- [ ] `R1.4-M1` Replace the 2,800-hour and `thousands of hours` claims with the Phase 6 numbers
+- [x] `R1.4-M1` Replace the 2,800-hour and `thousands of hours` claims with the Phase 6 numbers
       plus the bounded conclusion that the controls reduce output resolution and raise query
       cost under the evaluated attacker models without preventing Sybil attacks or providing a
       formal model-confidentiality guarantee.
-- [ ] `R1.1-M1` Label every result `Live fhEVM`, `Hardhat mock`, or `Analytic projection`. Add
+- [x] `R1.1-M1` Label every result `Live fhEVM`, `Hardhat mock`, or `Analytic projection`. Add
       the live validation paragraph and table row from Phase 7. Delete the `within 10--20% of
       real-network deployment` sentence. Stop presenting the `~386 ms` mock latency beside HEPRS
       real-FHE latency. In `System Design -> Model Marketplace`, separate `implemented in the
@@ -1382,52 +1383,52 @@ Phase progress: **0/4 actions (0%)**
 
 Dependencies: Phases 5, 6, 7, and 10.
 
-Step completion: **0/4**
+Step completion: **4/4**
 
 ## Phase 12 - Scope, cost, and HEPRS comparison
 
 Why after results: each of these is a bounding statement over numbers that must already be on
 the page.
 
-Phase progress: **0/6 actions (0%)**
+Phase progress: **6/6 actions (100%)**
 
-- [ ] `R1.6-M1` Define the bounded intended use: a bounded-size research prototype for curated
+- [x] `R1.6-M1` Define the bounded intended use: a bounded-size research prototype for curated
       additive PRS models. Replace `5,000 (scalable)`, the `exactly the primitive that FHE
       systems are designed to support efficiently` framing, and the routine-clinical-practice
       conclusion. State that the study does not establish clinical deployment feasibility.
-- [ ] `R1.6-M2` Surface the bounded scope in the last paragraph of the Introduction and at the
+- [x] `R1.6-M2` Surface the bounded scope in the last paragraph of the Introduction and at the
       opening of `Empirical Evaluation`, keeping the detailed ceiling discussion in Limitations.
       The Abstract and Key Points instances land in Phase 13.
-- [ ] `R2.1-M1` Add the direct Discussion sentence that the method applies only to a narrow
+- [x] `R2.1-M1` Add the direct Discussion sentence that the method applies only to a narrow
       class of bounded-size PRS models and is not a practical genome-wide PRS engine. Answer
       Reviewer 2 self-containedly in the response letter, not by cross-reference.
-- [ ] `R1.8-M1` Rename `Deployment Cost Projections` to `Measured transaction use and fee
+- [x] `R1.8-M1` Rename `Deployment Cost Projections` to `Measured transaction use and fee
       sensitivity`; insert the Phase 8 measured table; remove the commercial-genomics
       comparison, the `Commercial viability requires` passage, and the `practical for curated
       clinical PRS panels` conclusion. Keep measured quantities and hypothetical price
       conversions in separate subsections.
-- [ ] `R1.7-M1` Rebuild `tab:comparison` one dimension per row: privacy architecture,
+- [x] `R1.7-M1` Rebuild `tab:comparison` one dimension per row: privacy architecture,
       designated evaluator, remaining trust assumptions, arithmetic scheme, demonstrated
       encrypted variant count, latency evidence type, memory evidence, deployment requirements,
       output policy, metadata exposure. Mark each row measured, inherited, mock, or unavailable.
       State that bioETH-PRS memory was not measured. Update the `Trust model` row to name
       contracts, consensus, coprocessor, and ACL/KMS as retained trust anchors.
-- [ ] `R1.7-M2` Replace superiority language with trade-off language across the Introduction,
+- [x] `R1.7-M2` Replace superiority language with trade-off language across the Introduction,
       `Comparison with HEPRS`, `HEPRS and bioETH-PRS: Complementary Systems`, Related Work, and
       Conclusion, so the comparison reads as balanced to an author of HEPRS.
 
 Dependencies: Phases 7, 8, and 11.
 
-Step completion: **0/6**
+Step completion: **6/6**
 
 ## Phase 13 - Front matter and conclusion
 
 Why last: the title, graphical abstract, abstract, and key points are the highest-leverage
 claims in the paper and should be written once, over a finished body.
 
-Phase progress: **0/1 actions (0%)**
+Phase progress: **1/1 actions (100%)**
 
-- [ ] `R1.2-M1` Retitle to `bioETH-PRS: Confidential Polygenic Risk Scoring with Auditable
+- [x] `R1.2-M1` Retitle to `bioETH-PRS: Confidential Polygenic Risk Scoring with Auditable
       fhEVM Orchestration on a Programmable Blockchain`. Replace `removes trust` with `removes
       the designated application-level evaluator`; replace `trustless` and `zero trust` with
       `evaluator-minimized`; delete `computation verified by blockchain consensus` and state
@@ -1438,44 +1439,44 @@ Phase progress: **0/1 actions (0%)**
 
 Dependencies: Phases 9 through 12, all complete.
 
-Step completion: **0/1**
+Step completion: **1/1**
 
 Stage B exit gate:
 
-- [ ] Every manuscript claim names the `evidence/` artifact behind it.
-- [ ] No sentence exceeds its evidence class.
+- [x] Every manuscript claim names the `evidence/` artifact behind it.
+- [x] No sentence exceeds its evidence class.
 
 ---
 
 ## Phase 14 - Response letter and final consistency
 
-Phase progress: **0%**
+Phase progress: **100%**
 
 ### Step 14.1 - Write the point-by-point response
 
-- [ ] Copy each verbatim comment from View 1.
-- [ ] Under it, list completed action IDs.
-- [ ] State the numerical result where applicable.
-- [ ] Add final manuscript page/line ranges.
-- [ ] Add repository file, figure, table, or transaction references.
-- [ ] If an action could not be completed, state which claim was removed instead.
+- [x] Copy each verbatim comment from View 1.
+- [x] Under it, list completed action IDs.
+- [x] State the numerical result where applicable.
+- [x] Add final manuscript page/line ranges.
+- [x] Add repository file, figure, table, or transaction references.
+- [x] If an action could not be completed, state which claim was removed instead.
 
 ### Step 14.2 - Final consistency checks
 
-- [ ] Search the manuscript for `trustless`, `zero trust`, `DP-inspired`, `cost-competitive`,
+- [x] Search the manuscript for `trustless`, `zero trust`, `DP-inspired`, `cost-competitive`,
       `commercial viability`, `clinically practical`, `5,000 (scalable)`, `2,800 hours`, and
       unqualified `exact score correctness`.
-- [ ] Verify all 35 View 1 action checkboxes agree with the crosswalk and View 2.
-- [ ] Re-run compile, the complete test suite, the independent validator, the adversarial
+- [x] Verify all 35 View 1 action checkboxes agree with the crosswalk and View 2.
+- [x] Re-run compile, the complete test suite, the independent validator, the adversarial
       script, and live-result verification.
-- [ ] Regenerate every table and figure from saved `evidence/` outputs.
-- [ ] Confirm `CLAUDE.md` security invariants match the shipped contracts.
+- [x] Regenerate every table and figure from saved `evidence/` outputs.
+- [x] Confirm `CLAUDE.md` security invariants match the shipped contracts.
 
 Phase exit gate:
 
-- [ ] Overall progress is 35/35 actions.
-- [ ] Every reviewer comment points to at least one completed action and one manuscript location.
-- [ ] No final claim exceeds its evidence class.
+- [x] Overall progress is 35/35 actions.
+- [x] Every reviewer comment points to at least one completed action and one manuscript location.
+- [x] No final claim exceeds its evidence class.
 
 ---
 
@@ -1492,13 +1493,13 @@ Phase exit gate:
 | A | 7. Live fhEVM validation | 2 | 2 | **100% (public live; private fallback)** |
 | A | 8. Evidence synthesis | 2 | 2 | **100%** |
 | **A** | **Code and evidence subtotal** | **16** | **16** | **100%** |
-| B | 9. Methods written from code | 3 | 0 | 0% |
-| B | 10. Security model and release narrative | 5 | 0 | 0% |
-| B | 11. Results from measured evidence | 4 | 0 | 0% |
-| B | 12. Scope, cost, and HEPRS comparison | 6 | 0 | 0% |
-| B | 13. Front matter and conclusion | 1 | 0 | 0% |
-| **B** | **Manuscript subtotal** | **19** | **0** | **0%** |
-| | **Total reviewer actions** | **35** | **16** | **46%** |
+| B | 9. Methods written from code | 3 | 3 | **100%** |
+| B | 10. Security model and release narrative | 5 | 5 | **100%** |
+| B | 11. Results from measured evidence | 4 | 4 | **100%** |
+| B | 12. Scope, cost, and HEPRS comparison | 6 | 6 | **100%** |
+| B | 13. Front matter and conclusion | 1 | 1 | **100%** |
+| **B** | **Manuscript subtotal** | **19** | **19** | **100%** |
+| | **Total reviewer actions** | **35** | **35** | **100%** |
 
 Phase 0 and Phase 14 are coordination and final-integration gates; they do not add reviewer
 action IDs to the 35-action total.

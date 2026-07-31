@@ -1,4 +1,4 @@
-%% bioETH-PRS: Confidential Polygenic Risk Scoring without a Trusted Evaluator
+%% bioETH-PRS: Confidential Polygenic Risk Scoring with Auditable fhEVM Orchestration
 %% Academic paper — privacy, genomics, blockchain
 %% Version 2: with AI-generated figures and graphical abstract
 
@@ -26,6 +26,7 @@
 \usepackage{algpseudocode}
 \usepackage{multirow}
 \usepackage{fancyhdr}
+\usepackage[switch]{lineno}
 
 \hypersetup{colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black}
 
@@ -60,9 +61,9 @@
 %% (no footoffset needed)
 
 %% ============================================================
-\title{\textbf{bioETH-PRS: Confidential Polygenic Risk Scoring without\\[2pt]
-       a Trusted Evaluator via Fully Homomorphic Encryption on\\[2pt]
-       a Programmable Blockchain}}
+\title{\textbf{bioETH-PRS: Confidential Polygenic Risk Scoring with\\[2pt]
+       Auditable fhEVM Orchestration on a\\[2pt]
+       Programmable Blockchain}}
 
 \author{%
   \begin{minipage}{\textwidth}
@@ -76,6 +77,7 @@
 \date{}
 
 \begin{document}
+\linenumbers
 \maketitle
 \thispagestyle{fancy}
 
@@ -83,15 +85,34 @@
 %% GRAPHICAL ABSTRACT (full-width, before abstract)
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth, keepaspectratio]{figures/graphical_abstract.png}
-  \caption{\textbf{Graphical Abstract.}  bioETH-PRS replaces the trusted evaluator of conventional
-  homomorphic PRS pipelines with consensus-enforced smart contracts.
+  \fbox{\begin{minipage}[t]{0.44\textwidth}
+    \centering\textbf{Designated-evaluator pipeline}\\[3pt]
+    encrypted genotype $+$ encrypted model\\
+    $\downarrow$\\
+    application-level evaluator\\
+    $\downarrow$\\
+    client score
+  \end{minipage}}
+  \hfill
+  \fbox{\begin{minipage}[t]{0.49\textwidth}
+    \centering\textbf{bioETH-PRS}\\[3pt]
+    validated effect-allele dosages $+$ committed model\\
+    $\downarrow$\\
+    auditable contract state machine $+$ fhEVM coprocessor\\
+    $\downarrow$\\
+    ACL-gated score or model-fixed randomized category
+  \end{minipage}}
+  \caption{\textbf{Graphical Abstract.}  bioETH-PRS replaces the designated
+  application-level evaluator of conventional homomorphic PRS pipelines with publicly
+  auditable smart contracts.
   \emph{Left:} Traditional centralised approaches transmit raw genotypes to a cloud evaluator,
   requiring user trust in a designated third party.
   \emph{Right:} bioETH-PRS keeps all genomic data and model weights encrypted throughout,
-  with computation verified by blockchain consensus.
-  Key results: 37\% gas reduction via streaming execution; machine-epsilon quantisation accuracy
-  on real GWAS fixtures; post-quantum security under TFHE/RLWE.}
+  with contract execution publicly auditable on-chain; confidentiality, correctness,
+  and decryption remain conditional on the fhEVM coprocessor, ACL, Gateway/KMS,
+  contract, and chain assumptions.  Key results: one public 100-SNP Live-fhEVM
+  validation, exact independent agreement for 200 Hardhat-mock jobs on losslessly
+  quantised fixtures, and 35.4--37.2\% lower mock host gas for streaming execution.}
   \label{fig:graphical_abstract}
 \end{figure*}
 
@@ -100,30 +121,39 @@
 \noindent
 Polygenic risk scores (PRSs) aggregate genetic effect estimates to predict disease
 susceptibility, yet clinical deployment often exposes raw genotype data to third-party
-compute infrastructure.  Prior homomorphic-encryption approaches, still require trust in a designated evaluator.  We present \textbf{bioETH-PRS},
-a protocol that replaces that evaluator role with immutable smart
-contracts on a blockchain supporting Fully Homomorphic Encryption (fhEVM).  Using the
-integer-exact TFHE scheme, bioETH-PRS computes the PRS dot product entirely within the
-encrypted domain, keeping both genotype dosage vectors and GWAS weight vectors hidden
-from external parties throughout execution.  We introduce a three-step fixed-point
-quantisation scheme for representing signed GWAS weights as unsigned 64-bit integers,
-achieving machine-epsilon reconstruction accuracy on validated fixtures. A four-contract
-architecture separates data custody, model publication, computation, and output release,
-and supports both a classic chunked path and a streaming path, with the latter reducing
-mock-measured gas by 37\%.  An on-chain noisy output oracle emits an encrypted noisy-score handle and a publicly
-decryptable ternary category, reducing raw score exposure and probing risk.  Prototype
-evaluation on real GWAS fixtures confirms linear gas scaling and suggests that the
-approach may be cost-competitive in low-gas deployment environments.
+compute infrastructure.  Prior homomorphic-encryption approaches still require a
+designated evaluator.  We present \textbf{bioETH-PRS}, which replaces that
+application-level role with publicly auditable smart contracts on a blockchain supporting
+Fully Homomorphic Encryption (fhEVM).  The design minimizes the evaluator role but does
+not eliminate trust: confidentiality and correctness remain conditional on the fhEVM coprocessor,
+contracts, ACL and threshold-decryption infrastructure, relayer, and chain liveness.
+The protocol validates hard-call genotypes and effect-allele orientation before
+encryption, converts signed weights to overflow-safe unsigned integers, and supports a
+model-fixed bounded randomized categorical release.  One public 100-SNP classic-path
+workflow completed on Sepolia in 25 transactions and 20.710271 million gas, with
+269,320 ms submission-to-result time, 8,081 ms Gateway/KMS decryption, and encoded score
+758,685 matching an independent reference.  Private weights were Hardhat-mock validated
+but not executed live.  Across 200 Hardhat-mock jobs at 100--5,000 variants, decoded
+scores agreed exactly with the independent implementation because fixture quantisation
+was lossless; the streaming path used 35.4--37.2\% less mock host gas than the classic
+path.  bioETH-PRS is therefore a bounded-size research prototype for curated additive
+models, not a demonstrated genome-wide or clinically deployable PRS engine.
 \end{abstract}
 
 %% ============================================================
 \section*{Key Points}
 \begin{itemize}
-  \item bioETH-PRS replaces the trusted evaluator in encrypted PRS computation with auditable smart contracts on an FHE-enabled blockchain.
-  \item The protocol protects both patient genotypes and GWAS model weights through encrypted execution and ACL-gated output release.
-  \item A fixed-point quantisation scheme enables exact TFHE-compatible PRS computation with machine-epsilon reconstruction accuracy on validated fixtures.
-  \item A streaming execution path reduces mock-measured gas consumption by 37\% relative to the classic chunked path.
-  \item Anti-probing controls combine noisy output release with per-model, per-wallet, and per-sample rate limiting.
+  \item bioETH-PRS replaces the designated application-level evaluator with publicly
+        auditable contracts, shifting rather than eliminating trust.
+  \item One public 100-SNP workflow is Live-fhEVM validated; private weights and the
+        wider 100--5,000-variant range are Hardhat-mock validated only.
+  \item All 200 decoded mock scores match an independent Equation~\ref{eq:prs}
+        implementation exactly because the fixture weights are losslessly quantised.
+  \item Streaming execution reduces Hardhat-mock host gas by 35.4--37.2\% relative to
+        the classic path over the measured range.
+  \item The bounded randomized release and rate limits reduce output resolution and
+        raise measured query cost but do not provide differential privacy, Sybil
+        resistance, or formal model confidentiality.
 \end{itemize}
 
 %% ============================================================
@@ -137,8 +167,8 @@ the dosage-weighted effects of genetic variants:
   \mathrm{PRS} = \sum_{i=1}^{N} g_i \cdot \beta_i,
   \label{eq:prs}
 \end{equation}
-where $g_i \in \{0,1,2\}$ is the allele dosage of a genetic variant $i$ and $\beta_i$ is the
-corresponding GWAS effect weight.  Published polygenic scores in the PGS Catalog range
+where $g_i \in \{0,1,2\}$ is the dosage of the model-specified effect allele for variant
+$i$ and $\beta_i$ is the corresponding GWAS effect weight.  Published polygenic scores in the PGS Catalog range
 from small panels to genome-wide scores with large variant sets \citep{lambert2019polygenic},
 and hospital deployment increasingly involves
 transmitting raw genotype data to external compute infrastructure, a practice that
@@ -167,12 +197,14 @@ per individual even at 110,000 SNPs, and output is a raw score---there is no bui
 mechanism to prevent score accumulation or model probing.
 
 \textbf{Our contribution.}
-We propose \textbf{bioETH-PRS}, which removes the designated evaluator of prior
-centralised FHE pipelines.  On a blockchain augmented with an FHE coprocessor
-(fhEVM \citep{zamafhevm}), the evaluator is replaced by a deterministic, publicly
-auditable smart contract.  This shifts trust from a single evaluator to auditable
-contract logic, blockchain consensus, the fhEVM coprocessor stack, and the ACL/
-decryption infrastructure (Figure~\ref{fig:graphical_abstract}).
+We propose \textbf{bioETH-PRS}, which removes the designated application-level
+evaluator of prior centralised FHE pipelines.  On a blockchain augmented with an FHE
+coprocessor (fhEVM \citep{zamafhevm}), orchestration and output policy are implemented
+by publicly auditable smart contracts.  This shifts trust from one evaluator to contract
+logic, blockchain consensus, the fhEVM coprocessor stack, the relayer, and ACL/
+Gateway/KMS decryption infrastructure (Figure~\ref{fig:graphical_abstract}).  The
+architecture minimizes the evaluator role but does not eliminate trust: consensus makes
+contract execution auditable but does not itself verify encrypted evaluation.
 
 \smallskip\noindent\textbf{Distinctions from HEPRS.}
 Although both systems compute the same encrypted PRS inner product, bioETH-PRS adds
@@ -189,12 +221,12 @@ than releasing raw scores directly.
 
 \smallskip\noindent Our main contributions are:
 \begin{itemize}
-  \item A \textbf{four-contract architecture without a trusted evaluator} separating genomic data
+  \item An \textbf{evaluator-minimized four-contract architecture} separating genomic data
         custody, model publication, computation, and post-processed output release---each independently
         auditable with distinct trust surfaces and upgrade lifecycles.
   \item A \textbf{three-step fixed-point quantisation scheme} bridging signed GWAS
-        floats and unsigned TFHE integers with provable overflow safety and
-        machine-epsilon reconstruction error, together with an automated advisor that
+        floats and unsigned TFHE integers with provable overflow safety and an
+        independently validated decoding path, together with an automated advisor that
         selects the minimum viable scale factor before model publication.
   \item Two \textbf{gas-optimised execution strategies}: a classic chunked path
         enabling multi-party and relay-mediated computation, and a streaming path with
@@ -203,12 +235,15 @@ than releasing raw scores directly.
         mandatory oracle-required enforcement, and minimum threshold-gap constraints
         that together reduce score probing risk and prevent raw-score bypass.
   \item A \textbf{rate-limiting mechanism} based on per-model, per-wallet, and per-sample,
-        block-windowed job quotas that raise the cost of model weight extraction to
-        thousands of hours at recommended settings.
-  \item Prototype evaluation on real HEPRS GWAS fixtures (100--5,000 SNPs)
-        confirming linear gas scaling, exact score correctness, and economically
-        plausible analysis costs under L2-equivalent gas pricing assumptions.
+        block-windowed job quotas, evaluated together with fixed model-defined thresholds
+        under adaptive, multi-wallet, correlated-probe, and cross-sample attacks.
+  \item One public 100-SNP Live-fhEVM validation and a wider 100--5,000-variant
+        Hardhat-mock study, with all larger transaction geometries labelled unexecuted.
 \end{itemize}
+
+The intended use is a bounded-size research prototype for curated additive PRS models.
+It is not a practical genome-wide PRS engine, and this study does not establish clinical
+deployment feasibility, production affordability, or private-weight live execution.
 
 %% ============================================================
 \section{Background}
@@ -216,7 +251,7 @@ than releasing raw scores directly.
 
 \subsection{Polygenic Risk Scores}
 
-A PRS is the weighted inner product of a patient's genotype dosage vector
+A PRS is the weighted inner product of a patient's effect-allele dosage vector
 $\mathbf{g} \in \{0,1,2\}^N$ and a GWAS effect weight vector $\boldsymbol{\beta}
 \in \mathbb{R}^N$ (Eq.~\ref{eq:prs}).  Effect weights are typically estimated by
 large-scale GWAS over tens of thousands of individuals and are signed floating-point
@@ -224,12 +259,47 @@ values in the range $[-0.5, +0.5]$.  Standard pipelines such as PLINK~2
 \citep{chang2015plink} and LDpred2 \citep{prive2020ldpred2} compute PRSs in
 milliseconds on plaintext data; FHE approaches trade runtime for privacy.
 
-PRS models span a wide range in SNP inclusion depending on construction methodology. Sparse or clinically oriented models may include hundreds to a few thousand variants, while genome-wide approaches incorporate tens of thousands to millions of SNPs. In this work, we perform a proof of principle study with 5,000 SNPs, with on-chain FHE computation.
+PRS models span a wide range in SNP inclusion depending on construction methodology.
+Sparse models may include hundreds to a few thousand variants, while genome-wide
+approaches incorporate tens of thousands to millions.  The present study is a
+bounded-size research prototype for curated additive models: its executed range ends
+at 5,000 nominal variants and does not establish genome-wide or clinical feasibility.
 
-The computation in Eq.~\ref{eq:prs} is an inner product between two vectors of
-moderate length.  This is exactly the primitive that FHE systems are designed to
-support efficiently, making PRS computation a natural target for FHE-based privacy
-enhancement.
+\subsection{Genotype preprocessing, QC, and model alignment}
+\label{sec:preprocessing}
+
+bioETH-PRS scores one individual against an already developed model.  Minor-allele
+frequency and Hardy--Weinberg filtering are therefore cohort- and model-development
+quality-control operations performed upstream when effect weights are derived.  The
+scoring-time pipeline instead validates missingness, genome build, variant identity and
+order, allele orientation, and the dosage representation before any value is encrypted.
+
+Only diploid hard-call dosages in $\{0,1,2\}$ are accepted.  A non-integer or
+out-of-range dosage is rejected rather than clamped, because clamping silently changes
+the score.  Missingness behavior is a required model-manifest field with no default:
+\texttt{reject}, \texttt{zero\_dosage}, or \texttt{mean\_dosage}.  An implicit zero is
+avoided because it would be indistinguishable from a genuine homozygous-reference call.
+The declared genotype build must equal the model build; a mismatch is fatal because the
+build cannot be inferred from dosage values.  Variant identifiers and order are checked
+element by element, not merely by vector length.  Duplicate identifiers, multiallelic
+sites, and indels are rejected; this study evaluates biallelic SNP hard calls only.
+
+Effect-allele alignment does not reveal encrypted weight magnitudes.  Public model
+metadata supplies each variant identifier, genome build, effect allele, other allele,
+and column order, and alignment runs locally before encryption.  For a biallelic,
+non-palindromic SNP, a dosage already counting the effect allele is retained; a dosage
+counting the other allele is transformed as $g_{\mathrm{effect}}=2-g$.  A compatible
+strand complement is applied before the same decision.  Palindromic A/T or C/G pairs
+without explicit strand resolution are rejected even on a literal allele match, because
+the same label is consistent with opposite strand orientations.  Any remaining
+incompatible pair is rejected.
+
+Each preprocessing report records matched, intercept, missing, imputed, invalid,
+rejected, allele-flipped, and strand-ambiguous counts.  The HEPRS fixtures contain bare
+numeric matrices without variant identifiers, builds, or allele labels and are therefore
+treated as pre-aligned; their leading constant column has weight 0 and dosage 1, so an
+$N$-variant fixture contains $N+1$ encoded positions.  Metadata-aware known-answer tests,
+rather than those bare fixtures, exercise the build, order, missingness, and strand rules.
 
 \subsection{Fully Homomorphic Encryption}
 
@@ -265,17 +335,17 @@ encrypted value is represented on-chain by a 32-byte opaque handle; actual
 ciphertexts are managed by an off-chain coprocessor.  Smart contracts store only
 handles and trigger FHE operations through coprocessor calls.
 
-Access to encrypted outputs is governed by an on-chain ACL contract: a handle is
-decryptable only by addresses explicitly granted access by the ACL.  The blockchain
-is the trust anchor---no party can obtain a decryption unless the executing smart
-contract grants it, and the smart contract's grant conditions are publicly auditable.
+Access to encrypted outputs is governed by an on-chain ACL contract: under the fhEVM
+and threshold-decryption assumptions, a handle is decryptable only by addresses granted
+access by the executing contract.  Consensus makes those grant conditions and calls
+publicly auditable; it does not independently verify coprocessor execution or prevent a
+failure of the ACL/Gateway/KMS infrastructure.
 
-A per-transaction Homomorphic Computation Unit (HCU) budget limits the number of FHE
-operations per block.  In our Ethereum mock-coprocessor prototype, we measured a
-budget of 60--74 FHE operations per transaction (Section~\ref{sec:evaluation}); the
-Sepolia testnet ceiling is expected to be higher but remains to be measured.  The
-HCU constraint necessitates chunked computation
-strategies for large input vectors.
+A per-transaction Homomorphic Computation Unit (HCU) budget limits FHE operations.
+In the Hardhat mock we measured a maximum passing compute chunk of 21 SNPs for both
+model visibilities (Section~\ref{sec:evaluation}); the Sepolia ceiling remains
+unmeasured and is not inferred from that result.  The HCU constraint necessitates
+chunked computation strategies for large input vectors.
 
 %% ============================================================
 \section{System Design}
@@ -293,7 +363,14 @@ affecting the others.
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\columnwidth, keepaspectratio]{figures/fig_architecture.png}
+  \fbox{\begin{minipage}{0.92\columnwidth}
+  \centering\small
+  Genomic Registry $\rightarrow$ Model Marketplace $\rightarrow$ PRS Compute Engine
+  $\rightarrow$ Result Oracle\\[3pt]
+  sample ACL/provenance \quad model/release policy \quad encrypted dot product
+  \quad bounded category\\[3pt]
+  \emph{Shared dependencies: fhEVM coprocessor, relayer, ACL, Gateway/KMS, and chain}
+  \end{minipage}}
   \caption{System architecture.  Four on-chain smart contracts form a linear pipeline
   from genomic data custody to privacy-preserving risk output.  The fhEVM coprocessor
   manages off-chain ciphertexts; only opaque 32-byte handles are stored on-chain.
@@ -309,12 +386,16 @@ This contract performs no FHE operations; it is a lightweight permission layer.
 
 \textbf{Model Marketplace.}
 Immutable repository of GWAS weight vectors published in chunks.  Weights may be
-stored as plaintext integers (public models, enabling a cheaper coprocessor-optimised
-ciphertext-times-plaintext multiply, $\approx$60\% less expensive than
-ciphertext-ciphertext) or as encrypted handles (private models).  A manifest URI
+stored as plaintext integers for public models or as encrypted handles for private
+models.  In the current implementation, public values are converted to encrypted
+handles before multiplication; the measured public/private gap therefore comes from
+packed storage reads rather than a ciphertext--plaintext multiplication optimization.
+A manifest URI
 records quantisation metadata on-chain: scale factor, weight zero-point, score
 offset, and provenance hash.  Models are immutable after finalisation; version
-management is the responsibility of the publishing researcher.
+management is the responsibility of the publishing researcher.  Both visibility
+modes are implemented and Hardhat-mock validated.  The public path was additionally
+validated end to end on Sepolia; private-weight live execution was not performed.
 
 \textbf{PRS Compute Engine.}
 The core computation contract.  Implements a finite state machine
@@ -335,44 +416,39 @@ the raw score when oracle-required mode is enabled.
 \subsection{Comparison with HEPRS}
 
 Table~\ref{tab:comparison} summarises the key architectural differences between
-bioETH-PRS and HEPRS \citep{knight2026heprs}.  HEPRS achieves near-perfect accuracy
-on a 110,000-SNP schizophrenia model running on commodity hardware, but its
-three-party trust assumption means a colluding evaluator and client can reveal model
-weights.  bioETH-PRS removes the designated evaluator assumption by replacing that
-role with auditable on-chain code.
+bioETH-PRS and HEPRS \citep{knight2026heprs} by evidence dimension rather than as a
+single ranking.  Both compute Equation~\ref{eq:prs}, but they study different points in
+the trust/deployment design space.  HEPRS demonstrates substantially larger encrypted
+PRS execution and real CKKS performance with a designated evaluator.  bioETH-PRS
+studies publicly auditable contract orchestration, fixed model/output policy, and a
+public live fhEVM point at much smaller scale.  Removing the application-level
+evaluator shifts trust to contracts, consensus, the fhEVM coprocessor, and the
+ACL/Gateway/KMS infrastructure; it does not eliminate trust.
 
-The core mathematical operation is identical in both systems: the PRS dot product
-of Eq.~\ref{eq:prs}.  The critical difference is in the trust model and the FHE
-scheme.  CKKS handles signed floats natively; TFHE requires unsigned integer
-encoding.  CKKS evaluates approximate arithmetic; TFHE arithmetic is exact.  The
-evaluator-free architecture of bioETH-PRS comes at the cost of restricting the practical SNP
-range to 100--5,000---a regime that captures a subset of curated PRS models
-\citep{lambert2019polygenic} while remaining feasible for on-chain
-computation.
-
-\begin{table}[ht]
+\begin{table*}[t]
 \centering
-\caption{Architectural comparison: HEPRS vs.\ bioETH-PRS}
+\caption{Dimension-by-dimension comparison.  Labels in brackets identify the evidence
+type: inherited from the cited HEPRS study, Live fhEVM, Hardhat mock, or unavailable.}
 \label{tab:comparison}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabularx}{\columnwidth}{@{}p{1.9cm}YY@{}}
+\begin{tabularx}{\textwidth}{@{}p{3.1cm}XX@{}}
 \toprule
-\textbf{Property} & \textbf{HEPRS} \citep{knight2026heprs} & \textbf{bioETH-PRS} \\
+\textbf{Dimension} & \textbf{HEPRS} \citep{knight2026heprs} & \textbf{bioETH-PRS} \\
 \midrule
-FHE scheme        & CKKS (approx.\ floats)  & TFHE (exact integers)  \\
-Evaluator         & Centralised server      & Smart contract         \\
-Trust model       & 3-party non-collusion   & Evaluator removed; consensus/fhEVM dependent  \\
-Weight privacy    & Evaluator-gated         & ACL-gated, immutable   \\
-Output control    & External (optional)     & On-chain noisy release \\
-GWAS weight type  & Signed floats           & Quant.\ uint64         \\
-Max variants tested   & 110,000                 & 5,000 (scalable)       \\
-Per-person latency& $\sim$4.9 s            & $\sim$386 ms (100 SNPs)\\
-Score access      & By client               & Noisy score + category \\
-Post-quantum      & Yes (CKKS/RLWE)         & Yes (TFHE/RLWE)        \\
+Privacy architecture & encrypted client--modeler--evaluator pipeline [inherited] & encrypted inputs with contract-orchestrated policy and ACL release [Live/mock] \\
+Designated evaluator & yes; evaluator executes CKKS [inherited] & no application-level evaluator; contracts orchestrate calls [implemented] \\
+Remaining trust assumptions & three-party non-collusion and HE software/hardware [inherited] & contracts, consensus, fhEVM coprocessor, relayer, ACL and Gateway/KMS [explicit] \\
+Arithmetic scheme & CKKS approximate signed-real arithmetic [inherited] & TFHE exact unsigned integers after fixed-point encoding [implemented] \\
+Demonstrated encrypted variants & 110,000 [inherited real FHE] & 100 public [Live fhEVM]; 100--5,000 [Hardhat mock] \\
+Latency evidence & approximately 4.9 s/person at 110,000 [inherited real FHE] & 269.320 s submission-to-result plus 8.081 s decryption at public 100 [Live fhEVM]; wider mock timings not comparable \\
+Memory evidence & 3--4 GB/person; up to 130 GB for 1,000 [inherited] & not measured [unavailable] \\
+Deployment requirements & evaluator compute host and client/modeler setup [inherited] & fhEVM chain, coprocessor, relayer, ACL and Gateway/KMS [Live public] \\
+Output policy & raw score delivered to client; external controls optional [inherited] & model-fixed raw or bounded randomized category release [implemented] \\
+Metadata exposure & pipeline/model metadata governed off-chain [inherited] & model identifiers, alleles, order, policy and on-chain transaction metadata public; weight magnitudes may be encrypted [implemented] \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 %% ============================================================
 \section{Quantisation Scheme}
@@ -398,7 +474,14 @@ floating-point dot products into a guaranteed non-negative 64-bit integer range
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\columnwidth, keepaspectratio]{figures/fig_quantization.png}
+  \fbox{\begin{minipage}{0.92\columnwidth}
+  \centering\small
+  $\beta_i \xrightarrow{\times s,\;\mathrm{round}_{\mathrm{away}}} q_i$
+  $\xrightarrow{+z_w}$ $u_i\geq0$\\[3pt]
+  $\sum g_i u_i \xrightarrow{-z_w\sum g_i}$ $P$
+  $\xrightarrow{+z_s}$ encrypted $e\geq0$
+  $\xrightarrow{(e-z_s)/s}$ PRS
+  \end{minipage}}
   \caption{Three-step fixed-point quantisation scheme.  Signed GWAS floats are
   (1) scaled by $s$, (2) shifted by the weight zero-point $z_w$ to guarantee
   non-negative weights, and (3) shifted by the score zero-point $z_s$ to guarantee
@@ -408,17 +491,22 @@ floating-point dot products into a guaranteed non-negative 64-bit integer range
 
 \textbf{Step 1: Scale.}
 \begin{equation}
-q_i = \mathrm{round}(s \cdot \beta_i), \quad q_i \in \mathbb{Z},
+q_i = \operatorname{round}_{\mathrm{away}}(s \cdot \beta_i), \quad q_i \in \mathbb{Z},
 \end{equation}
 where $s$ is a model-specific scale factor selected by an automated quantisation
-advisor (Section~\ref{sec:advisor}).
+advisor (Section~\ref{sec:advisor}) and exact half ties are rounded away from zero.
+The fixtures used here require no tie breaking: all weights have at most six decimal
+places and the selected scales are integer multiples of $10^6$, so their quantisation
+is exact.
 
 \textbf{Step 2: Weight zero-point shift.}  Let
 \begin{equation}
-z_w = -\min_i q_i, \quad u_i = q_i + z_w \;\geq\; 0 \;\;\forall i.
+z_w = \max(0,-\min_i q_i), \quad u_i = q_i + z_w \;\geq\; 0 \;\;\forall i.
 \label{eq:wshift}
 \end{equation}
-The shifted weights $u_i \geq 0$ are stored on-chain.  The raw accumulation
+The clamp is required by the unsigned on-chain representation when all weights are
+positive; algebraically, $z_w=0$ already preserves $u_i\geq0$.  The shifted weights
+$u_i \geq 0$ are stored on-chain.  The raw accumulation
 $\sum_i g_i u_i$ overestimates the true PRS by the constant $z_w \cdot \sum_i g_i$,
 requiring correction.  The engine tracks the genotype sum
 $G = \sum_i g_i$ as a second encrypted accumulator to enable this correction.
@@ -448,7 +536,11 @@ value $(\mathrm{partialSum} + z_s)$ is always non-negative.
 \subsection{Worked Example}
 
 Consider 3 genetic variants with weights $\boldsymbol{\beta} = [-0.30, 0.10, 0.25]$, scale
-$s = 100$, and dosages $\mathbf{g} = [0, 2, 1]$.
+$s = 100$, and effect-allele dosages $\mathbf{g} = [0, 2, 1]$.  The plaintext
+target is shown first:
+\[
+\mathrm{PRS}=0(-0.30)+2(0.10)+1(0.25)=0.45.
+\]
 
 \begin{enumerate}
   \item Quantise: $\mathbf{q} = [-30, 10, 25]$.
@@ -458,8 +550,22 @@ $s = 100$, and dosages $\mathbf{g} = [0, 2, 1]$.
   \item Correction: $P = 135 - 30{\cdot}3 = 45$.
   \item Score shift: $z_s = 2{\cdot}30 = 60$; $e = 45 + 60 = 105$.
   \item Decode: PRS $= (105 - 60) / 100 = 0.45$.
-  \item Verify: plaintext PRS $= 0{\cdot}(-0.30) + 2{\cdot}0.10 + 1{\cdot}0.25 = 0.45$. \checkmark
 \end{enumerate}
+
+\begin{figure}[t]
+\centering
+\fbox{\begin{minipage}{0.92\columnwidth}
+\centering\small
+model metadata and hard calls $\rightarrow$ validate build/order/QC
+$\rightarrow$ orient effect-allele dosages $\rightarrow$ quantise and encrypt
+$\rightarrow$ chunked contract accumulation $\rightarrow$ ACL-gated release and decode
+\end{minipage}}
+\caption{Six-stage scoring workflow.  Identifiers and allele labels remain available
+for local alignment while dosage values and, for private models, weight magnitudes enter
+the encrypted path.  Handle and ACL mechanics enforce the last two stages but do not
+replace the preprocessing checks.}
+\label{fig:scoring_workflow}
+\end{figure}
 
 \subsection{Overflow Safety}
 \label{sec:overflow}
@@ -485,7 +591,7 @@ Eq.~\ref{eq:encode} fit in $\texttt{uint64}$.
 \begin{proof}
 Partition the quantised weights into positive, negative, and zero sets with
 cardinalities $N_{+}$, $N_{-}$, and $N_{0}$, so that $N_{+}+N_{-}+N_{0}=N$.
-Because $g_i \in \{0,1,2\}$ and $z_w=-\min_i q_i \leq sM$, the shifted weight
+Because $g_i \in \{0,1,2\}$ and $z_w=\max(0,-\min_i q_i) \leq sM$, the shifted weight
 $u_i = q_i + z_w$ obeys
 \[
 u_i \leq
@@ -504,11 +610,11 @@ The score zero-point satisfies
 z_s = -\sum_{i:q_i<0} 2 q_i \leq 2 s M N_{-}.
 \]
 Therefore the intermediate value materialised in Eq.~\ref{eq:encode} is bounded by
-\[
-\mathrm{withOffset} = \mathrm{partialSum} + z_s
-\leq 4 s M N_{+} + 4 s M N_{-} + 2 s M N_{0}
-\leq 4 s M N.
-\]
+\begin{align*}
+\mathrm{withOffset} &= \mathrm{partialSum} + z_s \\
+&\leq 4sMN_{+}+4sMN_{-}+2sMN_{0} \\
+&\leq 4sMN.
+\end{align*}
 This is the binding worst-case accumulator bound.
 
 For the final encoded score, observe that the weight-shift correction exactly
@@ -552,8 +658,9 @@ individuals in the fixture.  It outputs a recommendation from three tiers:
 
 \begin{itemize}
   \item \textbf{Baseline} ($s \approx 10^2$): 1--15\% MAE. Proof-of-concept only.
-  \item \textbf{Balanced} ($s \approx 10^6$): machine-epsilon error.
-        Recommended default for all production models.
+  \item \textbf{Balanced} ($s \approx 10^6$): zero error on these six-decimal-place
+        fixtures.  A candidate recommendation for similarly represented models, not a
+        universal production default.
   \item \textbf{Max precision} ($s \approx 10^8$): no improvement over balanced
         on real GWAS fixtures; the limiting factor is source data precision.
 \end{itemize}
@@ -572,7 +679,13 @@ storage semantics, and support for multi-party participation
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\columnwidth, keepaspectratio]{figures/fig_protocol.png}
+  \fbox{\begin{minipage}{0.92\columnwidth}
+  \small
+  \textbf{Classic:} upload encrypted chunks $\rightarrow$ persist handles
+  $\rightarrow$ permissionless compute chunks $\rightarrow$ finalize\\[4pt]
+  \textbf{Streaming:} upload $+$ compute each chunk in one requester call
+  $\rightarrow$ discard input handles $\rightarrow$ finalize
+  \end{minipage}}
   \caption{Execution protocol comparison.  The classic chunked path persists SNP
   handles in contract storage (SSTORE), enabling multi-party upload/compute
   separation.  The streaming path uses EIP-1153 transient storage (TSTORE),
@@ -591,6 +704,8 @@ parties to execute different phases at different times.
 \label{alg:classic}
 \small
 \begin{algorithmic}[1]
+\State \textbf{Model owner:} \Call{setReleasePolicy}{modelId, oracle, $\tau_L$, $\tau_H$}
+\State \textbf{Model owner:} \Call{finalizeModel}{modelId}
 \State \textbf{Patient:} \Call{createPRSJob}{modelId, sampleId}
 \Comment{ACL checked; model geometry loaded}
 \For{$k \gets 0$ to $\lceil N / r_u \rceil - 1$}
@@ -605,13 +720,13 @@ parties to execute different phases at different times.
   \State \quad $\mathrm{partialSum} \mathrel{+}= \sum_{i \in \mathrm{chunk}} g_i \cdot u_i$
   \State \quad $G \mathrel{+}= \sum_{i \in \mathrm{chunk}} g_i$
 \EndFor
-\State \textbf{Patient:} \Call{finalizeAndClassify}{jobId, oracle, $\tau_L$, $\tau_H$}
+\State \textbf{Patient:} \Call{finalizeAndClassify}{jobId}
 \end{algorithmic}
 \end{algorithm}
 
 The upload chunk size $r_u \leq 32$ is constrained by the fhEVM input-proof budget
-(2048 bits / 64 bits per encrypted integer).  The compute chunk size $r_c \leq 20$
-is constrained by the HCU budget: each compute chunk of $r_c$ SNPs executes
+(2048 bits / 64 bits per encrypted integer).  The shipped compute chunk size is
+$r_c=20$, one below the measured Hardhat-mock maximum of 21.  Each compute chunk executes
 $3r_c + 2$ FHE operations (multiply, accumulate partial sum, accumulate genotype sum
 per SNP, plus two coprocessor calls for accumulator handles).  At $r_c = 20$ this
 yields 62 operations---within the measured HCU budget.
@@ -630,6 +745,8 @@ correctness or confidentiality.
 \label{alg:streaming}
 \small
 \begin{algorithmic}[1]
+\State \textbf{Model owner:} \Call{setReleasePolicy}{modelId, oracle, $\tau_L$, $\tau_H$}
+\State \textbf{Model owner:} \Call{finalizeModel}{modelId}
 \State \textbf{Patient:} \Call{createPRSJob}{modelId, sampleId}
 \For{$k \gets 0$ to $\lceil N / r_c \rceil - 1$}
   \State \textbf{Patient:} append chunk $\mathrm{encSNPs}_{k}$ with proof
@@ -638,7 +755,7 @@ correctness or confidentiality.
   \State \quad $G \mathrel{+}= \sum_{i \in \mathrm{chunk}} g_i$
   \Comment{SNP handles discarded after each call}
 \EndFor
-\State \textbf{Patient:} \Call{finalizeAndClassify}{jobId, oracle, $\tau_L$, $\tau_H$}
+\State \textbf{Patient:} \Call{finalizeAndClassify}{jobId}
 \end{algorithmic}
 \end{algorithm}
 
@@ -674,23 +791,74 @@ We consider a computationally bounded adversary with full network access to the
 blockchain and coprocessor (Figure~\ref{fig:security}).  The adversary may: observe
 all on-chain transactions and storage slots; operate a validator node and read all
 encrypted handles; submit arbitrary transactions; and query classification outputs
-repeatedly with chosen SNP inputs.  The adversary may not break the TFHE hardness
+repeatedly with chosen SNP inputs.  An authorized requester may also be malicious and
+upload ciphertexts encoding arbitrary values rather than the registered sample.  The
+adversary may not break the TFHE hardness
 assumption (grounded in the RLWE problem) or forge ACL entries.
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\columnwidth, keepaspectratio]{figures/fig_security.png}
+  \fbox{\begin{minipage}{0.92\columnwidth}
+  \centering\small
+  \textbf{Conditional contract boundary}\\
+  state machine $+$ fixed policy $+$ ACL grants\\[3pt]
+  $\uparrow$ depends on $\uparrow$\\[-2pt]
+  TFHE/RLWE; coprocessor; contracts; consensus; relayer; ACL/Gateway/KMS\\[4pt]
+  \textbf{Outside boundary:} biological sample authenticity, ciphertext/sample
+  binding, model validity, calibration, and ancestry portability
+  \end{minipage}}
   \caption{Security threat model and defence layers.  The TFHE/RLWE hardness
-  assumption grounds the innermost layer.  Successive layers---FHE coprocessor,
-  smart contracts, blockchain consensus---add verifiable security properties.
-  Adversary capabilities and corresponding protocol guarantees are enumerated at
-  the threat-boundary interface.}
+  assumption, coprocessor correctness, contract correctness, consensus, ACL, and
+  Gateway/KMS availability are explicit dependencies rather than verified properties.
+  Ciphertext/sample binding lies outside the guaranteed boundary: contracts evaluate
+  submitted ciphertexts but do not prove that they encode the registered sample.}
   \label{fig:security}
 \end{figure}
 
+\subsection{Input authenticity and evaluated setting}
+
+\texttt{GenomicRegistry.hasAccess} determines who may open a job; it does not constrain
+what that requester uploads.  The contracts guarantee deterministic computation over
+submitted ciphertexts, but they do not prove that those ciphertexts encode genotypes
+derived from the registered sample.  Consequently, fabricated probes remain expressible
+by an authorized requester and the correlated-genotype restriction evaluated below is
+not an enforceable defense.
+
+The evaluated setting assumes trusted local genotype preparation by the patient, an
+accredited laboratory, or an approved data custodian using the rules in
+Section~\ref{sec:preprocessing}.  The sample \texttt{manifestHash} commits to the genome
+build, input-file hash, variant order, and preparation policy for provenance; it is not a
+cryptographic binding between those bytes and later ciphertexts.  The test suite records
+this boundary explicitly by accepting arbitrary encrypted hard-call values after ACL
+authorization.
+
+\begin{table*}[t]
+\centering
+\caption{Trust and failure boundary.  A mark indicates the property that can be affected
+if the component fails or behaves maliciously.}
+\label{tab:trust_boundary}
+\small
+\begin{tabularx}{\textwidth}{@{}XccccX@{}}
+\toprule
+\textbf{Component} & \textbf{Conf.} & \textbf{Correct.} & \textbf{Avail.} & \textbf{Prov.} & \textbf{Assumption} \\
+\midrule
+Genotype provider/preprocessor &  & X &  & X & prepares the claimed sample and applies build, order, QC, and orientation rules \\
+Model provider &  & X &  & X & publishes the intended weights, metadata, thresholds, and scientifically valid model \\
+Smart contracts & X & X & X & X & deployed bytecode implements the reviewed state machine and ACL grants \\
+Blockchain consensus &  & X & X & X & orders and finalizes the publicly auditable contract record \\
+fhEVM coprocessor & X & X & X &  & performs TFHE operations correctly without exposing plaintext \\
+Gateway/relayer & X &  & X &  & transports proofs and requests decryption without leaking authorized plaintext \\
+ACL and threshold-decryption infrastructure & X & X & X &  & enforces grants and reconstructs only authorized outputs \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
 \subsection{Core Privacy Invariants}
 
-We formalise the protocol's privacy guarantees as five critical invariants:
+Conditional on the assumptions in Table~\ref{tab:trust_boundary}, we formalise the
+protocol's privacy behavior as five critical invariants.  They are contract-level
+properties, not guarantees of sample authenticity, clinical validity, or infrastructure
+correctness.
 
 \begin{invariant}[Ciphertext opacity]
 Encrypted handles are 32-byte opaque identifiers; raw ciphertexts reside
@@ -728,10 +896,12 @@ and reverts on subsequent calls, preventing a requester from obtaining multiple
 score handles for a single rate-limit slot.
 \end{invariant}
 
-\subsection{Noisy Output Release}
+\subsection{Bounded Randomized Categorical Release}
 
-The current Result Oracle implements a DP-inspired noisy output release mechanism,
-not a formally calibrated $(\varepsilon, \delta)$-differential privacy guarantee.
+The current Result Oracle implements a bounded randomized categorical release.
+This heuristic does not provide an $(\varepsilon,\delta)$-differential privacy
+guarantee: its noise is one-sided, it is not calibrated to a sensitivity bound, and
+the implementation has no privacy-composition accounting across repeated queries.
 For each classification request, noise is drawn from $[0, B)$ where $B$ is a
 power-of-two immutable constant set at oracle deployment:
 \begin{equation}
@@ -739,6 +909,10 @@ e_{\mathrm{noisy}} = e + \nu, \quad \nu \sim \mathrm{Uniform}(0, B).
 \end{equation}
 The noise $\nu$ is generated by the fhEVM random source, unseeded by the caller
 and determined solely by block randomness.  The caller has no influence over $\nu$.
+The oracle address, thresholds, noise-bound compatibility, and oracle requirement are
+fixed by the model owner in one \texttt{setReleasePolicy} call before model finalization
+and before any query can be submitted.  A requester-supplied threshold would expose a
+movable comparison boundary and enable adaptive binary search on the encrypted score.
 
 All comparisons against classification thresholds operate on the noisy encrypted
 score using encrypted boolean operations, avoiding any branching on hidden values:
@@ -758,14 +932,19 @@ strategies.
 This mechanism is best understood as an anti-probing control that randomises the
 released classification boundary.  A formal DP claim would require an explicit
 neighbouring-dataset definition, a sensitivity analysis for the PRS score under the
-chosen adjacency relation, and calibration of $B$ to concrete privacy parameters.
-Those steps are not yet part of the present prototype, so we avoid assigning
-specific $(\varepsilon, \delta)$ values.
+chosen adjacency relation, calibration of $B$ to concrete privacy parameters, and
+composition accounting.  Those steps are not part of the present prototype.
 
 \textbf{Bias correction.}
 Uniform noise on $[0, B)$ introduces an expected upward bias of $B/2$.  Callers
-must adjust classification thresholds by this amount, a deterministic correctable
-offset exposed by the oracle's view function.  The anti-probing effect derives from
+must incorporate this amount when the model owner fixes classification thresholds, a
+deterministic offset exposed by the oracle's view function.  This creates an inherent
+boundary trade-off: if a threshold is a cohort quantile or clinical cut point, shifting
+it by $B/2$ places the individual defining that cut point at the centre of the ambiguous
+band and therefore at maximum classification uncertainty.  In the 100-variant category
+experiment, both in-band individuals were exactly $64=B/2$ below their adjusted
+threshold.  Threshold adjustment can correct aggregate bias or preserve certainty at
+the original individual boundary, but not both.  The anti-probing effect derives from
 noise variance, not its mean.
 
 \subsection{Anti-Probing: Rate Limiting}
@@ -775,13 +954,49 @@ submitting many classification queries with crafted SNP inputs and observing
 the resulting categories.  The compute engine enforces per-model, per-wallet, and
 per-sample block-windowed job quotas to raise this cost.
 
-Let $R$ be the maximum queries per $W$-block window, $B$ the noise bound, and
-$K = 3$ the number of output categories.  Each query reveals at most
-$\log_2(K) \approx 1.58$ bits minus noise entropy.  At suggested settings for
-private models ($R = 3$, $W = 1000$, $B = 128$), extracting a single 20-bit weight
-requires approximately $2 \times 10^4 / (3 \times 1.58) \approx 4{,}220$ block
-windows, corresponding to $\approx$2,800 hours at 12~s/block.  Block-based windows
-(rather than timestamps) prevent miner manipulation of window boundaries.
+We measured information cost separately from the permitted query rate using a frozen
+copy of the submitted contracts and the hardened release policy (Hardhat mock, 20
+private weights, one estimator).  Table~\ref{tab:probing} reports lower bounds on
+attacker effort for the strategies implemented; absence of a better attack is not a
+confidentiality proof.
+
+\begin{table*}[t]
+\centering
+\caption{Measured model-extraction outcomes (Hardhat mock).  ``Within $B$'' counts
+weights recovered within the configured noise bound.}
+\label{tab:probing}
+\small
+\begin{tabularx}{\textwidth}{@{}Xrrrr@{}}
+\toprule
+\textbf{Interface/attack} & \textbf{Queries} & \textbf{Pearson $r$} & \textbf{Sign acc.} & \textbf{Within $B$} \\
+\midrule
+Raw-score path, no oracle & 20 & 1.0000 & 100\% & 20/20 \\
+Submitted caller-chosen thresholds, adaptive & 200 & 1.0000 & 100\% & 20/20 \\
+Submitted caller-chosen thresholds, non-adaptive & 320 & 0.6689 & 65\% & 0/20 \\
+Hardened fixed thresholds, adaptive & 320 & 0.9391 & 70\% & 0/20 \\
+Hardened, probes restricted to correlated blocks & 320 & $-0.0037$ & 65\% & 0/20 \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Adaptive threshold movement converts queries into exact precision in the submitted
+interface; fixing the model-defined boundary removes that capability.  The hardened
+result is resolution reduction, not model confidentiality: no weight is recovered
+within $B$, but $r=0.9391$ shows that relative model shape still leaks and 70\% sign
+accuracy does not recover absolute levels.  At $R=3$ jobs per $W=1{,}000$-block
+window and an assumed 12-s block time, the measured submitted-design information cost
+corresponds to 11.1 h per weight and 222.2 h for the 20-weight model.  Distinct samples
+can parallelize this time, and the controls do not prevent the remaining cross-sample
+Sybil boundary; for a private model, each additional requester must nevertheless be
+allowlisted by its owner.
+
+The configured $B=128$ is only 1.34\% of the largest quantised weight, approximately
+7 bits of blur on a 13.2-bit weight, so $B$ should be selected against the quantised
+weight distribution rather than treated as a universal default.  Restricting probes to
+correlated SNP blocks suppresses this attack, but it is not a defense because the input
+authenticity boundary above permits arbitrary ciphertexts.  Overall, the evaluated
+controls reduce output resolution and increase query cost; they neither prevent Sybil
+attacks nor provide a formal model-confidentiality guarantee.
 
 %% ============================================================
 \section{Empirical Evaluation}
@@ -789,44 +1004,129 @@ windows, corresponding to $\approx$2,800 hours at 12~s/block.  Block-based windo
 
 \subsection{Experimental Setup}
 
-\textbf{Prototype evaluation (mock coprocessor).} We evaluate bioETH-PRS against the four fixture sizes (100, 500, 1,000, and 5,000
-SNPs) from the HEPRS reference dataset \citep{knight2026heprs}, which contains real
-GWAS beta weights for a schizophrenia model at each size.  Gas measurements use a
-Hardhat in-process mock coprocessor that validates the complete fhEVM protocol
-(handles, ACL, input proofs) while performing plaintext arithmetic; gas numbers
-are expected to be within 10--20\% of real-network deployment.
-The HCU ceiling was measured empirically: chunk sizes of 20~SNPs (62 ops) pass;
-25~SNPs (77 ops) fail, confirming the measured 60--74-operation HCU budget.
-All experiments use
-upload chunk size $r_u = 32$ and compute chunk size $r_c = 20$.
+We distinguish three evidence classes throughout: \emph{Live fhEVM} for transactions
+on a real fhEVM network, \emph{Hardhat mock} for execution using the in-process mock
+coprocessor, and \emph{Analytic projection} for unexecuted calculations.  Hardhat-mock
+results validate contract logic and transaction geometry but do not measure real TFHE
+latency, live HCU availability, or production fees.
+
+\textbf{Hardhat-mock range.} We evaluate four HEPRS fixture sizes (100, 500, 1,000,
+and 5,000 nominal SNPs) \citep{knight2026heprs}.  Each carries a leading constant
+position, making the encrypted lengths 101, 501, 1,001, and 5,001.  The finely
+bracketed mock HCU ceiling is 21 SNPs for both public and private models; the shipped
+default $r_c=20$ leaves one slot of headroom.  The live Sepolia ceiling is unmeasured.
+
+\textbf{Live fhEVM validation.} On Sepolia (chain ID 11155111), a public 100-SNP
+classic-path workflow completed in 25 status-1 transactions after four contract
+deployments.  The workflow used 20.710271 million gas; submission to the encrypted
+result took 269,320 ms and Gateway/KMS decryption took 8,081 ms.  The decoded encoded
+score was 758,685, exactly equal to the independent reference.  Full contract addresses,
+transaction hashes, block numbers, bytecode digests, the runner-source hash, and the
+reference-output digest are provided in the repository's receipt-level evidence record.
+Private weights are implemented and Hardhat-mock validated but were not executed live.
+
+\textbf{Reproducibility identifiers.} Tables~\ref{tab:probing}--\ref{tab:correctness_boundary}
+and Figures~\ref{fig:individual_agreement}--\ref{fig:gas} are generated from the
+machine-readable Stage A boundary at repository commit \texttt{e6e2c1d}.  Each source
+record retains its original commit plus model, fixture, manifest, bytecode/address,
+transaction, and independent-reference digests.  The live runner is commit
+\texttt{4fa7c9f}, source digest \texttt{b45f5b59...e27a}; the complete receipt-level
+identifiers are in \texttt{evidence/phase7/live\_2026-07-31/}.
+
+\begin{table*}[t]
+\centering
+\caption{Evidence-class summary for the 100-SNP public workflow.  The two gas rows use
+the same fixture, classic path, upload chunk size 32, compute chunk size 10, and 25
+transactions.  Their 10.42\% difference is one observed pair, not a general conversion
+factor.}
+\label{tab:live_validation}
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+\textbf{Evidence class} & \textbf{Network} & \textbf{Tx} & \textbf{Gas} & \textbf{Submit--result} & \textbf{Decrypt} & \textbf{Encoded score} \\
+\midrule
+Live fhEVM & Sepolia & 25 & 20.710271 M & 269,320 ms & 8,081 ms & 758,685 \\
+Hardhat mock & in process & 25 & 18.755864 M & 147 ms & 125 ms & 758,685 \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
 \subsection{Quantisation Accuracy}
 
-At the balanced scale tier ($s \approx 10^6$), reconstructed PRSs agree with
-floating-point computation to machine epsilon across all 50 individuals in each of
-the four fixtures (200 individual-fixture combinations), as shown in
-Table~\ref{tab:quantisation}.  No negative encoded scores or unsigned 64-bit integer
-overflow events were observed.  The baseline tier ($s \approx 10^2$) yielded
-1--15\% MAE---unsuitable for clinical use, as a 15\% score error is equivalent
-to misclassifying borderline patients.  The max-precision tier ($s \approx 10^8$)
-provided no additional accuracy improvement: the limiting factor is the number of
-significant digits in the source GWAS betas rather than the encoding resolution.
-This confirms that the balanced tier ($s \approx 10^6$) is both necessary and
-sufficient for production deployment.
+An independent Python implementation of Equation~\ref{eq:prs} was compared with 200
+separately executed and decoded Hardhat-mock contract jobs: all 50 individuals at each
+of the four fixture sizes.  MAE, RMSE, and maximum absolute error are zero; all 200
+scores match exactly; and Pearson $r=1$, established using exact decimal arithmetic.
+This validates the preprocessing, effect-allele alignment, encoding, chunked contract
+execution, ACL-gated decryption, and decoding pipeline against an independently derived
+implementation.
+
+The zero error is not a general precision result.  All 6,604 fixture weights have at
+most six decimal places and the advisor's recommended scale is an integer multiple of
+$10^6$, so the quantisation is lossless by construction and no rounding occurs.  A
+nonzero comparison would therefore have exposed a pipeline error, while exact agreement
+does not establish accuracy for models with finer weight precision.  The complete 200-row
+comparison is supplied as \texttt{evidence/phase5/individual\_level\_comparison.csv}.
 
 \begin{table}[ht]
 \centering
-\caption{Quantisation accuracy on HEPRS fixtures (balanced tier)}
+\caption{Independent Equation~\ref{eq:prs} versus decoded contract comparison
+(Hardhat mock).  Error is identically zero because fixture quantisation is lossless.}
 \label{tab:quantisation}
 \small
 \begin{tabular}{rrrll}
 \toprule
-\textbf{SNPs} & \textbf{Scale $s$} & \textbf{Bits req.} & \textbf{MAE} & \textbf{Indiv.} \\
+\textbf{SNPs} & \textbf{Scale $s$} & \textbf{$n$} & \textbf{MAE/RMSE/max} & \textbf{Exact} \\
 \midrule
-100   & $3\times10^6$ & 16 & $<\epsilon_\mathrm{mach}$ & 50/50 pass \\
-500   & $3\times10^6$ & 16 & $<\epsilon_\mathrm{mach}$ & 50/50 pass \\
-1,000 & $1\times10^6$ & 16 & $<\epsilon_\mathrm{mach}$ & 50/50 pass \\
-5,000 & $1\times10^6$ & 16 & $<\epsilon_\mathrm{mach}$ & 50/50 pass \\
+100   & $3\times10^6$ & 50 & 0/0/0 & 50/50 \\
+500   & $3\times10^6$ & 50 & 0/0/0 & 50/50 \\
+1,000 & $1\times10^6$ & 50 & 0/0/0 & 50/50 \\
+5,000 & $1\times10^6$ & 50 & 0/0/0 & 50/50 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth, keepaspectratio]{figures/fig_individual_agreement.pdf}
+  \caption{Equation~\ref{eq:prs} PRS versus decoded bioETH-PRS for all 200
+  individual--fixture pairs (Hardhat mock).  Every point lies exactly on the identity
+  line; overplotting is reduced by fixture-specific markers.}
+  \label{fig:individual_agreement}
+\end{figure}
+
+For randomized categorical release at the 100-SNP size, agreement is 48/48 for
+individuals outside the $B$-wide ambiguous band.  Two individuals lie inside the band;
+both happened to agree in this run, a favorable noise draw rather than a guarantee.
+Classification consumes one encoded score and is independent of variant count, so this
+experiment was not repeated as a scale claim.
+
+\subsection{Bounded Scale Evidence}
+
+Table~\ref{tab:scale_evidence} reports fresh-model, one-sample workflow transaction
+geometry.  Only the public 100-variant row is Live fhEVM.  The 100--5,000 range is
+Hardhat mock, and larger rows are arithmetic projections with no execution, latency,
+gas, HCU, or fee evidence.
+
+\begin{table}[ht]
+\centering
+\caption{Evidence-class scale boundary.  Private mock/projection workflows add two
+reader-authorization transactions; only the private 100-variant point was executed
+(17 transactions, Hardhat mock).}
+\label{tab:scale_evidence}
+\small
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Evidence class} & \textbf{Variants} & \textbf{Visibility} & \textbf{Tx} \\
+\midrule
+Live fhEVM & 100 & public & 25 \\
+Hardhat mock & 100 & public & 15 \\
+Hardhat mock & 500 & public & 47 \\
+Hardhat mock & 1,000 & public & 88 \\
+Hardhat mock & 5,000 & public & 413 \\
+Analytic projection & 10,000 & public & 819 \\
+Analytic projection & 100,000 & public & 8,132 \\
+Analytic projection & 1,000,000 & public & 81,257 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -834,34 +1134,34 @@ sufficient for production deployment.
 \subsection{Gas Consumption and Scaling}
 
 Figure~\ref{fig:gas} and Table~\ref{tab:gas} report total gas consumption across
-execution paths and fixture sizes in the mock-coprocessor prototype environment.
-Gas scales linearly with SNP count in both paths, confirming the absence of hidden
-quadratic overhead at the contract layer.  The streaming path saves approximately
-37\% above 500 SNPs, driven entirely by the elimination of two SSTORE operations per SNP.
+execution paths and fixture sizes in the Hardhat-mock environment.  Host-contract gas
+grows approximately linearly over the measured 100--5,000-variant range; this is not a
+claim about live TFHE scaling.  The streaming path saves approximately 37\% above 500
+variants, driven by eliminating persistent per-SNP handle storage.
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\columnwidth, keepaspectratio]{figures/fig_gas_scaling.png}
-  \caption{On-chain gas consumption versus SNP count for both execution paths.
-  Gas scales linearly ($\mathcal{O}(N)$) in both cases.  The streaming path
-  achieves 35.5--37.2\% gas reduction over the classic chunked path by eliminating
-  persistent SSTORE operations for intermediate SNP ciphertext handles.}
+  \includegraphics[width=\columnwidth, keepaspectratio]{figures/fig_gas_scaling.pdf}
+  \caption{Hardhat-mock host gas versus nominal variant count for both execution
+  paths.  The observed range is close to linear; no live-network scaling is inferred.
+  The streaming path achieves 35.4--37.2\% lower gas by eliminating persistent
+  per-SNP ciphertext-handle storage.}
   \label{fig:gas}
 \end{figure}
 
 \begin{table}[ht]
 \centering
-\caption{Mock-environment total gas consumption by execution path}
+\caption{Hardhat-mock total host gas by execution path, rounded to 0.001 million gas}
 \label{tab:gas}
 \small
 \begin{tabular}{rrrr}
 \toprule
 \textbf{SNPs} & \textbf{Classic} & \textbf{Streaming} & \textbf{Reduction} \\
 \midrule
-100   & 17,822,364  & 11,496,911  & 35.5\% \\
-500   & 83,943,764  & 53,021,675  & 36.8\% \\
-1,000 & 166,832,473 & 104,972,012 & 37.1\% \\
-5,000 & 829,373,084 & 520,440,311 & 37.2\% \\
+100   & 17.863 M & 11.538 M & 35.4\% \\
+500   & 83.985 M & 53.063 M & 36.8\% \\
+1,000 & 166.875 M & 105.013 M & 37.1\% \\
+5,000 & 829.422 M & 520.487 M & 37.2\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -898,58 +1198,90 @@ SLOAD, misc.\ overhead           &   $\sim$12,000 & --- \\
 
 \subsection{Latency}
 
-On the Hardhat mock coprocessor, end-to-end wall-clock times for the streaming
-path are: 100 SNPs: $\approx$386~ms; 500 SNPs: $\approx$1.5~s; 1,000 SNPs:
-$\approx$2.8~s; 5,000 SNPs: $\approx$14.5~s.  These are local simulation
-timings; real-network latency is dominated by per-block confirmation time, as each
-chunk corresponds to one on-chain transaction.  The transaction count scales as
-$\lceil N / r_c \rceil + 2$ for the streaming path.
+Hardhat-mock per-individual wall-clock measurements are 157, 780, 1,672, and
+8,819 ms for 101, 501, 1,001, and 5,001 encoded positions, respectively, or
+1.554--1.763 ms per position.  The roughly 13\% increase in per-position cost is
+mildly superlinear over this range.  These timings combine in-process plaintext mock
+arithmetic and transaction overhead; they measure neither TFHE evaluation nor network
+latency.  The separate live 100-SNP timings appear in Table~\ref{tab:live_validation}
+and are not compared as a speed ratio.
 
-\subsection{Deployment Cost Projections}
+\subsection{Measured Transaction Use and Fee Sensitivity}
 
-Table~\ref{tab:cost} projects per-analysis cost across three gas pricing scenarios.
-These figures are scenario analyses derived from mock-environment gas measurements,
-not measured deployment prices.  Ethereum L1 pricing ($30$ gwei) renders the system
-economically unviable for clinical use.  At L2-equivalent pricing on a purpose-built
-FHE rollup ($0.05$ gwei), 100-SNP and 500-SNP analyses project to \$1.72 and \$7.95,
-respectively.  Under such low-gas assumptions, the system may become cost-competitive
-with centralised commercial genomics services (\$50--\$300), but that comparison
-remains contingent on real-network deployment.  Dedicated application-chain deployment
-reduces costs by two further orders of magnitude in the same pricing model, making even
-5,000-SNP analyses economically plausible at \$1.56 per run.
+Table~\ref{tab:cost} separates observed transaction use from fee arithmetic.  The
+successful live deployment used four transactions and 5.892559 million gas, costing
+0.0062781714 Sepolia test ETH; the live public job used 25 transactions and 20.710271
+million gas, costing 0.0252747648 test ETH.  These are test-network expenditures, not
+production prices.  In the Hardhat mock, a public 100-variant streaming workflow used
+15 transactions and 11.690 million gas, whereas its private counterpart required 17
+transactions and 23.508 million gas (2.01$\times$).  The private configuration is the
+one relevant to model-extraction risk.  Decryption is off-chain from the host contract
+and adds no Ethereum transaction.
 
 \begin{table}[ht]
 \centering
-\caption{Projected USD cost per analysis (streaming path, ETH at \$3,000)}
+\caption{Measured transaction use.  Raw evidence retains exact observations; mock
+totals are rounded because encrypted calldata varies across otherwise identical runs.}
 \label{tab:cost}
 \footnotesize
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{rrrr}
+\setlength{\tabcolsep}{2pt}
+\begin{tabularx}{\columnwidth}{@{}lXrr@{}}
 \toprule
-\textbf{SNPs} & \textbf{L1 (30~gwei)} & \textbf{L2 (0.05~gwei)} & \textbf{App\-chain} \\
+\textbf{Evidence class} & \textbf{Quantity} & \textbf{Tx} & \textbf{Gas} \\
 \midrule
-100   & \$1,035  & \$1.72  & \$0.034 \\
-500   & \$4,772  & \$7.95  & \$0.159 \\
-1,000 & \$9,447  & \$15.75 & \$0.315 \\
-5,000 & \$46,840 & \$78.07 & \$1.561 \\
+Live fhEVM & four-contract deployment & 4 & 5.892559 M \\
+Live fhEVM & public 100-SNP classic job & 25 & 20.710271 M \\
+Hardhat mock & public 100-SNP streaming job & 15 & 11.690 M \\
+Hardhat mock & private 100-SNP streaming job & 17 & 23.508 M \\
+Hardhat mock & one-time release policy & 1 & 0.077 M \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
+
+Recording nonzero model and sample provenance hashes adds a fixed 40,568 mock gas per
+model; it adds no homomorphic work and does not change the HCU ceiling.  A randomized
+release policy is one additional model-setup transaction (77,314 mock gas).  Raw-score
+finalization (169,898 mock gas) and randomized-category finalization (432,230 mock gas)
+are alternative output paths and are never summed for one job.
+
+For sensitivity only, multiplying the mock observations by hypothetical gas prices is
+an \emph{Analytic projection / unexecuted}.  At 1 gwei, the arithmetic gives 0.005892613
+ETH for deployment, 0.011690021 ETH for the public job, and 0.02350788 ETH for the
+private job; at 30 gwei the respective values are 0.17677839, 0.35070063, and 0.7052364
+ETH.  No USD conversion, production-affordability claim, or clinical/commercial
+feasibility conclusion is drawn.
 
 \subsection{Correctness and Protocol Verification}
 
-For each fixture size, we verified that the on-chain encoded score, after
-decryption and application of the quantisation inverse mapping, matches the
-plaintext floating-point dot product.  For the 100-SNP HEPRS fixture, the expected
-encoded score of 758,685 was reproduced exactly across all validation runs.  Both
-execution paths produce identical scores for all four fixture sizes (verified with
-plaintext arithmetic in the mock coprocessor).
+The independent comparison in Figure~\ref{fig:individual_agreement} verifies agreement
+with Equation~\ref{eq:prs}; it is one part of a bounded correctness case rather than a
+universal guarantee.  Table~\ref{tab:correctness_boundary} identifies responsibility at
+each boundary.
 
-Protocol invariants---ACL enforcement, state-machine integrity, single-finalize
-guarantee, minimum threshold gap, oracle-required mode, approved-oracle
-enforcement, rate-limiting window behaviour, and ACL revocation handling---were
-validated across 134 automated test cases.  The HCU ceiling probe confirmed the
-mock budget at 60--74 operations per transaction.
+\begin{table*}[t]
+\centering
+\caption{Correctness-guarantee boundary.}
+\label{tab:correctness_boundary}
+\small
+\begin{tabularx}{\textwidth}{@{}p{3.2cm}XX@{}}
+\toprule
+\textbf{Actor/component} & \textbf{What is established} & \textbf{What is not established} \\
+\midrule
+Genotype preprocessor & build, variant order, hard-call validity, missingness policy, and effect-allele alignment & authenticity of the biological sample without attestation/binding \\
+Model provider & committed weights, metadata, and fixed release policy & scientific validity, calibration, or ancestry portability \\
+Smart contracts & deterministic encoded weighted sum and state/ACL policy for submitted handles & correctness of input claims or external infrastructure \\
+fhEVM infrastructure & encrypted operations and authorized decryption under its assumptions & independently verified TFHE execution by consensus \\
+Independent reference & exact agreement with Equation~\ref{eq:prs} on 200 fixture jobs & a proof for untested models or deployments \\
+End user & can verify manifests, addresses, bytecode digests, transactions, and reference digest & clinical interpretation beyond the published model \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Protocol invariants---ACL enforcement, state-machine integrity, single finalization,
+fixed model-defined thresholds, minimum threshold gap, oracle-required release,
+rate-limit windows, and ACL revocation handling---are covered by the automated suite.
+The protocol guarantees none of sample authenticity, clinical validity, calibration,
+or ancestry portability.
 
 %% ============================================================
 \section{Access Control and Compute Flows}
@@ -1011,7 +1343,13 @@ registry and model ACL is documented and empirically verified.
 \section{Discussion}
 \label{sec:discussion}
 
-Our work presents bioETH-PRS, a privacy-preserving framework for polygenic risk scoring that replaces the trusted third-party evaluator used in prior homomorphic-encryption approaches with auditable smart contracts on an FHE-enabled blockchain. It enables encrypted computation of PRS while protecting both patient genotypes and GWAS model weights, introduces an overflow-safe quantization scheme, and demonstrates linear scaling, exact score correctness, and a 37% gas reduction using a streaming execution path.
+bioETH-PRS is a bounded-size research prototype for curated additive PRS models.  It
+replaces the designated application-level evaluator with publicly auditable contract
+orchestration while retaining explicit trust in contracts, consensus, the fhEVM
+coprocessor, the relayer, and ACL/Gateway/KMS infrastructure.  The public 100-SNP path
+was validated on live fhEVM; the wider 100--5,000 range and private weights were
+Hardhat-mock validated.  The study therefore establishes neither a practical
+genome-wide PRS engine nor clinical deployment feasibility.
 
 \subsection{HEPRS and bioETH-PRS: Complementary Systems}
 
@@ -1019,51 +1357,48 @@ bioETH-PRS and HEPRS \citep{knight2026heprs} are best understood as complementar
 rather than competing systems occupying different points in a design space defined
 by trust requirements and scalability.
 
-HEPRS is appropriate when: (1) three-party non-collusion can be organisationally
-enforced (e.g., hospital evaluator, academic modeler, clinical client); (2) SNP
-counts exceed 5,000; and (3) the evaluation environment provides sufficient RAM
-($>$65~GB for 1,000 individuals at 110,000 SNPs).  In this context, CKKS's native
-signed float arithmetic eliminates the need for quantisation.
+HEPRS demonstrates substantially larger encrypted PRS execution and real-FHE latency
+under a three-party non-collusion model.  CKKS natively represents approximate signed
+reals and avoids the fixed-point transformation used here.  It is the stronger evidence
+base when large variant counts and measured FHE performance are the primary questions.
 
-bioETH-PRS is appropriate when: (1) no trusted evaluator can be assumed; (2)
-model weights must remain private not just from the patient but from the evaluator
-as well; (3) computation must be verifiable without re-running it; or (4) the use
-case benefits from public, decentralised access without institutional infrastructure.
-These conditions commonly arise in genomic research consortia, cross-institutional
-data sharing, and commercial PRS services.
+bioETH-PRS instead studies whether the application-level evaluator can be replaced by
+an auditable policy/state-machine layer when the fhEVM and decryption infrastructure are
+acceptable alternative trust anchors.  It adds on-chain model immutability, requester
+authorization, fixed output policy, and a transaction audit trail, but exposes public
+metadata and incurs many host-chain transactions.  These are different trust,
+deployment, and performance trade-offs; neither system is broadly superior.
 
 \subsection{Limitations and Open Problems}
 
 \textbf{SNP count ceiling.}
-In our mock-coprocessor measurements (Section~\ref{sec:evaluation}), the HCU budget
-of 60--74 FHE operations per transaction limits each compute chunk to 20 SNPs.
-Scaling
-to genome-wide models ($>$50,000 SNPs) would require thousands of transactions,
-making on-chain costs prohibitive at any current gas pricing.  HEPRS remains the
-appropriate tool at that scale.  Future FHE coprocessor improvements may raise this
-ceiling.
+The finely measured Hardhat-mock HCU ceiling is 21 SNPs for both model visibilities;
+the live ceiling remains unknown.  A fresh public 5,000-variant mock workflow required
+413 host transactions.  The larger rows in Table~\ref{tab:scale_evidence} are unexecuted
+geometry only and show that the current architecture becomes transaction-bound well
+before genome-wide scale.  No current production-cost or feasibility claim is made.
 
 \textbf{SNP provenance.}
-The system verifies ACL access to a registered sample but cannot verify that
-submitted encrypted SNP values faithfully represent that sample's genotype.  A
-malicious requester could submit arbitrary ciphertexts.  Rate limiting and noisy classification mitigate information leakage per query but do not prevent fabricated
-queries.
+As specified in Section~\ref{sec:security}, ACL authorization does not bind uploaded
+ciphertexts to a registered sample.  This is an explicit threat-model boundary rather
+than a post hoc implementation limitation.
 
 \textbf{URI observability.}
 Sample data URIs are on-chain plaintext.  Any network node can observe storage
 slots directly, even if read access is ACL-gated at the application layer.  Storing
 only a cryptographic commitment to the URI would address this residual exposure.
 
-\textbf{DP bias.}
-Uniform noise on $[0, B)$ introduces an expected upward bias of $B/2$.  True
-zero-mean DP would require signed noise, which the current fhEVM does not natively
-support.  Threshold adjustment is a correctable workaround but adds complexity for
-deployers.
+\textbf{One-sided randomization and bias.}
+Uniform noise on $[0,B)$ introduces expected upward bias and an ambiguous band around
+every adjusted threshold.  The mechanism is a bounded randomized categorical release,
+not differential privacy; its one-sided support, absent sensitivity calibration, and
+absent composition analysis delimit the claim.
 
-\textbf{Gas cost at L1 pricing.}
-Commercial viability requires a purpose-built FHE rollup or application chain.
-At Ethereum L1 gas prices, any SNP count is economically indefensible for routine
-clinical use.
+\textbf{Production cost.}
+Only host gas, Sepolia test-ETH expenditure, and hypothetical ETH fee sensitivity are
+reported.  Production fee schedules, USD cost, memory use, and operational throughput
+were not measured, so affordability and clinical or commercial deployment practicality
+remain unknown.
 
 \subsection{Future Directions}
 
@@ -1072,7 +1407,15 @@ incorporating LDpred2-style shrinkage \citep{prive2020ldpred2}; (2) multi-party 
 generation enabling federated cohort analyses without a single decryption authority;
 (3) model versioning and deprecation mechanisms; (4) SNP handle re-use across
 multiple models from the same registered sample; and (5) token-based fee mechanisms
-to economically incentivise model quality.  The architecture's modularity---four
+to economically incentivise model quality.  Input authenticity requires a separate
+line of work: signed laboratory attestations and zero-knowledge proofs binding uploaded
+ciphertexts to a committed sample and preparation manifest.  A formal privacy mechanism
+would likewise require an adjacency definition, score sensitivity analysis, calibrated
+noise, and composition accounting.  The current public-model multiplication converts
+plaintext values to encrypted handles; a future scalar overload would reduce mock HCU
+use by 38.8\%, with an estimated ceiling near 34 and approximately 148 rather than 239
+compute transactions at 5,000 variants.  This optimization is not implemented or live
+validated.  The architecture's modularity---four
 independently upgradeable contracts---is designed to accommodate these extensions
 without disrupting existing deployments.
 
@@ -1096,16 +1439,17 @@ the first complete FHE pipeline for PRS with real clinical data.  HEPRS achieves
 $r > 0.999$ correlation with plaintext scores on a 110,000-SNP schizophrenia
 model and demonstrates practical feasibility on commodity hardware.  bioETH-PRS
 builds directly on the HEPRS computational framework and uses the same GWAS fixture
-datasets, extending it to a blockchain setting that removes the designated evaluator.
+datasets, studying a different trade-off in which an auditable contract orchestrator
+replaces the designated application-level evaluator while infrastructure trust remains.
 
 On the blockchain side, prior work on privacy-preserving smart contracts has
 focused on anonymous payments and related protocol work
 \citep{sasson2014zerocash,pertsev2019tornado} and
 zero-knowledge proof-based computation \citep{ben2018starkware}, which enable
-verifiable computation but not confidential computation, ZK-SNARKs prove knowledge
+verifiable computation but not confidential computation; ZK-SNARKs prove knowledge
 without concealing the program inputs.  FHE on the blockchain, typified by the fhEVM
-framework \citep{zamafhevm}, enables both confidentiality and verifiability in
-a single system.  To our knowledge, bioETH-PRS is the first application of fhEVM
+framework \citep{zamafhevm}, combines confidential operations with publicly auditable
+contract orchestration under explicit coprocessor assumptions.  To our knowledge, bioETH-PRS is the first application of fhEVM
 to clinical genomics.
 
 %% ============================================================
@@ -1114,29 +1458,29 @@ to clinical genomics.
 
 We presented bioETH-PRS, a protocol for confidential polygenic risk
 scoring using TFHE-based fully homomorphic encryption on a programmable blockchain.
-By replacing the centralised evaluator of HEPRS \citep{knight2026heprs} with
-immutable, consensus-enforced smart contracts, we remove the designated evaluator assumption that is the principal residual vulnerability of prior centralised FHE approaches to genomic computation, while still depending on the fhEVM stack, contract correctness, ACL/decryption infrastructure, and blockchain liveness.
+Publicly auditable smart contracts replace the designated application-level evaluator
+of HEPRS \citep{knight2026heprs}.  This is evaluator minimization, not removal of trust:
+the protocol remains conditional on genotype preparation, model validity, contract
+correctness, consensus, the fhEVM coprocessor, the relayer, and ACL/Gateway/KMS
+threshold decryption.
 
-Key contributions are: a four-layer contract architecture with independently
-auditable trust boundaries; a provably overflow-safe three-step fixed-point
-quantisation scheme achieving machine-epsilon reconstruction accuracy on real GWAS
-datasets; a streaming execution path reducing on-chain gas consumption by 37\%; and
-an on-chain noisy output oracle with cryptographically generated noise, mandatory
-activation, and anti-probing rate limiting.
+The revised evidence establishes one public 100-SNP Live-fhEVM workflow with an exact
+independent reference match.  Private weights and the wider 100--5,000-variant range are
+Hardhat-mock validated only.  Across 200 mock jobs, decoded scores match Equation~\ref{eq:prs}
+exactly because the fixture weights are losslessly quantised; this validates the
+pipeline on those inputs rather than proving universal arithmetic accuracy.  Streaming
+execution lowers mock host gas by 35.4--37.2\%, while measured adversarial results show
+that fixed thresholds and rate limits reduce resolution and raise query cost without
+providing differential privacy, Sybil resistance, or formal model confidentiality.
 
-Prototype evaluation on HEPRS fixtures confirms linear gas scaling and exact score
-correctness.  Under L2-equivalent gas pricing assumptions, projected costs range
-from USD\,\$1.72 to \$7.95 for 100--500 SNP analyses.  That range suggests the
-approach may be practical for curated clinical PRS panels in low-gas environments,
-while offering stronger evaluator minimisation than centralised alternatives.
-
-The system demonstrates that, for the 100--5,000 SNP range covering a subset of
-curated polygenic models, on-chain FHE computation without a trusted
-evaluator is technically feasible and may become economically practical on specialised
-low-gas networks.  Continued improvements in FHE
-coprocessor throughput and purpose-built chain gas pricing will expand this range
-toward genome-wide models and bring private, verifiable genomic computation within
-reach of routine clinical practice.
+bioETH-PRS should therefore be read as a bounded-size research prototype for curated
+additive PRS models and as an investigation of auditable fhEVM orchestration.  It is not
+a practical genome-wide PRS engine, and the study does not establish production
+affordability, clinical deployment feasibility, private-weight live execution, or a
+live HCU ceiling.  HEPRS demonstrates larger encrypted execution; bioETH-PRS contributes
+a smaller-scale contract policy and auditability design.  Future progress requires
+measured production infrastructure, ciphertext-to-sample binding, calibrated privacy
+mechanisms, and fewer host-chain transactions.
 
 %% ============================================================
 \section*{Biographical Note}

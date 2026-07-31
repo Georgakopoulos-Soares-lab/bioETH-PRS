@@ -1,11 +1,11 @@
-# `evidence/` — Stage A artifact store
+# `evidence/` — revision evidence store
 
 Every number, table, and figure in the revised manuscript must originate from a file in this
 directory. Nothing in the manuscript may cite a number that does not exist here first.
 
 See [`../bioETH-PRS_RTR_acceptance_plan.md`](../bioETH-PRS_RTR_acceptance_plan.md) for the
-35-action plan. Stage A (phases 1–8) fills this directory; Stage B (phases 9–13) writes the
-manuscript from it and touches nothing else.
+35-action plan. Stage A (phases 1–8) filled this directory; Stage B (phases 9–13) wrote the
+manuscript from it. Phase 14 finalized the response letter and consistency gates.
 
 ## Rules
 
@@ -39,9 +39,16 @@ verified on Sepolia, while private-weight execution is implemented and Hardhat-m
 but was not executed live. Larger rows remain mock observations or unexecuted projections as
 labelled in `phase8/scale_evidence.json`.
 
-## Stage A → Stage B gate
+Stage B is also complete. Final revision artifacts are:
 
-Do not edit `bioeth_prs (4).tex` until:
+- `../output/pdf/bioeth_prs (4).pdf` — line-numbered revised manuscript;
+- `../output/docx/bioETH-PRS_RTR_response.docx` — point-by-point response letter;
+- `manuscript_and_rtr_responses.md` — manuscript specification, response history, and stable
+  evidence identifiers.
+
+## Stage A → Stage B gate — satisfied
+
+The manuscript edit began only after:
 
 - all 16 Stage A actions are complete;
 - `npm run build` and the full test suite pass;

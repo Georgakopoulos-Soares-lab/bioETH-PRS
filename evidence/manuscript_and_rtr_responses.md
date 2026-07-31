@@ -1,5 +1,12 @@
 # Manuscript changes and RTR responses — accumulator
 
+> **Finalization update — 31 July 2026:** MS-01 through MS-17 were applied to the
+> line-numbered revision, and all Reviewer 1 and Reviewer 2 responses were finalized in
+> `output/docx/bioETH-PRS_RTR_response.docx`. The earlier `READY` and `Blocked on` annotations
+> below record the pre-edit sequencing state and are superseded by this update. Final manuscript
+> locations are given in the response document; the compiled revision is
+> `output/pdf/bioeth_prs (4).pdf`.
+
 The single destination for two things Stage A produces but must not yet apply:
 
 1. **Manuscript change specifications** — exact edits, derived from shipped code and saved
@@ -720,14 +727,15 @@ We thank the reviewer for this question, which we found to be the most demanding
 
 We thank the reviewer for asking for this directly, because the expectation was reasonable and the submitted manuscript did not meet it. On re-examining our own evaluation we found that the encrypted contract path had been executed for only the first individual at each fixture size; the remaining forty-nine were checked for unsigned-integer overflow on the client side and never compared against a decoded on-chain result. The agreement we claimed was therefore narrower than a reader would reasonably have inferred. We have now run all fifty individuals at each of the four fixture sizes, two hundred jobs in total, each a separate job against a single published model, and compared every decoded score against Equation 1 as computed by an independent reference implementation. All two hundred agree exactly: mean absolute error, root-mean-square error, and maximum absolute error are all zero, every individual is an exact match, and the Pearson correlation is exactly one, which we establish in exact decimal arithmetic rather than estimating in floating point. The full two hundred rows are provided as supplementary material, with a scatter plot and summary table in the main text. We want to be careful about what this does and does not establish, because the result is stronger than we can honestly take credit for. The error is zero by construction rather than by measurement: every weight in these fixtures is distributed with at most six decimal places, and the quantisation advisor's recommended scale is an integer multiple of one million, so the fixed-point encoding is lossless and no rounding occurs at all. Reporting zero error as evidence that our encoding is accurate would attribute to the scheme a property that belongs to the input data, and we have revised the Quantisation Accuracy discussion accordingly. What the comparison does validate is the pipeline end to end - genotype preprocessing, effect-allele alignment, quantisation, chunked homomorphic execution on chain, access-controlled decryption, and decoding - against an implementation derived independently from the published specification, and a nonzero value would have been a genuine finding rather than a rounding artifact. We also report, per the reviewer's mention of categories, that classification agreement is exact for all forty-eight individuals whose scores lie outside the noise band around a threshold, with two of fifty falling inside it. We deliberately do not report this as fifty out of fifty: the release mechanism adds one-sided noise, so an individual within the noise bound of a threshold may legitimately classify on either side, and the two in-band individuals agreeing on our run reflects a favourable draw rather than a guarantee. Finally, we note an explicit detail that affects how these counts should be read: each fixture carries a leading constant column with weight zero and dosage one, so the encoded vector length is the nominal variant count plus one - one hundred and one positions for the fixture we describe as one hundred SNPs.
 
-## Not yet drafted
+## Finalized responses added in Phase 14
 
-Do not pre-write these; each needs its Stage A evidence first.
-
-| Comment | Topic | Blocked on |
-|---|---|---|
-| R1 C1 | Mock-only evaluation | `R1.1-E1`, `R1.1-E2` (Phase 7) |
-| R2 C5 | Interpretability of the encoded pipeline | Phase 9 |
+- **R1 C1 — Mock-only evaluation:** final response reports the successful 100-SNP public
+  Sepolia workflow, preserves the failed first attempt, states the private-weight mock-only
+  boundary, and limits the 10.42% gas difference to one matched pair. See the response DOCX,
+  pp. 2–3.
+- **R2 C5 — Interpretability of the encoded pipeline:** final response starts with the
+  plaintext score 0.45, identifies the six reversible encoding steps and the new workflow
+  figure, and points to pp. 5–7 of the revised manuscript. See the response DOCX, p. 9.
 
 ---
 
@@ -777,6 +785,8 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-38 | `scripts/sepolia_validation.ts`, `scripts/deploy.ts` - live-ready receipt-producing harnesses | MS-05; R1 C1 |
 | EV-39 | `evidence/phase7/live_2026-07-31/public_success.json` and `onchain_verification.json` - 25 status-1 public workflow receipts, 20,710,271 gas, exact score 758,685, source/bytecode verification | MS-05; R1 C1, C6, C8 |
 | EV-40 | `evidence/phase7/live_2026-07-31/public_matched_mock.json` - same 25-transaction geometry, 18,755,864 mock gas; live +10.42% at one point only | MS-05, MS-08; R1 C1, C8 |
+| EV-41 | `output/pdf/bioeth_prs (4).pdf` - line-numbered 15-page revised manuscript with resolved bibliography | All manuscript actions |
+| EV-42 | `output/docx/bioETH-PRS_RTR_response.docx` - final point-by-point response with verbatim comments, action IDs, locations, and evidence | All reviewer comments |
 
 ## Commit trail
 
@@ -796,3 +806,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `ecf9369` | Phase 8: scale and transaction-use synthesis; fee scenarios isolated |
 | `af04db5` | Phase 7 follow-up: private live harness + verifiable transaction reports |
 | `4fa7c9f` | Phase 7: preserve failed public attempt and harden relayer retry/checkpoint behavior |
+| `e6e2c1d` | Stage A closure: verified public Sepolia workflow and private mock-only fallback |
