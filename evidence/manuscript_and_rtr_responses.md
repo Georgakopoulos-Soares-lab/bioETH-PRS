@@ -791,4 +791,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `7c1ffd2` | Phase 6: adversarial evaluation; 2,800-hour claim refuted and replaced |
 | `33014aa` | Phase 7: live runs blocked on credentials; HCU/optimisation/private-cost findings |
 | `ecf9369` | Phase 8: scale and transaction-use synthesis; fee scenarios isolated |
-| `<phase7-readiness>` | Phase 7 follow-up: private live harness + verifiable transaction reports |
+| `af04db5` | Phase 7 follow-up: private live harness + verifiable transaction reports |
