@@ -1,0 +1,145 @@
+{
+  "network": "sepolia",
+  "chainId": "11155111",
+  "evidenceClass": "Live fhEVM",
+  "status": "failed",
+  "passed": false,
+  "modelVisibility": "public",
+  "signer": "0xB5c0E173d018dbFCc8763997F51cDf88203dB9e3",
+  "fixtureSize": 100,
+  "uploadChunkSize": 32,
+  "computeChunkSize": 10,
+  "expectedEncodedScore": "758685",
+  "decodedEncodedScore": null,
+  "contracts": {
+    "GenomicRegistry": "0xCb4ac006Eda926fb7AF947239641D51881A53689",
+    "ModelMarketplace": "0xf8bF680D643df6288ECA5156158bF25B36Cf2642",
+    "PRSComputeEngine": "0x76E3bE29F5e799Bbb6E5De660E702C42E2B9bB70"
+  },
+  "partialState": {
+    "sampleId": "0",
+    "modelId": "0",
+    "jobId": "0",
+    "confirmedSnpChunks": 1,
+    "requiredSnpChunks": 4,
+    "scoreHandle": null
+  },
+  "failure": {
+    "stage": "generate input proof for job.appendSnpChunk.1",
+    "name": "RelayerV2FetchError",
+    "message": "Fetch POST failed.",
+    "url": "https://relayer.testnet.zama.org/v2/input-proof",
+    "operation": "INPUT_PROOF",
+    "sdkRetryCount": 0,
+    "sdkVersion": "@zama-fhe/relayer-sdk@0.4.1",
+    "cause": "SocketError: other side closed",
+    "classification": "external transport failure; no score result exists"
+  },
+  "transactionCount": 9,
+  "transactions": [
+    {
+      "label": "sample.register",
+      "hash": "0xeca7e463a6bc09c10ef4ec85bcb656cdf7de3c83f106f15c1e8b96743361f714",
+      "blockNumber": 11388917,
+      "gasUsed": "115303",
+      "effectiveGasPrice": "1100547849",
+      "status": 1
+    },
+    {
+      "label": "model.createShell",
+      "hash": "0x48e64d1f84762e9fcb40b05678f13163daddf4bf9ba0c0a8fb991b6f3d8ed151",
+      "blockNumber": 11388918,
+      "gasUsed": "252138",
+      "effectiveGasPrice": "1204022053",
+      "status": 1
+    },
+    {
+      "label": "model.appendPublicChunk.0",
+      "hash": "0x3fb31d2abc5cc9eed55471d2c69608348d52048cbd1e1719d56e6c9f53c38654",
+      "blockNumber": 11388919,
+      "gasUsed": "286195",
+      "effectiveGasPrice": "1118839862",
+      "status": 1
+    },
+    {
+      "label": "model.appendPublicChunk.1",
+      "hash": "0x539ee8a6d550fcd39e281dba811ab8b188a3b5bc011bda8bcb12685e55acc626",
+      "blockNumber": 11388920,
+      "gasUsed": "252031",
+      "effectiveGasPrice": "1071508396",
+      "status": 1
+    },
+    {
+      "label": "model.appendPublicChunk.2",
+      "hash": "0x7c3b54fe92ffa9146c647c03d47feea741cf983adcf9774c29f33930b03bee1c",
+      "blockNumber": 11388921,
+      "gasUsed": "252043",
+      "effectiveGasPrice": "1139835101",
+      "status": 1
+    },
+    {
+      "label": "model.appendPublicChunk.3",
+      "hash": "0xb53d692e995ac9c1183110aa0963df4224db7701033ad8efc3b46a9cc787096a",
+      "blockNumber": 11388922,
+      "gasUsed": "92567",
+      "effectiveGasPrice": "1121426360",
+      "status": 1
+    },
+    {
+      "label": "model.finalize",
+      "hash": "0xa2ce35ac647b3d417c599b0512f77cc57681801c7168c8f18be684b7152d56e7",
+      "blockNumber": 11388923,
+      "gasUsed": "34624",
+      "effectiveGasPrice": "1105518090",
+      "status": 1
+    },
+    {
+      "label": "job.create",
+      "hash": "0xbcd55d0c0ee25fcf66a602a4cc81e69edbaf43141351f424bc6ce59915ec5ab5",
+      "blockNumber": 11388924,
+      "gasUsed": "344502",
+      "effectiveGasPrice": "1305693743",
+      "status": 1
+    },
+    {
+      "label": "job.appendSnpChunk.0",
+      "hash": "0x841749f3c11384e5835a12a24cd4dc3245c36467d91c7d7a8a393e34d215b673",
+      "blockNumber": 11388927,
+      "gasUsed": "3381354",
+      "effectiveGasPrice": "1117321723",
+      "status": 1
+    }
+  ],
+  "gas": {
+    "sampleRegistration": "115303",
+    "publishModel": "1169598",
+    "createJob": "344502",
+    "confirmedSnpUploads": "3381354",
+    "confirmedTotal": "5010757"
+  },
+  "feePaid": {
+    "wei": "5677982261669478",
+    "eth": "0.005677982261669478"
+  },
+  "inputs": {
+    "manifestHash": "0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75",
+    "sourceModelHash": "0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5",
+    "genotypeManifestHash": "0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a"
+  },
+  "provenance": {
+    "repositoryCommit": "4f7966a487109acda1ca07c9b06ab68e89906058",
+    "repositoryDirty": true,
+    "dirtyFiles": [
+      "M fhevmTemp/@fhevm/solidity/config/ZamaConfig.sol"
+    ],
+    "runnerSource": {
+      "path": "scripts/sepolia_validation.ts",
+      "hash": "0x827b798517c50e84d5f7e88e8e45a76b76edc951b1efe4cdcc7b606350c329ea",
+      "bytes": 22816
+    },
+    "consoleLog": {
+      "path": "evidence/phase7/live_2026-07-31/public_attempt1_failed.txt",
+      "sha256": "0b3ce0a4d0d448d42a7aaf7c3e157475c1b4c2d76bc3716e533dbe4a9979c09a"
+    }
+  }
+}

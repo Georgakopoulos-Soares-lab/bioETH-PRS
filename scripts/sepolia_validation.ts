@@ -46,6 +46,7 @@ import {
   heprsGenotypePath,
   heprsReferencePath,
 } from "./utils/provenance";
+import { retryTransientRelayerOperation } from "./utils/relayer_retry";
 
 import {
   chunkBigIntVector,
@@ -96,7 +97,8 @@ export function parseModelVisibility(value: string | undefined): ModelVisibility
 async function waitAndRecord(
   label: string,
   tx: any,
-  records: RecordedTransaction[]
+  records: RecordedTransaction[],
+  onRecorded?: () => void
 ) {
   const receipt = await tx.wait();
   if (!receipt) throw new Error(`${label}: transaction receipt is missing`);
@@ -107,7 +109,13 @@ async function waitAndRecord(
     gasUsed: receipt.gasUsed.toString(),
     status: receipt.status,
   });
+  onRecorded?.();
   return receipt;
+}
+
+function errorSummary(error: unknown): { name: string; message: string } {
+  if (error instanceof Error) return { name: error.name, message: error.message };
+  return { name: "UnknownError", message: String(error) };
 }
 
 function loadDeployment(networkKey: string): SavedDeployment | undefined {
@@ -121,6 +129,10 @@ describe("Sepolia 100-SNP validation", function () {
   this.timeout(7_200_000);
 
   it("runs 100-SNP HEPRS fixture end-to-end and decrypts the score", async function () {
+    let writeCheckpoint:
+      | ((status: "in-progress" | "failed" | "complete", error?: unknown) => void)
+      | undefined;
+    try {
     const network = await ethers.provider.getNetwork();
     const chainId = network.chainId;
     const networkKey =
@@ -192,7 +204,6 @@ describe("Sepolia 100-SNP validation", function () {
     let registryAddress: string;
     let marketplaceAddress: string;
     let engineAddress: string;
-    let sampleId: bigint;
     let sampleRegistrationGas = 0n;
     const deploymentTransactions: RecordedTransaction[] = [];
     const workflowTransactions: RecordedTransaction[] = [];
@@ -208,20 +219,6 @@ describe("Sepolia 100-SNP validation", function () {
       console.log(`  Registry   : ${registryAddress}`);
       console.log(`  Marketplace: ${marketplaceAddress}`);
       console.log(`  Engine     : ${engineAddress}`);
-
-      const registry = await ethers.getContractAt("GenomicRegistry", registryAddress);
-      sampleId = await registry.registerSampleWithManifest.staticCall(
-        "ipfs://validation-100snp",
-        prov.genotypeManifestHash
-      );
-      const sampleTx = await registry.registerSampleWithManifest(
-        "ipfs://validation-100snp",
-        prov.genotypeManifestHash
-      );
-      sampleRegistrationGas = (
-        await waitAndRecord("sample.register", sampleTx, workflowTransactions)
-      ).gasUsed;
-      console.log(`  SampleId   : ${sampleId}\n`);
     } else {
       console.log("Deploying fresh contracts...");
       const t0 = Date.now();
@@ -256,27 +253,127 @@ describe("Sepolia 100-SNP validation", function () {
       );
       engineAddress = await engine_.getAddress();
 
-      sampleId = await registry.registerSampleWithManifest.staticCall(
-        "ipfs://validation-100snp",
-        prov.genotypeManifestHash
-      );
-      const sampleTx = await registry.registerSampleWithManifest(
-        "ipfs://validation-100snp",
-        prov.genotypeManifestHash
-      );
-      sampleRegistrationGas = (
-        await waitAndRecord("sample.register", sampleTx, workflowTransactions)
-      ).gasUsed;
-
       console.log(`  Deployed in ${Date.now() - t0}ms`);
       console.log(`  Registry   : ${registryAddress}`);
       console.log(`  Marketplace: ${marketplaceAddress}`);
       console.log(`  Engine     : ${engineAddress}`);
-      console.log(`  SampleId   : ${sampleId}\n`);
     }
 
+    const deploymentsDir = path.resolve(__dirname, "../deployments");
+    const validationOutDir = process.env.VALIDATION_OUT_DIR
+      ? path.resolve(process.env.VALIDATION_OUT_DIR)
+      : deploymentsDir;
+    fs.mkdirSync(validationOutDir, { recursive: true });
+    const reportFilename =
+      `${networkKey}-validation-100snp-${modelVisibility}.json`;
+    const checkpointPath = path.join(
+      validationOutDir,
+      `${networkKey}-validation-100snp-${modelVisibility}-checkpoint.json`
+    );
+
+    writeCheckpoint = (status, error) => {
+      const checkpoint = {
+        schema: "bioeth-prs/live-validation-checkpoint/1",
+        status,
+        network: networkKey,
+        chainId: chainId.toString(),
+        fheMode: isMock ? "mock" : "real",
+        evidenceClass: isMock ? "Hardhat mock" : "Live fhEVM",
+        startedAt,
+        updatedAt: new Date().toISOString(),
+        modelVisibility,
+        signer: signer.address,
+        runnerSource: hashedInput("validation_script", __filename),
+        transactionCount: workflowTransactions.length,
+        deploymentTransactionCount: deploymentTransactions.length,
+        transactions: workflowTransactions,
+        deploymentTransactions,
+        contracts: {
+          GenomicRegistry: registryAddress,
+          ModelMarketplace: marketplaceAddress,
+          PRSComputeEngine: engineAddress,
+        },
+        ...(error ? { error: errorSummary(error) } : {}),
+      };
+      fs.writeFileSync(checkpointPath, JSON.stringify(checkpoint, null, 2));
+    };
+    writeCheckpoint("in-progress");
+
+    const recordTransaction = (
+      label: string,
+      tx: any,
+      records: RecordedTransaction[] = workflowTransactions
+    ) => waitAndRecord(label, tx, records, () => writeCheckpoint?.("in-progress"));
+
+    const registry = await ethers.getContractAt("GenomicRegistry", registryAddress);
     const marketplace = await ethers.getContractAt("ModelMarketplace", marketplaceAddress);
     const engine = await ethers.getContractAt("PRSComputeEngine", engineAddress);
+
+    // Generate every relayer-backed input proof before the first workflow write.
+    // A transient relayer outage must not strand another paid half-run on-chain.
+    const weightChunks = chunkBigIntVector(quantized.weights, UPLOAD_CHUNK_SIZE);
+    const snpChunks = chunkBigIntVector(snps, UPLOAD_CHUNK_SIZE);
+    const totalUploadChunks = snpChunks.length;
+    const totalComputeChunks = Math.ceil(snps.length / computeChunkSize);
+    const encryptedWeightChunks: Array<{
+      handles: Uint8Array[];
+      inputProof: Uint8Array;
+    }> = [];
+    const encryptedSnpChunks: Array<{
+      handles: Uint8Array[];
+      inputProof: Uint8Array;
+    }> = [];
+    const inputProofStartedAtMs = Date.now();
+
+    const encryptChunk = async (
+      label: string,
+      contractAddress: string,
+      values: bigint[]
+    ) => retryTransientRelayerOperation(label, async () => {
+      const input = fhevm.createEncryptedInput(contractAddress, signer.address);
+      for (const value of values) input.add64(value);
+      return input.encrypt({ timeout: 300_000 });
+    }, {
+      onRetry: ({ attempt, maxAttempts, delayMs, errorName }) => {
+        console.warn(
+          `  ${label}: transient ${errorName}; retry ${attempt + 1}/${maxAttempts} ` +
+          `in ${delayMs}ms`
+        );
+      },
+    });
+
+    console.log("Preparing relayer input proofs before submitting workflow transactions...");
+    if (isPrivateModel) {
+      for (let i = 0; i < weightChunks.length; i++) {
+        encryptedWeightChunks.push(await encryptChunk(
+          `private model input proof ${i + 1}/${weightChunks.length}`,
+          marketplaceAddress,
+          weightChunks[i]
+        ));
+      }
+    }
+    for (let i = 0; i < snpChunks.length; i++) {
+      encryptedSnpChunks.push(await encryptChunk(
+        `SNP input proof ${i + 1}/${snpChunks.length}`,
+        engineAddress,
+        snpChunks[i]
+      ));
+    }
+    const inputProofPreparationMs = Date.now() - inputProofStartedAtMs;
+    console.log(`  Prepared ${encryptedWeightChunks.length + encryptedSnpChunks.length} proofs in ${inputProofPreparationMs}ms\n`);
+
+    const sampleId = await registry.registerSampleWithManifest.staticCall(
+      "ipfs://validation-100snp",
+      prov.genotypeManifestHash
+    );
+    const sampleTx = await registry.registerSampleWithManifest(
+      "ipfs://validation-100snp",
+      prov.genotypeManifestHash
+    );
+    sampleRegistrationGas = (
+      await recordTransaction("sample.register", sampleTx)
+    ).gasUsed;
+    console.log(`  SampleId   : ${sampleId}\n`);
 
     // ── 3. Publish model ─────────────────────────────────────────────────────
     console.log(`Publishing 100-SNP ${modelVisibility} model...`);
@@ -306,36 +403,25 @@ describe("Sepolia 100-SNP validation", function () {
       quantized.scoreOffset
     );
     publishGas += (
-      await waitAndRecord("model.createShell", tx, workflowTransactions)
+      await recordTransaction("model.createShell", tx)
     ).gasUsed;
 
-    const weightChunks = chunkBigIntVector(quantized.weights, UPLOAD_CHUNK_SIZE);
     for (let i = 0; i < weightChunks.length; i++) {
       const chunk = weightChunks[i];
       if (isPrivateModel) {
-        const input = fhevm.createEncryptedInput(marketplaceAddress, signer.address);
-        for (const weight of chunk) input.add64(weight);
-        const encrypted = await input.encrypt();
+        const encrypted = encryptedWeightChunks[i];
         tx = await marketplace.appendEncryptedModelChunk(
           modelId,
           encrypted.handles,
           encrypted.inputProof
         );
         publishGas += (
-          await waitAndRecord(
-            `model.appendEncryptedChunk.${i}`,
-            tx,
-            workflowTransactions
-          )
+          await recordTransaction(`model.appendEncryptedChunk.${i}`, tx)
         ).gasUsed;
       } else {
         tx = await marketplace.appendPublicModelChunk(modelId, chunk);
         publishGas += (
-          await waitAndRecord(
-            `model.appendPublicChunk.${i}`,
-            tx,
-            workflowTransactions
-          )
+          await recordTransaction(`model.appendPublicChunk.${i}`, tx)
         ).gasUsed;
       }
     }
@@ -343,25 +429,17 @@ describe("Sepolia 100-SNP validation", function () {
     if (isPrivateModel) {
       tx = await marketplace.setPrivateModelReader(modelId, engineAddress, true);
       publishGas += (
-        await waitAndRecord(
-          "model.authorizeEngine",
-          tx,
-          workflowTransactions
-        )
+        await recordTransaction("model.authorizeEngine", tx)
       ).gasUsed;
       tx = await marketplace.setPrivateModelReader(modelId, signer.address, true);
       publishGas += (
-        await waitAndRecord(
-          "model.authorizeRequester",
-          tx,
-          workflowTransactions
-        )
+        await recordTransaction("model.authorizeRequester", tx)
       ).gasUsed;
     }
 
     tx = await marketplace.finalizeModel(modelId);
     publishGas += (
-      await waitAndRecord("model.finalize", tx, workflowTransactions)
+      await recordTransaction("model.finalize", tx)
     ).gasUsed;
     console.log(`  Done in ${Date.now() - t_pub}ms  gas=${publishGas}\n`);
 
@@ -371,33 +449,27 @@ describe("Sepolia 100-SNP validation", function () {
     const t_job = Date.now();
     tx = await engine.createPRSJob(modelId, sampleId);
     const createJobGas = (
-      await waitAndRecord("job.create", tx, workflowTransactions)
+      await recordTransaction("job.create", tx)
     ).gasUsed;
     const jobId = await engine.jobCount() - 1n;
     console.log(`  Job ${jobId} in ${Date.now() - t_job}ms  gas=${createJobGas}\n`);
 
     // ── 5. Upload SNP chunks ─────────────────────────────────────────────────
-    const totalUploadChunks = Math.ceil(snps.length / UPLOAD_CHUNK_SIZE);
-    const totalComputeChunks = Math.ceil(snps.length / computeChunkSize);
     console.log(`Uploading ${totalUploadChunks} SNP chunks (${UPLOAD_CHUNK_SIZE} SNPs each)...`);
     const t_upload = Date.now();
     let uploadGas = 0n;
 
-    const snpChunks = chunkBigIntVector(snps, UPLOAD_CHUNK_SIZE);
     for (let i = 0; i < snpChunks.length; i++) {
-      const chunk = snpChunks[i];
-      const input = fhevm.createEncryptedInput(engineAddress, signer.address);
-      for (const v of chunk) input.add64(v);
-      const { handles, inputProof } = await input.encrypt();
+      const { handles, inputProof } = encryptedSnpChunks[i];
       tx = await engine.appendSnpChunk(jobId, handles, inputProof);
       uploadGas += (
-        await waitAndRecord(`job.appendSnpChunk.${i}`, tx, workflowTransactions)
+        await recordTransaction(`job.appendSnpChunk.${i}`, tx)
       ).gasUsed;
     }
 
     tx = await engine.finalizeSnpUpload(jobId);
     const finalizeUploadGas = (
-      await waitAndRecord("job.finalizeSnpUpload", tx, workflowTransactions)
+      await recordTransaction("job.finalizeSnpUpload", tx)
     ).gasUsed;
     console.log(`  Upload ${Date.now() - t_upload}ms  gas=${uploadGas}`);
     console.log(`  finalizeSnpUpload gas=${finalizeUploadGas}\n`);
@@ -411,11 +483,7 @@ describe("Sepolia 100-SNP validation", function () {
     for (let i = 0; i < totalComputeChunks; i++) {
       const t_chunk = Date.now();
       tx = await engine.computeChunk(jobId);
-      const receipt = await waitAndRecord(
-        `job.computeChunk.${i}`,
-        tx,
-        workflowTransactions
-      );
+      const receipt = await recordTransaction(`job.computeChunk.${i}`, tx);
       const elapsed = Date.now() - t_chunk;
       computeGas += receipt!.gasUsed;
       chunkTimesMs.push(elapsed);
@@ -428,11 +496,7 @@ describe("Sepolia 100-SNP validation", function () {
     console.log("Finalizing...");
     const t_finalize = Date.now();
     tx = await engine.finalize(jobId);
-    const finalReceipt = await waitAndRecord(
-      "job.finalize",
-      tx,
-      workflowTransactions
-    );
+    const finalReceipt = await recordTransaction("job.finalize", tx);
     const finalizeGas = finalReceipt!.gasUsed;
     const resultReadyAtMs = Date.now();
 
@@ -456,11 +520,22 @@ describe("Sepolia 100-SNP validation", function () {
     } else {
       // Sepolia: full EIP-712 signing → relayer → KMS re-encryption flow.
       // Requires that FHE.allow(scoreHandle, signer.address) was called in finalize().
-      actualScore = await fhevm.userDecryptEuint(
-        FhevmType.euint64,
-        scoreHandle,
-        engineAddress,
-        signer
+      actualScore = await retryTransientRelayerOperation(
+        "score user decryption",
+        () => fhevm.userDecryptEuint(
+          FhevmType.euint64,
+          scoreHandle,
+          engineAddress,
+          signer
+        ),
+        {
+          onRetry: ({ attempt, maxAttempts, delayMs, errorName }) => {
+            console.warn(
+              `  score user decryption: transient ${errorName}; retry ` +
+              `${attempt + 1}/${maxAttempts} in ${delayMs}ms`
+            );
+          },
+        }
       );
     }
 
@@ -515,6 +590,7 @@ describe("Sepolia 100-SNP validation", function () {
         chunkGasPerCall
       },
       timing: {
+        inputProofPreparationMs,
         submissionToResultMs: resultReadyAtMs - jobSubmittedAtMs,
         endToEndValidationMs: Date.now() - validationStartedAtMs,
         chunkTimesMs,
@@ -545,19 +621,12 @@ describe("Sepolia 100-SNP validation", function () {
       })
     };
 
-    const deploymentsDir = path.resolve(__dirname, "../deployments");
-    const validationOutDir = process.env.VALIDATION_OUT_DIR
-      ? path.resolve(process.env.VALIDATION_OUT_DIR)
-      : deploymentsDir;
-    fs.mkdirSync(validationOutDir, { recursive: true });
-    const outPath = path.join(
-      validationOutDir,
-      `${networkKey}-validation-100snp-${modelVisibility}.json`
-    );
+    const outPath = path.join(validationOutDir, reportFilename);
     fs.writeFileSync(
       outPath,
       JSON.stringify(report, (_k, v) => (typeof v === "bigint" ? v.toString() : v), 2)
     );
+    writeCheckpoint("complete");
 
     console.log(`Report saved to ${outPath}`);
     console.log("\n=== Summary ===");
@@ -570,5 +639,9 @@ describe("Sepolia 100-SNP validation", function () {
     console.log(`Avg chunk  : ${avgChunkMs.toFixed(1)}ms`);
     console.log(`Decrypt    : ${decryptMs}ms`);
     console.log(`Status     : PASS`);
+    } catch (error) {
+      writeCheckpoint?.("failed", error);
+      throw error;
+    }
   });
 });

@@ -1,0 +1,105 @@
+{
+  "network": "sepolia",
+  "chainId": "11155111",
+  "deployedAt": "2026-07-31T10:35:12.000Z",
+  "deployer": "0xB5c0E173d018dbFCc8763997F51cDf88203dB9e3",
+  "evidenceClass": "Live fhEVM",
+  "transactionCount": 4,
+  "totalDeploymentGas": "5892559",
+  "transactions": [
+    {
+      "contract": "GenomicRegistry",
+      "hash": "0xa17055ed7cd7e9b6600ce36810bc2dfae8fe44b200fc62b9b5662aa454dfeb56",
+      "blockNumber": 11388858,
+      "gasUsed": "660271",
+      "status": 1
+    },
+    {
+      "contract": "ModelMarketplace",
+      "hash": "0x67137435098c64d3620046264b4f8f912339126b35b0449b7def0d5fe998db07",
+      "blockNumber": 11388859,
+      "gasUsed": "1891768",
+      "status": 1
+    },
+    {
+      "contract": "PRSComputeEngine",
+      "hash": "0x3f3b2b8b41dd51f826f49facf72c9e44ef520c5b3fad1b588ba365b8910d3bf1",
+      "blockNumber": 11388860,
+      "gasUsed": "2430691",
+      "status": 1
+    },
+    {
+      "contract": "ResultOracle",
+      "hash": "0x75eaacf4221db3bfd8edafc3c836ccf9f43db06a78861245c9f9f13d732911a7",
+      "blockNumber": 11388861,
+      "gasUsed": "909829",
+      "status": 1
+    }
+  ],
+  "contracts": {
+    "GenomicRegistry": "0xCb4ac006Eda926fb7AF947239641D51881A53689",
+    "ModelMarketplace": "0xf8bF680D643df6288ECA5156158bF25B36Cf2642",
+    "PRSComputeEngine": "0x76E3bE29F5e799Bbb6E5De660E702C42E2B9bB70",
+    "ResultOracle": "0x50B708609D894F63309daFD4fd596F5547EDe5B3"
+  },
+  "provenance": {
+    "schema": "bioeth-prs/provenance/1",
+    "repository": {
+      "commit": "4f7966a487109acda1ca07c9b06ab68e89906058",
+      "shortCommit": "4f7966a",
+      "branch": "rtr-revision",
+      "dirty": true,
+      "dirtyFiles": [
+        "M fhevmTemp/@fhevm/solidity/config/ZamaConfig.sol"
+      ]
+    },
+    "runtime": {
+      "node": "v22.23.1",
+      "platform": "darwin"
+    },
+    "network": {
+      "name": "sepolia",
+      "chainId": "11155111"
+    },
+    "source": {
+      "role": "deployment_script",
+      "path": "scripts/deploy.ts",
+      "hash": "0xf81528b5680d9ae5cf0efc41a73ecdeded8b9171029d37b049a591ba18d2fbd4",
+      "bytes": 6405
+    },
+    "contracts": [
+      {
+        "name": "GenomicRegistry",
+        "address": "0xCb4ac006Eda926fb7AF947239641D51881A53689",
+        "bytecodeHash": "0x1b2e38bee44ca3a96c813fc05e41fd0b59e8e08b09320503cdfade32aa1400da",
+        "bytecodeBytes": 2808
+      },
+      {
+        "name": "ModelMarketplace",
+        "address": "0xf8bF680D643df6288ECA5156158bF25B36Cf2642",
+        "bytecodeHash": "0xd9eb7e9e78e3ab7c87df4b748acd36eeb7ab19d199bef96e57dfcf844a3abbbb",
+        "bytecodeBytes": 8151
+      },
+      {
+        "name": "PRSComputeEngine",
+        "address": "0x76E3bE29F5e799Bbb6E5De660E702C42E2B9bB70",
+        "bytecodeHash": "0x60707904f55753a54dd1bf4c587be5ece5fb4bf7c8c4d039e3ed235034e9c0e6",
+        "bytecodeBytes": 10426
+      },
+      {
+        "name": "ResultOracle",
+        "address": "0x50B708609D894F63309daFD4fd596F5547EDe5B3",
+        "bytecodeHash": "0x9c562affce2db7ed2fab05fb7abb314e49d13fe25fd0e1e0ef42faffe4b54e40",
+        "bytecodeBytes": 3594
+      }
+    ]
+  },
+  "reportRecovery": {
+    "reason": "The deployment process was interrupted after all four transactions were submitted and mined, before its final local JSON write.",
+    "method": "Recovered from the four immutable Sepolia receipts and deployed runtime bytecode; deployedAt is the final deployment block timestamp.",
+    "receiptRange": {
+      "firstBlock": 11388858,
+      "lastBlock": 11388861
+    }
+  }
+}

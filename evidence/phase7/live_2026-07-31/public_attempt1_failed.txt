@@ -1,0 +1,78 @@
+
+> bioeth-prs@0.1.0 validate:sepolia
+> hardhat test scripts/sepolia_validation.ts --network sepolia
+
+
+
+  Sepolia 100-SNP validation
+
+Network  : sepolia (chainId=11155111)
+FHE mode : REAL TFHE ciphertext
+Model    : public weights
+Fixture  : 100 SNPs, uploadChunkSize=32, computeChunkSize=10
+
+manifestHash    : 0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75
+sourceModelHash : 0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5
+genotypeHash    : 0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a
+
+Scale     : 3000000
+Expected  : 758685
+
+Using deployed contracts from deployments/sepolia.json
+  Registry   : 0xCb4ac006Eda926fb7AF947239641D51881A53689
+  Marketplace: 0xf8bF680D643df6288ECA5156158bF25B36Cf2642
+  Engine     : 0x76E3bE29F5e799Bbb6E5De660E702C42E2B9bB70
+  SampleId   : 0
+
+Publishing 100-SNP public model...
+  Done in 71569ms  gas=1169598
+
+Creating PRS job...
+  Job 0 in 14668ms  gas=344502
+
+Uploading 4 SNP chunks (32 SNPs each)...
+    1) runs 100-SNP HEPRS fixture end-to-end and decrypts the score
+
+
+  0 passing (3m)
+  1 failing
+
+  1) Sepolia 100-SNP validation
+       runs 100-SNP HEPRS fixture end-to-end and decrypts the score:
+     RelayerV2FetchError: Fetch POST failed.
+
+url: https://relayer.testnet.zama.org/v2/input-proof
+method: POST
+operation: INPUT_PROOF
+retryCount: 0
+
+Details: fetch failed
+Version: @zama-fhe/relayer-sdk@0.4.1
+      at RelayerV2AsyncRequest._throwFetchError (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:7953:15)
+      at RelayerV2AsyncRequest._fetchPost (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:7570:22)
+      at async RelayerV2AsyncRequest._runPostLoop (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:6988:30)
+      at async RelayerV2AsyncRequest.run (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:6877:26)
+      at async RelayerV2Provider.fetchPostInputProof (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:8008:24)
+      at async RelayerV2Provider.fetchPostInputProofWithZKProof (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:4935:24)
+      at async requestCiphertextWithZKProofVerification (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:3294:27)
+      at async Object.encrypt (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:3395:24)
+      at async Context.<anonymous> (scripts/sepolia_validation.ts:391:39)
+     Caused by: TypeError: fetch failed
+      at node:internal/deps/undici/undici:15141:13
+      at async RelayerV2AsyncRequest._fetchPost (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:7558:24)
+      at async RelayerV2AsyncRequest._runPostLoop (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:6988:30)
+      at async RelayerV2AsyncRequest.run (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:6877:26)
+      at async RelayerV2Provider.fetchPostInputProof (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:8008:24)
+      at async RelayerV2Provider.fetchPostInputProofWithZKProof (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:4935:24)
+      at async requestCiphertextWithZKProofVerification (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:3294:27)
+      at async Object.encrypt (node_modules/@zama-fhe/relayer-sdk/lib/node.cjs:3395:24)
+      at async Context.<anonymous> (scripts/sepolia_validation.ts:391:39)
+     Caused by: SocketError: other side closed
+      at TLSSocket.onSocketEnd (node_modules/undici/lib/client.js:1118:22)
+      at TLSSocket.emit (node:events:531:35)
+      at TLSSocket.emit (node:domain:489:12)
+      at endReadableNT (node:internal/streams/readable:1698:12)
+      at processTicksAndRejections (node:internal/process/task_queues:89:21)
+
+
+

@@ -43,6 +43,21 @@ describe("Live validation report readiness (R1.1-E1 / R1.1-E2)", function () {
     );
   });
 
+  it("prepares relayer proofs before workflow writes and retries transport failures", function () {
+    expect(validationSource).to.include(
+      "Preparing relayer input proofs before submitting workflow transactions"
+    );
+    expect(validationSource).to.include("retryTransientRelayerOperation");
+    expect(validationSource.indexOf("Preparing relayer input proofs"))
+      .to.be.lessThan(validationSource.indexOf("sample.register"));
+  });
+
+  it("checkpoints each confirmed receipt so a late failure keeps its transaction trail", function () {
+    expect(validationSource).to.include("bioeth-prs/live-validation-checkpoint/1");
+    expect(validationSource).to.include("onRecorded?.()");
+    expect(validationSource).to.include('writeCheckpoint?.("failed", error)');
+  });
+
   it("deployment reports transaction receipts and exact source provenance", function () {
     for (const field of [
       "transactionCount",
