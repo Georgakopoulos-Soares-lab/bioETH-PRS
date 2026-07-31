@@ -437,22 +437,59 @@ validity, calibration, or ancestry portability.
 
 ## MS-08 · Phase 12 · Cost-scope correction carried from `CD-001`
 
-**Status: `BLOCKED`** on `R1.8-E1` (Phase 8) only. `R2.4-E1` landed in Phase 4, which also
-quantified the cost of recording provenance — see `CD-012`.
+**Status: `READY`** — Phase 8 completed `R1.8-E1`. Primary sources:
+`evidence/phase8/measured_transaction_use.json` and
+`evidence/phase8/fee_sensitivity.json`.
 
-Two further inputs now exist for Phase 8. Provenance adds a flat **+40,568 gas per model**
-(`CD-012`). And **private-weight jobs cost 2.01x public ones** — 23.51 M vs 11.69 M gas, 17 vs 15
-transactions for a 100-SNP job (`CD-023`). The second matters for framing: the cost discussion is
-built on public models while the anti-probing discussion is explicitly about private ones, and
-Phase 6 established that extraction is only a threat for private models. The paper must not quote
-the public figure while discussing the private threat model.
+Rename `Deployment Cost Projections` to `Measured transaction use and fee sensitivity` and
+split it into two visibly different evidence classes:
 
-`CD-001` found that `scripts/gas_profile.ts` and `scripts/probe_hcu_ceiling.ts` write
-`ethers.ZeroHash` manifests, and both feed numbers **already printed in the submitted
-manuscript** — the gas-scaling curve and the HCU ceiling. Any sentence citing those figures is
-therefore currently unreproducible as published. When `R1.8-M1` renames `Deployment Cost
-Projections` to `Measured transaction use and fee sensitivity`, the regenerated numbers must come
-from post-`R2.4-E1` runs with real hashes, not from the submitted values.
+1. **Measured transaction use — Hardhat mock.** Report four-contract deployment
+   (4 transactions, 5,892,613 mock host gas); public 100-variant execution (15 transactions,
+   11.690 M); and private 100-variant execution (17 transactions, 23.508 M). State that the
+   private configuration costs 2.01x the public one and that this is the configuration relevant
+   to the model-extraction discussion (`CD-023`).
+2. **Fee sensitivity — Analytic projection / unexecuted.** If retained, show ETH arithmetic
+   from the measured gas under explicitly hypothetical gas prices. Do not give USD, call any
+   scenario a deployment price, or infer production affordability, clinical feasibility, or
+   commercial viability.
+
+Model publication must use the post-provenance figures: recording real hashes adds a flat
+**40,568 gas per model** (`CD-012`). A randomized-release model also adds one
+`setReleasePolicy` transaction measured at **77,314 mock gas**. The raw-score and randomized
+category result paths are alternatives: `finalize` measured 169,898 mock gas in Phase 7;
+`finalizeAndClassify` measured 432,230 in Phase 2. Never add both to one job.
+
+Decryption uses no Ethereum transaction in the measured workflow. The mock debugger path and
+the live Gateway/KMS path are off-chain from the host contract's perspective, but the live
+decryption latency is unmeasured and must remain unavailable.
+
+Reporting precision is mandatory. `CD-025` found that the hand-written Phase 7 totals were
+12 gas above their internally consistent JSON component sums. Preserve raw observations in
+machine-readable evidence, but render encrypted-calldata and total-gas values at sensible
+precision. The manuscript-facing values are **11.690 M** and **23.508 M**, not individual-unit
+claims.
+
+## MS-17 · `R1.6-M1`, `R1.6-M2`, `R2.1-M1` · Phase 12 · Bounded scale
+
+**Status: `READY`** — Phase 8 completed `R1.6-E1`. Primary source:
+`evidence/phase8/scale_evidence.json`.
+
+Define the intended use as a **bounded-size research prototype for curated additive PRS
+models**. The executed public Hardhat-mock rows are 100 / 500 / 1,000 / 5,000 nominal
+variants, requiring 15 / 47 / 88 / 413 host-contract transactions for a fresh model, sample,
+and streaming job. A private 100-variant run requires 17. No live fhEVM row exists.
+
+Larger 10,000 / 100,000 / 1,000,000 rows are **Analytic projection / unexecuted** transaction
+geometry only. They carry no latency, gas, HCU, or fee evidence and cannot be described as
+tested sizes. Replace broad "linear scalability" with: *linear host-contract transaction
+growth over the measured 100–5,000-variant Hardhat-mock range.*
+
+Put the boundary in the Abstract, Key Points, the Introduction's last paragraph, and the
+opening of Empirical Evaluation, not only in retrospective limitations. State directly:
+*The current method applies only to a narrow class of bounded-size PRS models; it is not a
+practical genome-wide PRS engine, and this study does not establish clinical deployment
+feasibility.*
 
 ---
 
@@ -513,6 +550,112 @@ We thank the reviewer for this comment and we accept the reclassification. The r
 measurements it did not have; it has been replaced by this one rather than kept alongside it.*
 
 We thank the reviewer for this comment, which proved the most consequential of the review, and we should begin by conceding more than was asked. The reviewer suspected our extraction estimate was heuristic. On re-deriving it we found it was not merely heuristic but incorrect in three independent ways. The calculation divides two times ten to the fourth, which is a count of candidate weight values, by a rate of bits per query; dividing a count of values by a bit rate is a dimensional error, and the information actually required is the logarithm of that count, about fourteen bits rather than twenty thousand of them, which alone inflates the query estimate by roughly three orders of magnitude. Separately, the stated intermediate result and the stated conclusion are mutually inconsistent: four thousand two hundred and twenty windows of one thousand blocks at twelve seconds per block is about fourteen thousand hours, not the two thousand eight hundred we reported, and the figure we reported is instead consistent with a window of roughly two hundred blocks, contradicting the window size given in the same sentence. Finally, and most importantly, we have now measured the attack rather than estimating it, and the true cost is about two hundred and fifty times lower than we claimed. We have deleted the calculation rather than attempting to repair it. In its place we report an adversarial evaluation in which every query is a real job against real contracts, and we deliberately separate the two factors whose conflation produced the original error: the information cost of extraction, measured in queries with rate limiting disabled, and the permitted query rate, measured separately. Against the design as submitted, an adaptive attacker recovers every weight of a twenty-weight private model to within the noise bound in two hundred queries, ten per weight, which closely matches the corrected information-theoretic bound of nine and is the main reason to trust the measurement over the estimate. At our own recommended settings of three queries per thousand-block window and twelve-second blocks, that is eleven hours per weight and two hundred and twenty-two hours for the model, against the two thousand eight hundred hours per weight we claimed. We address each of the five capabilities the reviewer names. On adaptive querying, adaptivity is decisive but only where the attacker controls the decision boundary: with caller-chosen thresholds an adaptive attacker recovers everything, while a non-adaptive one recovers nothing to within the noise bound at the same budget. On threshold manipulation, this was not a weakness in our analysis but a flaw in our protocol, and we have removed the capability rather than bounding it; the classification entry point no longer accepts thresholds at all, and our tests assert their absence at the level of the compiled interface. Measured against the frozen submitted contracts, that change takes recovery from all twenty weights to none within the noise bound. On multiple wallets, the same-sample bypass is closed: a second and third wallet obtained no additional queries against a registered sample whose window was exhausted. On cross-sample probing, distinct wallets holding distinct samples do each receive an independent quota, which we state plainly as the remaining Sybil boundary, noting that for a private model each additional wallet must also be authorised by the model owner, so expansion is gated by an explicit allowlist rather than by rate limits alone. On correlated SNP structure, recovery does collapse when probes are confined to linkage blocks, but we decline to present that as a defence: nothing compels an attacker to submit correlated genotypes, because the contracts do not validate inputs, which is the same trust boundary raised in the reviewer's fifth comment. We therefore cross-reference the two responses, since the unverifiable-input gap is precisely what makes the strongest probing attack expressible, and the honest measure of attacker capability is the arm in which probes are chosen freely. Two further findings emerged that we report against our own interest. First, the hardening reduces resolution rather than conferring confidentiality: no weight is recovered to within the noise bound, but the correlation between the true and estimated weight vectors remains about zero point nine four, so the relative shape of the model still leaks even though its absolute level does not, and we now claim only the former. Second, our recommended noise bound is too small to matter much: at a scale of one million, a bound of one hundred and twenty-eight is one and a third percent of the largest quantised weight, about seven bits of blur on a thirteen-bit weight, so it conceals roughly the lower half of each weight and nothing above it. Choosing that bound properly requires reference to the quantised weight distribution, which our advisor already computes, and we have moved calibrated selection of it to Future Directions. Our revised claim is accordingly bounded: the controls reduce output resolution and increase query cost under the attacker models we evaluated, and they neither prevent Sybil attacks nor provide a formal model-confidentiality guarantee. We also state that these figures are lower bounds on attacker effort under the strategies we implemented, and that the absence of a better attack in our evaluation is not evidence that none exists.
+
+## Reviewer 1, Comment 6 — bounded scale
+
+> The prototype is evaluated on 100-5,000 SNP fixtures, whereas many PRS models contain tens
+> of thousands to millions of variants. The authors should more clearly define the intended
+> use case, such as curated small-panel PRS models, and avoid implying general applicability
+> to large-scale clinical PRS deployment.
+
+**Substantiated now:** `R1.6-E1` — `evidence/phase8/scale_evidence.json`.
+**Blocked on:** MS-17 (Phase 12) for manuscript edits and final page/line references.
+
+We agree with the reviewer and have narrowed both the intended use and the scalability claim.
+The revised manuscript describes bioETH-PRS as a bounded-size research prototype for curated
+additive PRS models, not as a general large-scale clinical PRS engine. To make the boundary
+auditable rather than rhetorical, we now report one evidence-class table. The only executed
+scale rows are Hardhat-mock runs at 100, 500, 1,000, and 5,000 nominal variants. A fresh public
+model, one registered sample, and one completed streaming job required respectively 15, 47,
+88, and 413 host-contract transactions. A private 100-variant run required 17 because private
+model publication adds two reader-authorisation transactions. No live fhEVM scale row exists:
+the live runs remain blocked on a funded wallet, and we do not infer a live result from the
+mock. We include transaction-geometry calculations at 10,000, 100,000, and 1,000,000 variants
+only to show why the architecture becomes transaction-bound; every such row is labelled
+Analytic projection / unexecuted and carries no latency, gas, HCU, or fee claim. We have
+therefore replaced broad “linear scalability” language with the narrower result supported by
+the data: linear host-contract transaction growth over the measured 100–5,000-variant
+Hardhat-mock range. The limitation is now visible in the Abstract, Key Points, Introduction,
+and opening of Empirical Evaluation, and the revised text states directly that genome-wide
+execution and clinical deployment feasibility were not demonstrated.
+
+## Reviewer 1, Comment 7 — HEPRS comparison by dimension
+
+> bioETH-PRS improves the trust model by removing the designated evaluator, but HEPRS supports
+> much larger SNP counts and has different computational advantages. The manuscript should
+> separate claims about privacy architecture, scalability, latency, memory use, and deployment
+> assumptions rather than presenting bioETH-PRS as broadly superior.
+
+**Substantiated now:** Phases 5, 7, and 8 — especially
+`evidence/phase8/scale_evidence.json` and `evidence/phase7/README.md`.
+**Blocked on:** `R1.7-M1`, `R1.7-M2` (Phase 12) for the rebuilt comparison and page/line refs.
+
+We agree that our original comparison collapsed unlike properties into a claim of broad
+superiority. We have replaced it with a dimension-by-dimension table covering privacy
+architecture, designated evaluator, retained trust assumptions, arithmetic scheme,
+demonstrated encrypted variant count, latency evidence type, memory evidence, deployment
+requirements, output policy, and metadata exposure. Each cell identifies whether its support
+is measured, inherited, Hardhat mock, or unavailable. The scale row now says that bioETH-PRS
+executed at most 5,000 nominal variants in a Hardhat mock and has no live-network maximum,
+while HEPRS demonstrates substantially larger encrypted PRS execution. The latency row no
+longer places bioETH-PRS in-process mock timing beside HEPRS real-FHE timing as though the two
+were comparable, and the memory row states that bioETH-PRS memory was not measured. We also
+replace evaluator-removal language with evaluator minimisation and list the fhEVM coprocessor,
+contracts, consensus, and ACL/Gateway/KMS infrastructure as retained trust anchors. Our
+revised conclusion is a trade-off rather than a ranking: HEPRS demonstrates larger encrypted
+PRS execution, while bioETH-PRS studies publicly auditable contract orchestration and
+model/output policy at smaller scale; the systems optimise different trust, deployment, and
+performance properties.
+
+## Reviewer 1, Comment 8 — measured transaction use, not deployment price
+
+> The cost projections depend on L2-equivalent or application-chain gas pricing and are not
+> based on measured production deployment. Claims that the system may be clinically or
+> commercially practical should be toned down unless supported by real deployment data.
+
+**Substantiated now:** `R1.8-E1` —
+`evidence/phase8/measured_transaction_use.json` and `fee_sensitivity.json`.
+**Blocked on:** MS-08 (Phase 12) for manuscript edits and final page/line references.
+
+We agree. No production deployment was measured, and the revised manuscript makes no claim of
+clinical or commercial affordability. We replaced “Deployment Cost Projections” with
+“Measured transaction use and fee sensitivity” and separated observations from arithmetic.
+The observed table is labelled Hardhat mock: deployment of the four contracts used four
+transactions and 5,892,613 host gas; a public 100-variant workflow used 15 transactions and
+11.690 million host gas; and the corresponding private-weight workflow used 17 transactions
+and 23.508 million host gas. The 2.01-fold private/public difference matters because the
+anti-probing analysis concerns private models, whereas the submitted cost discussion priced
+the public configuration. We also report the result path rather than burying it in a total:
+raw-score finalisation measured 169,898 mock gas, randomized-category finalisation measured
+432,230 in a separate run, and user decryption creates no host-chain transaction; live
+Gateway/KMS latency remains unmeasured. Fee scenarios, if shown, occupy a separate table
+labelled Analytic projection / unexecuted and merely multiply observed mock gas by hypothetical
+gas prices. We give no USD conversion because no current production fee schedule was
+documented, and we explicitly state that production affordability and clinical feasibility
+were not evaluated.
+
+## Reviewer 2, Comment 1 — bounded variant count
+
+> bioETH-PRS was evaluated only on 100-5000 SNPs, while a real PRS in practice can involve far
+> larger number of SNPs. Although the authors acknowledged that the HCU budget and transaction
+> count made the genome-wide model impractical on current infrastructure. This is still a
+> serious limitation because the method may only apply to a narrow class of PRS models with
+> limited number of SNPs.
+
+**Substantiated now:** `R1.6-E1` — `evidence/phase8/scale_evidence.json`.
+**Blocked on:** `R2.1-M1` and MS-17 (Phase 12) for manuscript edits and page/line refs.
+
+We agree and have made this limitation a defining scope condition rather than a retrospective
+caveat. The method currently applies only to a narrow class of bounded-size additive PRS
+models; it is not a practical genome-wide PRS engine. The executed range is 100 to 5,000
+nominal variants, entirely in the Hardhat mock, with the largest public workflow requiring
+413 host-contract transactions for a fresh model, registered sample, and completed streaming
+job. No live fhEVM execution was completed. Calculations for larger variant counts are labelled
+unexecuted transaction geometry and are not presented as scalability experiments. We place the
+5,000-variant maximum and mock evidence class in the Abstract, Key Points, Introduction, and
+opening of Empirical Evaluation so a reader encounters the boundary before the Discussion, and
+we state plainly that the study does not establish genome-wide or clinical deployment
+feasibility.
 
 ## Reviewer 2, Comment 2 — genotype quality control
 
@@ -580,10 +723,6 @@ Do not pre-write these; each needs its Stage A evidence first.
 | Comment | Topic | Blocked on |
 |---|---|---|
 | R1 C1 | Mock-only evaluation | `R1.1-E1`, `R1.1-E2` (Phase 7) |
-| R1 C6 | Scale / bounded intended use | `R1.6-E1` (Phase 8) |
-| R1 C7 | HEPRS comparison by dimension | Phases 7–8 |
-| R1 C8 | Cost projections | `R1.8-E1` (Phase 8) |
-| R2 C1 | Narrow SNP class | Phase 8 |
 | R2 C5 | Interpretability of the encoded pipeline | Phase 9 |
 
 ---
@@ -610,7 +749,7 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-14 | `validation/cases/*.json` — 27 hand-computed expectations, all re-derived and agreeing | R2 C6 |
 | EV-15 | `evidence/phase3/reference/heprs_*snp_reference.json` — expected answers, all 200 individuals, round-trip error 0 | MS-13; R2 C7 |
 | EV-16 | `scripts/utils/provenance.ts` - commit, input digests, bytecode digests, reference-output digest | MS-14; R2 C4 |
-| EV-17 | `test/provenance_guard_test.ts` - 9 tests; zero-hash regression guard incl. exemption-list staleness | R2 C4 |
+| EV-17 | `test/provenance_guard_test.ts` - 10 tests; zero-hash regression guard incl. exemption-list staleness; 10 evidence producers | R2 C4 |
 | EV-18 | `evidence/phase4/gas_delta.md` - +40,568 gas/model for real provenance, attributed by phase | MS-14, MS-08; R1 C8 |
 | EV-19 | 100-SNP cross-validation: reference and contract agree at `encodedScore = 758,685` | R2 C4, C7 |
 | EV-20 | `evidence/phase5/individual_level_comparison.csv` - 200 rows, all exact | MS-15; R2 C7 |
@@ -624,6 +763,11 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-28 | `evidence/phase7/live_preflight.json` - deployment gas, both job variants, Sepolia budget, harness readiness | MS-05, MS-08 |
 | EV-29 | `evidence/phase7/hcu_public.txt`, `hcu_private.txt` - ceiling 21 for both visibilities | MS-05 |
 | EV-30 | `scripts/live_preflight.ts` - `npm run preflight:live` | MS-05 |
+| EV-31 | `evidence/phase8/scale_evidence.json` - three-class scale rows; live empty, mock executed, projections unexecuted | MS-17; R1 C6, C7; R2 C1 |
+| EV-32 | `evidence/phase8/measured_transaction_use.json` - deployment and public/private workflow transaction/gas components | MS-08; R1 C8 |
+| EV-33 | `evidence/phase8/fee_sensitivity.json` - separate unexecuted ETH arithmetic, no USD | MS-08; R1 C8 |
+| EV-34 | `evidence/phase8/heprs_profile.json` - current post-provenance execution at 100/500/1,000/5,000 variants | MS-17; R1 C6 |
+| EV-35 | `test/phase8_evidence_synthesis_test.ts` - transaction geometry, class labels, reconciliation, fee-boundary tests | MS-08, MS-17 |
 
 ## Commit trail
 
@@ -640,3 +784,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `29836a6` | Phase 5: 200-individual Equation 1 comparison, all exact |
 | `7c1ffd2` | Phase 6: adversarial evaluation; 2,800-hour claim refuted and replaced |
 | `33014aa` | Phase 7: live runs blocked on credentials; HCU/optimisation/private-cost findings |
+| `<phase8>` | Phase 8: scale and transaction-use synthesis; fee scenarios isolated |

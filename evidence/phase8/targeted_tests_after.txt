@@ -1,0 +1,26 @@
+
+
+  Phase 8 evidence synthesis
+    ✔ uses ceiling division at chunk boundaries
+    ✔ reproduces the measured public and private 100-SNP transaction counts
+    ✔ reproduces the measured public fixture transaction series
+    ✔ marks every larger projection unexecuted and keeps live rows empty
+    ✔ parses the saved release-policy measurements
+    ✔ rejects a machine-readable total that does not equal its components
+    ✔ keeps fee conversion analytic and omits USD
+
+  Evidence provenance guard (R2.4-E1)
+    ✔ no evidence-producing file uses a zero manifest hash
+    ✔ the zero-hash scan ignores prose but not code
+    ✔ every evidence-producing file imports the provenance helper
+    ✔ the behavioural exemption list is accurate, not aspirational
+    ✔ assertProvenanceHash rejects the zero hash and malformed values
+    ✔ canonical JSON hashing is key-order independent
+    ✔ synthetic provenance yields three distinct non-zero hashes
+    ✔ synthetic provenance is deterministic for the same spec
+    ✔ fixture provenance hashes the real fixture bytes
+    ✔ the registry rejects a zero sample manifest hash
+
+
+  17 passing (49ms)
+

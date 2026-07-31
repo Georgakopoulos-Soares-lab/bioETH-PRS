@@ -1,0 +1,399 @@
+{
+  "action": "R1.6-E1",
+  "title": "Three-class scale evidence",
+  "evidenceClasses": [
+    "Live fhEVM",
+    "Hardhat mock",
+    "Analytic projection"
+  ],
+  "liveFhevm": {
+    "executionStatus": "blocked",
+    "successfulRows": [],
+    "reason": "No funded Sepolia wallet is configured. No live transaction was made and no live scale result is inferred.",
+    "source": "evidence/phase7/README.md"
+  },
+  "measuredRangeConclusion": "The evidence supports linear host-contract transaction growth over the measured 100-5,000-variant Hardhat-mock range. It does not establish real-TFHE latency, production fees, or genome-wide feasibility.",
+  "rows": [
+    {
+      "evidenceClass": "Hardhat mock",
+      "executionStatus": "executed",
+      "nominalVariants": 100,
+      "encodedPositions": 101,
+      "modelVisibility": "public",
+      "workflow": "fresh public model + registered sample + one streaming job; contract deployments excluded",
+      "transactionCount": 15,
+      "transactionBreakdown": {
+        "modelPublication": 6,
+        "modelUploadChunks": 4,
+        "readerAuthorizations": 0,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 6,
+        "resultFinalization": 1,
+        "total": 15
+      },
+      "latencyAvailability": {
+        "available": true,
+        "kind": "Hardhat in-process host timing only; not TFHE or network latency",
+        "source": "evidence/phase8/heprs_profile.json"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": true,
+        "productionFeeAvailable": false,
+        "source": "evidence/phase8/heprs_profile.json"
+      }
+    },
+    {
+      "evidenceClass": "Hardhat mock",
+      "executionStatus": "executed",
+      "nominalVariants": 100,
+      "encodedPositions": 101,
+      "modelVisibility": "private",
+      "workflow": "fresh private model + two reader authorizations + registered sample + one streaming job; deployments excluded",
+      "transactionCount": 17,
+      "transactionBreakdown": {
+        "modelPublication": 8,
+        "modelUploadChunks": 4,
+        "readerAuthorizations": 2,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 6,
+        "resultFinalization": 1,
+        "total": 17
+      },
+      "latencyAvailability": {
+        "available": false,
+        "reason": "the Phase 7 pre-flight measured transaction geometry and gas, not elapsed time"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": true,
+        "productionFeeAvailable": false,
+        "source": "evidence/phase7/live_preflight.json"
+      }
+    },
+    {
+      "evidenceClass": "Hardhat mock",
+      "executionStatus": "executed",
+      "nominalVariants": 500,
+      "encodedPositions": 501,
+      "modelVisibility": "public",
+      "workflow": "fresh public model + registered sample + one streaming job; contract deployments excluded",
+      "transactionCount": 47,
+      "transactionBreakdown": {
+        "modelPublication": 18,
+        "modelUploadChunks": 16,
+        "readerAuthorizations": 0,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 26,
+        "resultFinalization": 1,
+        "total": 47
+      },
+      "latencyAvailability": {
+        "available": true,
+        "kind": "Hardhat in-process host timing only; not TFHE or network latency",
+        "source": "evidence/phase8/heprs_profile.json"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": true,
+        "productionFeeAvailable": false,
+        "source": "evidence/phase8/heprs_profile.json"
+      }
+    },
+    {
+      "evidenceClass": "Hardhat mock",
+      "executionStatus": "executed",
+      "nominalVariants": 1000,
+      "encodedPositions": 1001,
+      "modelVisibility": "public",
+      "workflow": "fresh public model + registered sample + one streaming job; contract deployments excluded",
+      "transactionCount": 88,
+      "transactionBreakdown": {
+        "modelPublication": 34,
+        "modelUploadChunks": 32,
+        "readerAuthorizations": 0,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 51,
+        "resultFinalization": 1,
+        "total": 88
+      },
+      "latencyAvailability": {
+        "available": true,
+        "kind": "Hardhat in-process host timing only; not TFHE or network latency",
+        "source": "evidence/phase8/heprs_profile.json"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": true,
+        "productionFeeAvailable": false,
+        "source": "evidence/phase8/heprs_profile.json"
+      }
+    },
+    {
+      "evidenceClass": "Hardhat mock",
+      "executionStatus": "executed",
+      "nominalVariants": 5000,
+      "encodedPositions": 5001,
+      "modelVisibility": "public",
+      "workflow": "fresh public model + registered sample + one streaming job; contract deployments excluded",
+      "transactionCount": 413,
+      "transactionBreakdown": {
+        "modelPublication": 159,
+        "modelUploadChunks": 157,
+        "readerAuthorizations": 0,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 251,
+        "resultFinalization": 1,
+        "total": 413
+      },
+      "latencyAvailability": {
+        "available": true,
+        "kind": "Hardhat in-process host timing only; not TFHE or network latency",
+        "source": "evidence/phase8/heprs_profile.json"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": true,
+        "productionFeeAvailable": false,
+        "source": "evidence/phase8/heprs_profile.json"
+      }
+    },
+    {
+      "evidenceClass": "Analytic projection",
+      "executionStatus": "unexecuted",
+      "nominalVariants": 10000,
+      "encodedPositions": 10001,
+      "modelVisibility": "public",
+      "workflow": "same chunk geometry as the measured streaming workflow; contract deployments excluded",
+      "transactionCount": 819,
+      "transactionBreakdown": {
+        "modelPublication": 315,
+        "modelUploadChunks": 313,
+        "readerAuthorizations": 0,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 501,
+        "resultFinalization": 1,
+        "total": 819
+      },
+      "latencyAvailability": {
+        "available": false,
+        "reason": "unexecuted projection"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": false,
+        "productionFeeAvailable": false,
+        "reason": "transaction geometry only; no gas or fee extrapolation"
+      }
+    },
+    {
+      "evidenceClass": "Analytic projection",
+      "executionStatus": "unexecuted",
+      "nominalVariants": 10000,
+      "encodedPositions": 10001,
+      "modelVisibility": "private",
+      "workflow": "same chunk geometry as the measured streaming workflow; contract deployments excluded",
+      "transactionCount": 821,
+      "transactionBreakdown": {
+        "modelPublication": 317,
+        "modelUploadChunks": 313,
+        "readerAuthorizations": 2,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 501,
+        "resultFinalization": 1,
+        "total": 821
+      },
+      "latencyAvailability": {
+        "available": false,
+        "reason": "unexecuted projection"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": false,
+        "productionFeeAvailable": false,
+        "reason": "transaction geometry only; no gas or fee extrapolation"
+      }
+    },
+    {
+      "evidenceClass": "Analytic projection",
+      "executionStatus": "unexecuted",
+      "nominalVariants": 100000,
+      "encodedPositions": 100001,
+      "modelVisibility": "public",
+      "workflow": "same chunk geometry as the measured streaming workflow; contract deployments excluded",
+      "transactionCount": 8132,
+      "transactionBreakdown": {
+        "modelPublication": 3128,
+        "modelUploadChunks": 3126,
+        "readerAuthorizations": 0,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 5001,
+        "resultFinalization": 1,
+        "total": 8132
+      },
+      "latencyAvailability": {
+        "available": false,
+        "reason": "unexecuted projection"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": false,
+        "productionFeeAvailable": false,
+        "reason": "transaction geometry only; no gas or fee extrapolation"
+      }
+    },
+    {
+      "evidenceClass": "Analytic projection",
+      "executionStatus": "unexecuted",
+      "nominalVariants": 100000,
+      "encodedPositions": 100001,
+      "modelVisibility": "private",
+      "workflow": "same chunk geometry as the measured streaming workflow; contract deployments excluded",
+      "transactionCount": 8134,
+      "transactionBreakdown": {
+        "modelPublication": 3130,
+        "modelUploadChunks": 3126,
+        "readerAuthorizations": 2,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 5001,
+        "resultFinalization": 1,
+        "total": 8134
+      },
+      "latencyAvailability": {
+        "available": false,
+        "reason": "unexecuted projection"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": false,
+        "productionFeeAvailable": false,
+        "reason": "transaction geometry only; no gas or fee extrapolation"
+      }
+    },
+    {
+      "evidenceClass": "Analytic projection",
+      "executionStatus": "unexecuted",
+      "nominalVariants": 1000000,
+      "encodedPositions": 1000001,
+      "modelVisibility": "public",
+      "workflow": "same chunk geometry as the measured streaming workflow; contract deployments excluded",
+      "transactionCount": 81257,
+      "transactionBreakdown": {
+        "modelPublication": 31253,
+        "modelUploadChunks": 31251,
+        "readerAuthorizations": 0,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 50001,
+        "resultFinalization": 1,
+        "total": 81257
+      },
+      "latencyAvailability": {
+        "available": false,
+        "reason": "unexecuted projection"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": false,
+        "productionFeeAvailable": false,
+        "reason": "transaction geometry only; no gas or fee extrapolation"
+      }
+    },
+    {
+      "evidenceClass": "Analytic projection",
+      "executionStatus": "unexecuted",
+      "nominalVariants": 1000000,
+      "encodedPositions": 1000001,
+      "modelVisibility": "private",
+      "workflow": "same chunk geometry as the measured streaming workflow; contract deployments excluded",
+      "transactionCount": 81259,
+      "transactionBreakdown": {
+        "modelPublication": 31255,
+        "modelUploadChunks": 31251,
+        "readerAuthorizations": 2,
+        "sampleRegistration": 1,
+        "jobCreation": 1,
+        "uploadAndCompute": 50001,
+        "resultFinalization": 1,
+        "total": 81259
+      },
+      "latencyAvailability": {
+        "available": false,
+        "reason": "unexecuted projection"
+      },
+      "costAvailability": {
+        "mockHostGasAvailable": false,
+        "productionFeeAvailable": false,
+        "reason": "transaction geometry only; no gas or fee extrapolation"
+      }
+    }
+  ],
+  "provenance": {
+    "schema": "bioeth-prs/evidence-synthesis/1",
+    "repository": {
+      "commit": "710d2b7d347cb8283342ecc17fd6c1496336f6c8",
+      "shortCommit": "710d2b7",
+      "branch": "rtr-revision",
+      "dirty": true,
+      "dirtyFiles": [
+        "M bioETH-PRS_RTR_acceptance_plan.md",
+        "M evidence/README.md",
+        "M evidence/claim_deltas.md",
+        "M evidence/manuscript_and_rtr_responses.md",
+        "M package.json",
+        "M scripts/heprs_fixture_profile.ts",
+        "M test/provenance_guard_test.ts",
+        "?? evidence/phase8/",
+        "?? scripts/phase8_evidence_synthesis.ts",
+        "?? test/phase8_evidence_synthesis_test.ts"
+      ]
+    },
+    "runtime": {
+      "node": "v22.23.1",
+      "platform": "darwin"
+    },
+    "sourceArtifacts": [
+      {
+        "role": "source_evidence",
+        "path": "evidence/phase8/heprs_profile.json",
+        "hash": "0xf6d5b9f7a36613967152f816ca13311743b389c52ac2e15178fd15221ff5bb8d",
+        "bytes": 25996
+      },
+      {
+        "role": "source_evidence",
+        "path": "evidence/phase7/live_preflight.json",
+        "hash": "0x7e95c6bdd4c04bb5842d9a10a3f0ce6b6cf6664c495c400b18f58dec5a4b9a01",
+        "bytes": 5989
+      },
+      {
+        "role": "source_evidence",
+        "path": "evidence/phase2/release_policy_gas.txt",
+        "hash": "0x1108cf3110ae614078f62a865c955fb42e9650c035b5349b69a45c070f26c37b",
+        "bytes": 308
+      },
+      {
+        "role": "source_evidence",
+        "path": "scripts/phase8_evidence_synthesis.ts",
+        "hash": "0xeae913a8aa36a55a091e6fef776e36fc3e402df4ef7da75baae7d983bc4cc26c",
+        "bytes": 22845
+      },
+      {
+        "role": "source_evidence",
+        "path": "scripts/heprs_fixture_profile.ts",
+        "hash": "0x18eeaea48141a5e01f704e4e6540bdbad76c2ade8b535fa6cbf3b148c4ad1b45",
+        "bytes": 21729
+      },
+      {
+        "role": "source_evidence",
+        "path": "scripts/live_preflight.ts",
+        "hash": "0x00bf88958a001cafc36ff78c6f40f28a4abf948e72294a16d320e30c0ec67175",
+        "bytes": 13721
+      },
+      {
+        "role": "source_evidence",
+        "path": "scripts/release_policy_gas.ts",
+        "hash": "0x0b793341533e53b7eb90876c9cca04e3d24a21660d6a753b0bf6117bfd699c7b",
+        "bytes": 4039
+      }
+    ]
+  }
+}

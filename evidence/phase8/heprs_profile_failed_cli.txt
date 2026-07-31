@@ -1,0 +1,7 @@
+
+> bioeth-prs@0.1.0 profile:heprs
+> hardhat test scripts/heprs_fixture_profile.ts --json-out evidence/phase8/heprs_profile.json
+
+Error HH305: Unrecognized param --json-out
+
+For more info go to https://v2.hardhat.org/HH305 or run Hardhat with --show-stack-traces

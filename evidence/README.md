@@ -29,6 +29,8 @@ manuscript from it and touches nothing else.
 | Path | Produced by | Contents |
 |---|---|---|
 | `baseline/` | Phase 0 | Pre-revision compile, test, and environment capture |
+| `phase1/`–`phase7/` | Phases 1–7 | Code-conformity, provenance, correctness, adversarial, and live-readiness evidence |
+| `phase8/` | Phase 8 | Three-class scale table, measured transaction use, and separate fee sensitivity |
 | `claim_deltas.md` | Phases 1–8 | Every submitted claim the new evidence contradicts or fails to support |
 
 Directories for phases 3–8 are created by the actions that fill them.

@@ -310,7 +310,7 @@ supports.
 ## CD-012 — Model publication gas in the submitted paper is understated, because it was measured with zero hashes
 
 - **Opened:** Phase 4, 28 July 2026
-- **Status:** open
+- **Status:** **resolved in evidence synthesis** (Phase 8); manuscript correction pending
 - **Resolves via:** `R1.8-E1` (Phase 8) and `R1.8-M1` (Phase 12); feeds MS-08
 
 Writing a nonzero `bytes32` to previously-zero storage costs materially more than writing a
@@ -651,7 +651,7 @@ Future Directions and a follow-up change.
 ## CD-023 — Private-weight jobs cost about twice as much as public ones, and the paper prices the wrong one
 
 - **Opened:** Phase 7, 29 July 2026
-- **Status:** open
+- **Status:** **resolved in evidence synthesis** (Phase 8); manuscript correction pending
 - **Resolves via:** `R1.8-E1` (Phase 8) and `R1.8-M1` (Phase 12)
 
 Measured end to end for a 100-SNP job, model publication through finalize:
@@ -707,3 +707,29 @@ private-weight execution is mock-validated only." Absent credentials that fallba
 results are Hardhat-mock validated, must not claim live-network deployment, and must leave the
 Sepolia HCU ceiling as unmeasured for both model visibilities. `MS-05` is updated accordingly
 with both branches.
+
+## CD-025 — Phase 7 prose copied total gas 12 units above its machine-readable record
+
+- **Opened:** Phase 8, 31 July 2026
+- **Status:** **resolved** (Phase 8)
+- **Resolves via:** `R1.8-E1`; reinforces `CD-011`
+
+Phase 7's Markdown tables give exact public/private 100-variant totals of 11,690,033 and
+23,507,892 gas. The authoritative `evidence/phase7/live_preflight.json` records component sums
+of 11,690,021 and 23,507,880:
+
+| Visibility | Phase 7 prose | Machine-readable component sum | Difference |
+|---|---:|---:|---:|
+| public | 11,690,033 | 11,690,021 | 12 |
+| private | 23,507,892 | 23,507,880 | 12 |
+
+The JSON is internally consistent: each total equals model publication + sample registration +
+job creation + streaming upload/compute + finalization, and the saved Sepolia-budget arithmetic
+uses those JSON totals. No execution claim or economic conclusion changes.
+
+The discrepancy is valuable because it independently confirms `CD-011`: total gas involving
+encrypted calldata should not be reported to the individual unit. Phase 8 makes the
+machine-readable component sums authoritative, preserves their raw values in
+`measured_transaction_use.json`, and renders the manuscript-facing totals at meaningful
+precision as **11.690 M** and **23.508 M**. The earlier Phase 7 record is not rewritten; this
+delta documents the supersession.

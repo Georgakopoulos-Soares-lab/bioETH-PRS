@@ -50,6 +50,10 @@ const EVIDENCE_PRODUCING = [
   // found an unguarded evidence producer three times, so it stays in every phase's
   // exit check.
   "scripts/live_preflight.ts",
+  // Phase 8. This does not execute contracts, but its rendered tables are the direct
+  // source for manuscript numbers. It therefore records hashes of every source
+  // artifact it synthesises and belongs in the guarded set.
+  "scripts/phase8_evidence_synthesis.ts",
 ];
 
 // Behavioural tests: they assert contract logic and report no measurement, so

@@ -1,0 +1,6 @@
+
+> bioeth-prs@0.1.0 build
+> hardhat compile
+
+Nothing to compile
+No need to generate any newer typings.

@@ -42,8 +42,8 @@ Status convention:
 - `[x]` Completed
 - `Progress: 0%` can be changed to an intermediate percentage while work is in progress.
 
-Overall RTR progress: **12/35 actions completed (34%)** — plus `R1.3-M2` at 50%
-Stage A: **12/16** &nbsp;&nbsp; Stage B: **0/19**
+Overall RTR progress: **14/35 actions completed (40%)** — plus `R1.3-M2` at 50%
+Stage A: **14/16** &nbsp;&nbsp; Stage B: **0/19**
 
 ## Baseline already verified
 
@@ -394,7 +394,9 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.6-E1 — Create a three-class scale evidence table
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — complete 31 July 2026. Machine-readable table and rendering in
+  `evidence/phase8/scale_evidence.{json,md}`; raw current execution in
+  `evidence/phase8/heprs_profile.{json,txt}`.
 - Stage: Code and evidence - Phase 8 (Evidence synthesis)
 - Type: Evaluation synthesis
 - Action:
@@ -468,7 +470,9 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.8-E1 — Replace projected “deployment cost” evidence with measured transaction evidence
 
-- [ ] Progress: 0%
+- [x] Progress: 100% — complete 31 July 2026. Measured quantities in
+  `evidence/phase8/measured_transaction_use.{json,md}`; fee arithmetic isolated and labelled
+  unexecuted in `evidence/phase8/fee_sensitivity.{json,md}`.
 - Stage: Code and evidence - Phase 8 (Evidence synthesis)
 - Type: Experiment synthesis
 - Action:
@@ -834,7 +838,7 @@ Exit gate:
 
 # Stage A - Code and evidence (Phases 1-8, 16 actions)
 
-Stage A progress: **12/16 actions (75%)** — Phases 1-6 complete; Phase 7 blocked on credentials
+Stage A progress: **14/16 actions (87.5%)** — Phases 1-6 and 8 complete; Phase 7 blocked on credentials
 
 Stage A rule: the manuscript is not touched. If a code result contradicts something the
 submitted paper claims, record the contradiction in `evidence/claim_deltas.md` and resolve
@@ -1229,28 +1233,39 @@ Phase exit gate:
 Why here: both syntheses read across every prior phase, so they run once the evidence set is
 frozen. These build the data behind two paper tables; the tables are inserted in Stage B.
 
-Phase progress: **0/2 actions (0%)**
+Phase progress: **2/2 actions (100%)** — complete 31 July 2026. Record:
+`evidence/phase8/`.
 
-- [ ] `R1.6-E1` Build the three-class scale evidence table: evidence class, variant count,
-      model visibility, transaction count, and latency/cost availability. Rows for live fhEVM
-      (sizes achieved in Phase 7), Hardhat mock (100, 500, 1,000, 5,000), and analytic
-      projection (larger counts, marked unexecuted).
-- [ ] `R1.8-E1` Report observed gas and transaction counts for contract deployment, model
-      publication, per-sample computation, and the result/decryption path. Keep measured
-      network quantities and hypothetical fee conversions in separate outputs.
+- [x] `R1.6-E1` Three-class table saved machine-first as
+      `scale_evidence.json` and rendered as `scale_evidence.md`. No live row is fabricated:
+      Phase 7 contributes an explicit blocked row with no successful sizes. Current
+      Hardhat-mock execution covers public 100 / 500 / 1,000 / 5,000-variant flows at
+      **15 / 47 / 88 / 413 transactions**, plus private 100 at **17**. Larger public/private
+      rows at 10,000 / 100,000 / 1,000,000 are labelled `Analytic projection / unexecuted`
+      and report transaction geometry only — no latency or gas extrapolation.
+- [x] `R1.8-E1` `measured_transaction_use.json` reports deployment, publication,
+      sample registration, job creation, streaming compute, raw/category result alternatives,
+      and the off-chain decryption boundary. Four-contract deployment is 5,892,613 mock gas;
+      public/private 100-variant jobs are **15 / 17 tx** and **11.690 / 23.508 M mock gas**.
+      `fee_sensitivity.json` is a separate `Analytic projection`, gives ETH arithmetic only,
+      and makes no USD or production-affordability claim. `CD-025` records why totals are
+      rounded: Phase 7 prose and machine JSON differ by 12 gas.
 
 Dependencies: Phases 5, 6, and 7.
 
 Stage A exit gate - do not begin Stage B until all of the following hold:
 
-- [ ] All 16 Stage A actions are complete.
-- [ ] `npm run build` and the full test suite pass.
-- [ ] Every number that will appear in the revised manuscript exists in a saved file under
+- [ ] All 16 Stage A actions are complete. **14/16; only `R1.1-E1` and `R1.1-E2` remain,
+      blocked on a funded Sepolia wallet.**
+- [x] `npm run build` and the full test suite pass. Phase 8 exit: **163 passing**, 0 failing,
+      node v22.23.1.
+- [x] Every number that will appear in the revised manuscript exists in a saved file under
       `evidence/`, with a stated evidence class of `Live fhEVM`, `Hardhat mock`, or
       `Analytic projection`.
-- [ ] `evidence/claim_deltas.md` lists every submitted claim the new evidence contradicts,
+- [x] `evidence/claim_deltas.md` lists every submitted claim the new evidence contradicts,
       weakens, or fails to support.
-- [ ] No planned manuscript sentence requires a number that does not yet exist.
+- [x] No planned manuscript sentence requires a number that does not yet exist. `MS-05`
+      takes its explicit no-live fallback branch unless Phase 7 later completes.
 
 ---
 

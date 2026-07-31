@@ -1,0 +1,952 @@
+[
+  {
+    "fixtureSize": 100,
+    "vectorLength": 101,
+    "uploadChunkSize": 32,
+    "computeChunkSize": 20,
+    "recommendation": {
+      "tier": "balanced",
+      "scale": 3000000,
+      "requiredWeightBits": 16,
+      "requiredAccumulatorBits": 32
+    },
+    "evidenceClass": "Hardhat mock",
+    "provenance": {
+      "schema": "bioeth-prs/provenance/1",
+      "repository": {
+        "commit": "710d2b7d347cb8283342ecc17fd6c1496336f6c8",
+        "shortCommit": "710d2b7",
+        "branch": "rtr-revision",
+        "dirty": true,
+        "dirtyFiles": [
+          "M package.json",
+          "M scripts/heprs_fixture_profile.ts",
+          "M test/provenance_guard_test.ts",
+          "?? evidence/phase8/",
+          "?? scripts/phase8_evidence_synthesis.ts",
+          "?? test/phase8_evidence_synthesis_test.ts"
+        ]
+      },
+      "runtime": {
+        "node": "v22.23.1",
+        "platform": "darwin"
+      },
+      "network": {
+        "name": "hardhat",
+        "chainId": "31337"
+      },
+      "inputs": [
+        {
+          "role": "model_manifest",
+          "path": "validation/manifests/heprs_100snp.json",
+          "hash": "0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75",
+          "bytes": 17524
+        },
+        {
+          "role": "model_weights",
+          "path": "test/fixtures/heprs/beta_100SNP_phenotype0.csv",
+          "hash": "0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5",
+          "bytes": 940
+        },
+        {
+          "role": "genotypes",
+          "path": "test/fixtures/heprs/genotype_100SNP_50individual.csv",
+          "hash": "0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a",
+          "bytes": 10100
+        }
+      ],
+      "model": {
+        "manifestHash": "0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75",
+        "sourceModelHash": "0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5",
+        "genotypeManifestHash": "0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a",
+        "descriptor": {
+          "kind": "heprs_fixture",
+          "manifest": "validation/manifests/heprs_100snp.json",
+          "weights": "test/fixtures/heprs/beta_100SNP_phenotype0.csv",
+          "genotypes": "test/fixtures/heprs/genotype_100SNP_50individual.csv",
+          "nominalSnpCount": 100,
+          "encodedPositions": 101,
+          "encodedPositionsNote": "nominal + 1: the fixtures carry a leading intercept column (weight 0, dosage 1)",
+          "scale": 3000000,
+          "uploadChunkSize": 32,
+          "computeChunkSize": 20,
+          "individual": 0
+        }
+      },
+      "contracts": [
+        {
+          "name": "ModelMarketplace",
+          "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+          "bytecodeHash": "0xbe6163c1267e3aa83c56ebdc292138e457ed853396d170bd445b1905dc92f0ff",
+          "bytecodeBytes": 8151
+        },
+        {
+          "name": "PRSComputeEngine",
+          "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+          "bytecodeHash": "0x66c177bca198e6ff8f19f4133cb5a104f9c94662198930aa779b3aa1faa9da4f",
+          "bytecodeBytes": 10426
+        }
+      ],
+      "referenceOutput": {
+        "path": "evidence/phase3/reference/heprs_100snp_reference.json",
+        "hash": "0x6fe5e6a78b58a1f3965e266009a57e57c7bfa3727173e16cc4fd26c3c5cd2f2c"
+      }
+    },
+    "gas": {
+      "publishModel": "1169598",
+      "createJob": "321170",
+      "uploadSnps": "10335783",
+      "finalizeSnpUpload": "37197",
+      "compute": "5829527",
+      "finalize": "169898",
+      "total": "17863173"
+    },
+    "streamingGas": {
+      "publishModel": "1169598",
+      "createJob": "284170",
+      "uploadAndCompute": "9914268",
+      "finalize": "169910",
+      "total": "11537946"
+    },
+    "transactions": {
+      "modelPublication": 6,
+      "sampleRegistration": 1,
+      "classic": {
+        "jobCreation": 1,
+        "uploadSnps": 4,
+        "finalizeSnpUpload": 1,
+        "compute": 6,
+        "resultFinalization": 1,
+        "totalIncludingModelAndSample": 20
+      },
+      "streaming": {
+        "jobCreation": 1,
+        "uploadAndCompute": 6,
+        "resultFinalization": 1,
+        "totalIncludingModelAndSample": 15
+      }
+    },
+    "chunkTiming": {
+      "chunkCount": 6,
+      "totalMs": 43.074875999999996,
+      "averageMs": 7.179145999999999,
+      "minMs": 1.321042,
+      "maxMs": 10.346375,
+      "perChunkMs": [
+        5.124,
+        8.43,
+        7.800375,
+        10.346375,
+        10.053084,
+        1.321042
+      ]
+    },
+    "status": "full_flow",
+    "timingsMs": {
+      "total": 589.06025,
+      "loadFixture": 1.019291,
+      "quantizeWeights": 0.072917,
+      "localReferenceDotProduct": 0.0245,
+      "deployMarketplace": 9.009125,
+      "publishModel": 7.622875,
+      "deployEngine": 11.164708,
+      "createJob": 1.521208,
+      "uploadSnps": 125.8485,
+      "finalizeSnpUpload": 0.715542,
+      "readPartial": 64.763375,
+      "finalize": 62.477667,
+      "streamingUploadAndCompute": 132.893041,
+      "streamingFinalize": 85.2455
+    }
+  },
+  {
+    "fixtureSize": 500,
+    "vectorLength": 501,
+    "uploadChunkSize": 32,
+    "computeChunkSize": 20,
+    "recommendation": {
+      "tier": "balanced",
+      "scale": 3000000,
+      "requiredWeightBits": 16,
+      "requiredAccumulatorBits": 32
+    },
+    "evidenceClass": "Hardhat mock",
+    "provenance": {
+      "schema": "bioeth-prs/provenance/1",
+      "repository": {
+        "commit": "710d2b7d347cb8283342ecc17fd6c1496336f6c8",
+        "shortCommit": "710d2b7",
+        "branch": "rtr-revision",
+        "dirty": true,
+        "dirtyFiles": [
+          "M package.json",
+          "M scripts/heprs_fixture_profile.ts",
+          "M test/provenance_guard_test.ts",
+          "?? evidence/phase8/",
+          "?? scripts/phase8_evidence_synthesis.ts",
+          "?? test/phase8_evidence_synthesis_test.ts"
+        ]
+      },
+      "runtime": {
+        "node": "v22.23.1",
+        "platform": "darwin"
+      },
+      "network": {
+        "name": "hardhat",
+        "chainId": "31337"
+      },
+      "inputs": [
+        {
+          "role": "model_manifest",
+          "path": "validation/manifests/heprs_500snp.json",
+          "hash": "0x53a3ab9e716bb842f99c3483df93d935a4e5a8937f7701419aaad44f6712417b",
+          "bytes": 85524
+        },
+        {
+          "role": "model_weights",
+          "path": "test/fixtures/heprs/beta_500SNP_phenotype0.csv",
+          "hash": "0x80ee761a1c859c99bfea33d9ce9041654e3b2608c89445699c57437f8244f6c7",
+          "bytes": 4684
+        },
+        {
+          "role": "genotypes",
+          "path": "test/fixtures/heprs/genotype_500SNP_50individual.csv",
+          "hash": "0x84afe8a9e43c7243e9b76ef6fae9c38711e864827e2ce7dc8cf6510838f081e6",
+          "bytes": 50100
+        }
+      ],
+      "model": {
+        "manifestHash": "0x53a3ab9e716bb842f99c3483df93d935a4e5a8937f7701419aaad44f6712417b",
+        "sourceModelHash": "0x80ee761a1c859c99bfea33d9ce9041654e3b2608c89445699c57437f8244f6c7",
+        "genotypeManifestHash": "0x84afe8a9e43c7243e9b76ef6fae9c38711e864827e2ce7dc8cf6510838f081e6",
+        "descriptor": {
+          "kind": "heprs_fixture",
+          "manifest": "validation/manifests/heprs_500snp.json",
+          "weights": "test/fixtures/heprs/beta_500SNP_phenotype0.csv",
+          "genotypes": "test/fixtures/heprs/genotype_500SNP_50individual.csv",
+          "nominalSnpCount": 500,
+          "encodedPositions": 501,
+          "encodedPositionsNote": "nominal + 1: the fixtures carry a leading intercept column (weight 0, dosage 1)",
+          "scale": 3000000,
+          "uploadChunkSize": 32,
+          "computeChunkSize": 20,
+          "individual": 0
+        }
+      },
+      "contracts": [
+        {
+          "name": "ModelMarketplace",
+          "address": "0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690",
+          "bytecodeHash": "0xbe6163c1267e3aa83c56ebdc292138e457ed853396d170bd445b1905dc92f0ff",
+          "bytecodeBytes": 8151
+        },
+        {
+          "name": "PRSComputeEngine",
+          "address": "0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575",
+          "bytecodeHash": "0x66c177bca198e6ff8f19f4133cb5a104f9c94662198930aa779b3aa1faa9da4f",
+          "bytecodeBytes": 10426
+        }
+      ],
+      "referenceOutput": {
+        "path": "evidence/phase3/reference/heprs_500snp_reference.json",
+        "hash": "0xad397ef90373484981636064147afed2eac16b785f03e6482c50a5290ff37684"
+      }
+    },
+    "gas": {
+      "publishModel": "4298378",
+      "createJob": "321170",
+      "uploadSnps": "50964935",
+      "finalizeSnpUpload": "37197",
+      "compute": "28193807",
+      "finalize": "169898",
+      "total": "83985385"
+    },
+    "streamingGas": {
+      "publishModel": "4298378",
+      "createJob": "284170",
+      "uploadAndCompute": "48310944",
+      "finalize": "169910",
+      "total": "53063402"
+    },
+    "transactions": {
+      "modelPublication": 18,
+      "sampleRegistration": 1,
+      "classic": {
+        "jobCreation": 1,
+        "uploadSnps": 16,
+        "finalizeSnpUpload": 1,
+        "compute": 26,
+        "resultFinalization": 1,
+        "totalIncludingModelAndSample": 64
+      },
+      "streaming": {
+        "jobCreation": 1,
+        "uploadAndCompute": 26,
+        "resultFinalization": 1,
+        "totalIncludingModelAndSample": 47
+      }
+    },
+    "chunkTiming": {
+      "chunkCount": 26,
+      "totalMs": 211.75750099999996,
+      "averageMs": 8.144519269230768,
+      "minMs": 1.253167,
+      "maxMs": 31.19725,
+      "perChunkMs": [
+        6.084959,
+        9.746916,
+        6.669083,
+        6.694875,
+        5.93375,
+        6.78575,
+        6.358291,
+        21.732542,
+        6.312291,
+        6.186958,
+        6.5015,
+        6.403667,
+        6.64325,
+        6.366208,
+        6.893583,
+        8.054667,
+        7.351584,
+        6.917459,
+        31.19725,
+        6.751459,
+        7.101958,
+        7.278917,
+        6.456459,
+        6.8055,
+        7.275458,
+        1.253167
+      ]
+    },
+    "status": "full_flow",
+    "timingsMs": {
+      "total": 1975.420125,
+      "loadFixture": 1.849958,
+      "quantizeWeights": 0.036375,
+      "localReferenceDotProduct": 0.008042,
+      "deployMarketplace": 3.410208,
+      "publishModel": 15.968625,
+      "deployEngine": 6.976917,
+      "createJob": 0.817333,
+      "uploadSnps": 330.493083,
+      "finalizeSnpUpload": 0.776708,
+      "readPartial": 173.483209,
+      "finalize": 233.203291,
+      "streamingUploadAndCompute": 567.047959,
+      "streamingFinalize": 369.558334
+    }
+  },
+  {
+    "fixtureSize": 1000,
+    "vectorLength": 1001,
+    "uploadChunkSize": 32,
+    "computeChunkSize": 20,
+    "recommendation": {
+      "tier": "balanced",
+      "scale": 1000000,
+      "requiredWeightBits": 16,
+      "requiredAccumulatorBits": 32
+    },
+    "evidenceClass": "Hardhat mock",
+    "provenance": {
+      "schema": "bioeth-prs/provenance/1",
+      "repository": {
+        "commit": "710d2b7d347cb8283342ecc17fd6c1496336f6c8",
+        "shortCommit": "710d2b7",
+        "branch": "rtr-revision",
+        "dirty": true,
+        "dirtyFiles": [
+          "M package.json",
+          "M scripts/heprs_fixture_profile.ts",
+          "M test/provenance_guard_test.ts",
+          "?? evidence/phase8/",
+          "?? scripts/phase8_evidence_synthesis.ts",
+          "?? test/phase8_evidence_synthesis_test.ts"
+        ]
+      },
+      "runtime": {
+        "node": "v22.23.1",
+        "platform": "darwin"
+      },
+      "network": {
+        "name": "hardhat",
+        "chainId": "31337"
+      },
+      "inputs": [
+        {
+          "role": "model_manifest",
+          "path": "validation/manifests/heprs_1000snp.json",
+          "hash": "0x025b4bdd531f898585aa4b8b9f2abcb46d997ae0216054ff7f5a871d7ddfc4b9",
+          "bytes": 170526
+        },
+        {
+          "role": "model_weights",
+          "path": "test/fixtures/heprs/beta_1000SNP_phenotype0.csv",
+          "hash": "0xbcd468abf6f14871064fa494ad07967232e62ce39bc22429b55a0f22b20e5488",
+          "bytes": 9368
+        },
+        {
+          "role": "genotypes",
+          "path": "test/fixtures/heprs/genotype_1000SNP_50individual.csv",
+          "hash": "0xfe574445b29bb9cd9c24f85c51139913dbf58100d1086668bd570a56cc59a296",
+          "bytes": 100100
+        }
+      ],
+      "model": {
+        "manifestHash": "0x025b4bdd531f898585aa4b8b9f2abcb46d997ae0216054ff7f5a871d7ddfc4b9",
+        "sourceModelHash": "0xbcd468abf6f14871064fa494ad07967232e62ce39bc22429b55a0f22b20e5488",
+        "genotypeManifestHash": "0xfe574445b29bb9cd9c24f85c51139913dbf58100d1086668bd570a56cc59a296",
+        "descriptor": {
+          "kind": "heprs_fixture",
+          "manifest": "validation/manifests/heprs_1000snp.json",
+          "weights": "test/fixtures/heprs/beta_1000SNP_phenotype0.csv",
+          "genotypes": "test/fixtures/heprs/genotype_1000SNP_50individual.csv",
+          "nominalSnpCount": 1000,
+          "encodedPositions": 1001,
+          "encodedPositionsNote": "nominal + 1: the fixtures carry a leading intercept column (weight 0, dosage 1)",
+          "scale": 1000000,
+          "uploadChunkSize": 32,
+          "computeChunkSize": 20,
+          "individual": 0
+        }
+      },
+      "contracts": [
+        {
+          "name": "ModelMarketplace",
+          "address": "0x38a024C0b412B9d1db8BC398140D00F5Af3093D4",
+          "bytecodeHash": "0xbe6163c1267e3aa83c56ebdc292138e457ed853396d170bd445b1905dc92f0ff",
+          "bytecodeBytes": 8151
+        },
+        {
+          "name": "PRSComputeEngine",
+          "address": "0xc582Bc0317dbb0908203541971a358c44b1F3766",
+          "bytecodeHash": "0x66c177bca198e6ff8f19f4133cb5a104f9c94662198930aa779b3aa1faa9da4f",
+          "bytecodeBytes": 10426
+        }
+      ],
+      "referenceOutput": {
+        "path": "evidence/phase3/reference/heprs_1000snp_reference.json",
+        "hash": "0x318f985bb67aa3f98daaf5d43b30b111e929772ec3cdf855394836f78e64934b"
+      }
+    },
+    "gas": {
+      "publishModel": "8252922",
+      "createJob": "321170",
+      "uploadSnps": "101945036",
+      "finalizeSnpUpload": "37197",
+      "compute": "56149157",
+      "finalize": "169898",
+      "total": "166875380"
+    },
+    "streamingGas": {
+      "publishModel": "8252922",
+      "createJob": "284170",
+      "uploadAndCompute": "96306495",
+      "finalize": "169910",
+      "total": "105013497"
+    },
+    "transactions": {
+      "modelPublication": 34,
+      "sampleRegistration": 1,
+      "classic": {
+        "jobCreation": 1,
+        "uploadSnps": 32,
+        "finalizeSnpUpload": 1,
+        "compute": 51,
+        "resultFinalization": 1,
+        "totalIncludingModelAndSample": 121
+      },
+      "streaming": {
+        "jobCreation": 1,
+        "uploadAndCompute": 51,
+        "resultFinalization": 1,
+        "totalIncludingModelAndSample": 88
+      }
+    },
+    "chunkTiming": {
+      "chunkCount": 51,
+      "totalMs": 428.78566600000005,
+      "averageMs": 8.407562078431374,
+      "minMs": 1.09675,
+      "maxMs": 35.206875,
+      "perChunkMs": [
+        5.554708,
+        9.864708,
+        6.294167,
+        6.702833,
+        6.94,
+        7.022292,
+        6.517917,
+        6.12575,
+        7.282416,
+        7.173917,
+        7.61225,
+        35.206875,
+        7.045333,
+        6.998791,
+        7.101667,
+        7.6705,
+        6.751458,
+        6.7645,
+        6.673375,
+        6.968083,
+        7.294417,
+        7.526833,
+        27.62725,
+        6.719792,
+        6.9325,
+        6.461542,
+        6.579042,
+        6.293083,
+        6.828209,
+        6.341542,
+        6.803375,
+        6.788084,
+        6.870208,
+        27.009208,
+        6.702792,
+        7.184541,
+        6.115625,
+        6.688375,
+        6.513291,
+        6.951625,
+        7.052917,
+        6.690458,
+        6.04875,
+        6.605,
+        24.062792,
+        6.942,
+        6.719875,
+        6.182541,
+        6.266209,
+        6.6155,
+        1.09675
+      ]
+    },
+    "status": "full_flow",
+    "timingsMs": {
+      "total": 3786.914583,
+      "loadFixture": 2.588292,
+      "quantizeWeights": 0.062042,
+      "localReferenceDotProduct": 0.015375,
+      "deployMarketplace": 3.83625,
+      "publishModel": 30.982208,
+      "deployEngine": 7.3805,
+      "createJob": 0.867,
+      "uploadSnps": 685.625708,
+      "finalizeSnpUpload": 0.636292,
+      "readPartial": 333.57575,
+      "finalize": 450.831,
+      "streamingUploadAndCompute": 1052.099917,
+      "streamingFinalize": 731.610125
+    }
+  },
+  {
+    "fixtureSize": 5000,
+    "vectorLength": 5001,
+    "uploadChunkSize": 32,
+    "computeChunkSize": 20,
+    "recommendation": {
+      "tier": "balanced",
+      "scale": 1000000,
+      "requiredWeightBits": 16,
+      "requiredAccumulatorBits": 32
+    },
+    "evidenceClass": "Hardhat mock",
+    "provenance": {
+      "schema": "bioeth-prs/provenance/1",
+      "repository": {
+        "commit": "710d2b7d347cb8283342ecc17fd6c1496336f6c8",
+        "shortCommit": "710d2b7",
+        "branch": "rtr-revision",
+        "dirty": true,
+        "dirtyFiles": [
+          "M package.json",
+          "M scripts/heprs_fixture_profile.ts",
+          "M test/provenance_guard_test.ts",
+          "?? evidence/phase8/",
+          "?? scripts/phase8_evidence_synthesis.ts",
+          "?? test/phase8_evidence_synthesis_test.ts"
+        ]
+      },
+      "runtime": {
+        "node": "v22.23.1",
+        "platform": "darwin"
+      },
+      "network": {
+        "name": "hardhat",
+        "chainId": "31337"
+      },
+      "inputs": [
+        {
+          "role": "model_manifest",
+          "path": "validation/manifests/heprs_5000snp.json",
+          "hash": "0x3c5979c9e386e6d30e3495926c6a2eebda0dd8c77d6b20e8778eb88829f99f7c",
+          "bytes": 850526
+        },
+        {
+          "role": "model_weights",
+          "path": "test/fixtures/heprs/beta_5000SNP_phenotype0.csv",
+          "hash": "0xed3eb3fad4a489b21780d545b2fd29ec1e4b7c7c55f33734a3067dfaf7d0e08b",
+          "bytes": 46683
+        },
+        {
+          "role": "genotypes",
+          "path": "test/fixtures/heprs/genotype_5000SNP_50individual.csv",
+          "hash": "0xb12d462a4b87dcf832c1372ee2dc477514be2c0724e672727f0a47e3ef1eb2fb",
+          "bytes": 500100
+        }
+      ],
+      "model": {
+        "manifestHash": "0x3c5979c9e386e6d30e3495926c6a2eebda0dd8c77d6b20e8778eb88829f99f7c",
+        "sourceModelHash": "0xed3eb3fad4a489b21780d545b2fd29ec1e4b7c7c55f33734a3067dfaf7d0e08b",
+        "genotypeManifestHash": "0xb12d462a4b87dcf832c1372ee2dc477514be2c0724e672727f0a47e3ef1eb2fb",
+        "descriptor": {
+          "kind": "heprs_fixture",
+          "manifest": "validation/manifests/heprs_5000snp.json",
+          "weights": "test/fixtures/heprs/beta_5000SNP_phenotype0.csv",
+          "genotypes": "test/fixtures/heprs/genotype_5000SNP_50individual.csv",
+          "nominalSnpCount": 5000,
+          "encodedPositions": 5001,
+          "encodedPositionsNote": "nominal + 1: the fixtures carry a leading intercept column (weight 0, dosage 1)",
+          "scale": 1000000,
+          "uploadChunkSize": 32,
+          "computeChunkSize": 20,
+          "individual": 0
+        }
+      },
+      "contracts": [
+        {
+          "name": "ModelMarketplace",
+          "address": "0x33E45b187da34826aBCEDA1039231Be46f1b05Af",
+          "bytecodeHash": "0xbe6163c1267e3aa83c56ebdc292138e457ed853396d170bd445b1905dc92f0ff",
+          "bytecodeBytes": 8151
+        },
+        {
+          "name": "PRSComputeEngine",
+          "address": "0xc981ec845488b8479539e6B22dc808Fb824dB00a",
+          "bytecodeHash": "0x66c177bca198e6ff8f19f4133cb5a104f9c94662198930aa779b3aa1faa9da4f",
+          "bytecodeBytes": 10426
+        }
+      ],
+      "referenceOutput": {
+        "path": "evidence/phase3/reference/heprs_5000snp_reference.json",
+        "hash": "0xb085bab587e15680c210006f0f188169a2d9b4c5e2ebee327c14f588e2ebf96b"
+      }
+    },
+    "gas": {
+      "publishModel": "39758045",
+      "createJob": "321170",
+      "uploadSnps": "509343722",
+      "finalizeSnpUpload": "37197",
+      "compute": "279791957",
+      "finalize": "169898",
+      "total": "829421989"
+    },
+    "streamingGas": {
+      "publishModel": "39758045",
+      "createJob": "284170",
+      "uploadAndCompute": "480274887",
+      "finalize": "169910",
+      "total": "520487012"
+    },
+    "transactions": {
+      "modelPublication": 159,
+      "sampleRegistration": 1,
+      "classic": {
+        "jobCreation": 1,
+        "uploadSnps": 157,
+        "finalizeSnpUpload": 1,
+        "compute": 251,
+        "resultFinalization": 1,
+        "totalIncludingModelAndSample": 571
+      },
+      "streaming": {
+        "jobCreation": 1,
+        "uploadAndCompute": 251,
+        "resultFinalization": 1,
+        "totalIncludingModelAndSample": 413
+      }
+    },
+    "chunkTiming": {
+      "chunkCount": 251,
+      "totalMs": 2098.979173000001,
+      "averageMs": 8.3624668247012,
+      "minMs": 1.591459,
+      "maxMs": 28.169542,
+      "perChunkMs": [
+        5.716542,
+        13.270458,
+        6.628083,
+        7.235875,
+        6.787417,
+        6.775959,
+        6.974125,
+        23.517833,
+        7.08575,
+        6.666084,
+        6.492833,
+        6.523167,
+        6.966541,
+        7.492084,
+        7.836,
+        7.765583,
+        8.574583,
+        8.9585,
+        27.990459,
+        6.605291,
+        6.773958,
+        6.8515,
+        7.002959,
+        6.638916,
+        7.015583,
+        6.704292,
+        6.970583,
+        6.335334,
+        7.794667,
+        26.1435,
+        6.996542,
+        6.570459,
+        6.613042,
+        7.012,
+        6.798042,
+        6.993459,
+        6.261916,
+        6.830417,
+        7.075625,
+        6.73775,
+        18.3425,
+        7.272584,
+        6.433458,
+        7.175417,
+        6.473,
+        7.525083,
+        6.720334,
+        6.974542,
+        6.960958,
+        6.579583,
+        6.72125,
+        23.513375,
+        6.989291,
+        6.799833,
+        6.392791,
+        6.753875,
+        6.920625,
+        6.850959,
+        7.588375,
+        7.048125,
+        6.769125,
+        6.646208,
+        26.524375,
+        9.2385,
+        7.31525,
+        6.052375,
+        6.516083,
+        7.038792,
+        6.569333,
+        6.708417,
+        7.069625,
+        6.7455,
+        6.644584,
+        6.485666,
+        22.828,
+        6.36775,
+        6.803709,
+        6.8955,
+        6.224166,
+        6.562333,
+        6.452166,
+        6.701166,
+        6.631666,
+        6.577083,
+        6.217625,
+        23.956291,
+        6.512125,
+        7.091459,
+        6.561708,
+        6.254417,
+        6.359792,
+        6.1535,
+        7.080709,
+        6.588542,
+        6.814667,
+        6.616459,
+        18.324959,
+        6.856208,
+        6.7835,
+        6.501334,
+        7.844834,
+        6.380958,
+        6.832792,
+        6.77775,
+        7.011292,
+        7.002708,
+        6.601167,
+        22.712042,
+        8.195458,
+        6.891625,
+        7.583042,
+        7.039416,
+        7.290083,
+        6.809209,
+        6.690416,
+        6.926583,
+        6.8485,
+        7.45575,
+        6.866667,
+        25.149541,
+        6.308333,
+        6.919584,
+        6.558792,
+        6.35025,
+        6.99475,
+        7.068291,
+        6.373834,
+        6.666167,
+        6.546834,
+        7.560125,
+        22.893584,
+        7.478541,
+        7.041667,
+        6.849709,
+        6.841125,
+        6.850208,
+        6.756084,
+        6.67825,
+        6.578542,
+        6.831083,
+        6.638708,
+        18.759292,
+        6.664084,
+        6.837166,
+        6.745791,
+        7.122667,
+        6.857833,
+        6.881292,
+        7.628875,
+        7.234417,
+        6.545,
+        6.971875,
+        6.584625,
+        26.455167,
+        7.501417,
+        6.768166,
+        7.086,
+        6.73725,
+        7.340208,
+        6.781666,
+        6.74825,
+        6.7335,
+        6.810542,
+        6.892334,
+        18.779708,
+        7.13925,
+        7.306333,
+        6.469667,
+        6.863417,
+        6.504625,
+        6.6865,
+        7.178417,
+        6.61425,
+        6.466291,
+        6.857,
+        7.120791,
+        25.544,
+        6.995125,
+        6.815583,
+        6.508292,
+        6.928167,
+        6.599209,
+        6.890542,
+        7.413375,
+        6.523333,
+        6.806166,
+        6.424083,
+        18.182792,
+        6.883042,
+        7.429209,
+        7.026541,
+        7.136291,
+        6.723583,
+        6.67125,
+        6.658917,
+        6.69025,
+        7.415125,
+        6.703125,
+        7.275875,
+        25.627334,
+        5.590542,
+        6.501167,
+        6.507708,
+        7.388375,
+        6.570417,
+        7.0245,
+        7.307125,
+        6.975583,
+        7.106708,
+        11.126792,
+        19.004166,
+        9.063917,
+        6.664334,
+        6.535542,
+        6.826083,
+        7.027292,
+        6.486167,
+        6.772583,
+        6.375375,
+        7.00925,
+        7.511375,
+        9.776791,
+        28.169542,
+        7.385334,
+        7.667,
+        7.949625,
+        6.990166,
+        7.117958,
+        7.308083,
+        7.444583,
+        7.43625,
+        7.751333,
+        6.644542,
+        19.243125,
+        7.639125,
+        7.264792,
+        7.358792,
+        7.467292,
+        6.9475,
+        6.642334,
+        7.343666,
+        7.083959,
+        6.948916,
+        6.381667,
+        23.899625,
+        9.239042,
+        7.128042,
+        6.918833,
+        6.497666,
+        7.067625,
+        1.591459
+      ]
+    },
+    "status": "full_flow",
+    "timingsMs": {
+      "total": 19123.076417,
+      "loadFixture": 8.008292,
+      "quantizeWeights": 0.345125,
+      "localReferenceDotProduct": 0.093708,
+      "deployMarketplace": 4.168625,
+      "publishModel": 134.546459,
+      "deployEngine": 6.95975,
+      "createJob": 0.723875,
+      "uploadSnps": 3438.405417,
+      "finalizeSnpUpload": 0.63375,
+      "readPartial": 1673.477834,
+      "finalize": 2402.823542,
+      "streamingUploadAndCompute": 5372.346625,
+      "streamingFinalize": 3892.659416
+    }
+  }
+]

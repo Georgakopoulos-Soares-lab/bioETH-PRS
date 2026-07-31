@@ -1,0 +1,59 @@
+
+> bioeth-prs@0.1.0 profile:heprs
+> hardhat test scripts/heprs_fixture_profile.ts
+
+
+
+  HEPRS fixture profiler
+
+HEPRS fixture profile
+fixtures=100,500,1000,5000
+uploadChunkSize=32
+computeChunkSize=20
+
+fixture=100 SNP (vectorLength=101, uploadChunkSize=32, computeChunkSize=20)
+status=full_flow
+advisor: tier=balanced, scale=3000000, bits=16/32
+timings: total=589.06ms, load=1.02ms, quantize=0.07ms, publishModel=7.62ms, createJob=1.52ms, uploadSnps=125.85ms, finalizeSnpUpload=0.72ms, chunkTotal=43.07ms, finalize=62.48ms, stream.uploadAndCompute=132.89ms, stream.finalize=85.25ms
+chunks: count=6, avg=7.18ms, min=1.32ms, max=10.35ms
+transactions: classic=20, streaming=15 (fresh model + registered sample + one job; deployments excluded)
+gas (classic):  total=17863173, publishModel=1169598, createJob=321170, uploadSnps=10335783, finalizeSnpUpload=37197, compute=5829527, finalize=169898
+gas (streaming): total=11537946, publishModel=1169598, createJob=284170, uploadAndCompute=9914268, finalize=169910
+gas savings (streaming vs classic): 6325227 (35.4%)
+
+fixture=500 SNP (vectorLength=501, uploadChunkSize=32, computeChunkSize=20)
+status=full_flow
+advisor: tier=balanced, scale=3000000, bits=16/32
+timings: total=1975.42ms, load=1.85ms, quantize=0.04ms, publishModel=15.97ms, createJob=0.82ms, uploadSnps=330.49ms, finalizeSnpUpload=0.78ms, chunkTotal=211.76ms, finalize=233.20ms, stream.uploadAndCompute=567.05ms, stream.finalize=369.56ms
+chunks: count=26, avg=8.14ms, min=1.25ms, max=31.20ms
+transactions: classic=64, streaming=47 (fresh model + registered sample + one job; deployments excluded)
+gas (classic):  total=83985385, publishModel=4298378, createJob=321170, uploadSnps=50964935, finalizeSnpUpload=37197, compute=28193807, finalize=169898
+gas (streaming): total=53063402, publishModel=4298378, createJob=284170, uploadAndCompute=48310944, finalize=169910
+gas savings (streaming vs classic): 30921983 (36.8%)
+
+fixture=1000 SNP (vectorLength=1001, uploadChunkSize=32, computeChunkSize=20)
+status=full_flow
+advisor: tier=balanced, scale=1000000, bits=16/32
+timings: total=3786.91ms, load=2.59ms, quantize=0.06ms, publishModel=30.98ms, createJob=0.87ms, uploadSnps=685.63ms, finalizeSnpUpload=0.64ms, chunkTotal=428.79ms, finalize=450.83ms, stream.uploadAndCompute=1052.10ms, stream.finalize=731.61ms
+chunks: count=51, avg=8.41ms, min=1.10ms, max=35.21ms
+transactions: classic=121, streaming=88 (fresh model + registered sample + one job; deployments excluded)
+gas (classic):  total=166875380, publishModel=8252922, createJob=321170, uploadSnps=101945036, finalizeSnpUpload=37197, compute=56149157, finalize=169898
+gas (streaming): total=105013497, publishModel=8252922, createJob=284170, uploadAndCompute=96306495, finalize=169910
+gas savings (streaming vs classic): 61861883 (37.1%)
+
+fixture=5000 SNP (vectorLength=5001, uploadChunkSize=32, computeChunkSize=20)
+status=full_flow
+advisor: tier=balanced, scale=1000000, bits=16/32
+timings: total=19123.08ms, load=8.01ms, quantize=0.35ms, publishModel=134.55ms, createJob=0.72ms, uploadSnps=3438.41ms, finalizeSnpUpload=0.63ms, chunkTotal=2098.98ms, finalize=2402.82ms, stream.uploadAndCompute=5372.35ms, stream.finalize=3892.66ms
+chunks: count=251, avg=8.36ms, min=1.59ms, max=28.17ms
+transactions: classic=571, streaming=413 (fresh model + registered sample + one job; deployments excluded)
+gas (classic):  total=829421989, publishModel=39758045, createJob=321170, uploadSnps=509343722, finalizeSnpUpload=37197, compute=279791957, finalize=169898
+gas (streaming): total=520487012, publishModel=39758045, createJob=284170, uploadAndCompute=480274887, finalize=169910
+gas savings (streaming vs classic): 308934977 (37.2%)
+
+Wrote JSON profile to /Users/kap4722/bioETH-PRS/evidence/phase8/heprs_profile.json
+    ✔ profiles all requested fixtures and prints timing summary (25476ms)
+
+
+  1 passing (25s)
+
