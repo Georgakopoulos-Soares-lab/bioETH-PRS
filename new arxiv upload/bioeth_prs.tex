@@ -26,7 +26,6 @@
 \usepackage{algpseudocode}
 \usepackage{multirow}
 \usepackage{fancyhdr}
-\usepackage[switch]{lineno}
 
 \hypersetup{colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black}
 
@@ -77,7 +76,6 @@
 \date{}
 
 \begin{document}
-\linenumbers
 \maketitle
 \thispagestyle{fancy}
 
@@ -522,13 +520,13 @@ target is shown first:
 \end{enumerate}
 
 \begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth,keepaspectratio]{figures/fig_scoring_workflow.pdf}
-\caption{Six-stage scoring workflow. Public identifiers and allele labels support
-local QC and effect-allele orientation before dosage values and, for private models,
-weight magnitudes enter the encrypted path. ACL and handle mechanics govern release
-but do not prove that submitted ciphertexts derive from the registered sample.}
-\label{fig:scoring_workflow}
+  \centering
+  \includegraphics[width=\columnwidth,keepaspectratio]{figures/fig_scoring_workflow.pdf}
+  \caption{Six-stage scoring workflow. Public identifiers and allele labels support
+  local QC and effect-allele orientation before dosage values and, for private models,
+  weight magnitudes enter the encrypted path. ACL and handle mechanics govern release
+  but do not prove that submitted ciphertexts derive from the registered sample.}
+  \label{fig:scoring_workflow}
 \end{figure}
 
 \subsection{Overflow Safety}

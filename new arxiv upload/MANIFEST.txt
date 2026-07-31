@@ -1,0 +1,12 @@
+README.md
+bioeth_prs.tex
+bioeth_prs.bib
+bioeth_prs.bbl
+figures/fig_architecture.pdf
+figures/fig_gas_scaling.pdf
+figures/fig_individual_agreement.pdf
+figures/fig_protocol.pdf
+figures/fig_quantization.pdf
+figures/fig_scoring_workflow.pdf
+figures/fig_security.pdf
+figures/graphical_abstract.pdf

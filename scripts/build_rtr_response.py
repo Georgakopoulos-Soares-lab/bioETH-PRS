@@ -160,6 +160,17 @@ def add_comment_response(
     heading.add_run("Response")
     for text in response:
         doc.add_paragraph(text)
+    if actions != "No action required":
+        change_note = doc.add_paragraph()
+        label = change_note.add_run("Change to the previous manuscript. ")
+        set_font(label, 10.5, bold=True, color=DARK_BLUE)
+        detail = change_note.add_run(
+            "Accordingly, we revised the corresponding text and, where applicable, "
+            "figures from the previous version at the manuscript locations identified "
+            "above so that they now match the evidence boundary and qualifications "
+            "stated in this response."
+        )
+        set_font(detail, 10.5)
 
 
 def build() -> None:
@@ -215,7 +226,7 @@ def build() -> None:
         "General assessment",
         "This manuscript presents bioETH-PRS, a privacy-preserving framework for polygenic risk score computation using fully homomorphic encryption on a programmable blockchain. The central idea is to replace the trusted evaluator used in prior encrypted PRS pipelines with auditable smart contracts, while protecting both patient genotypes and GWAS model weights. The manuscript is timely and conceptually interesting, particularly at the intersection of genomic privacy, encrypted computation, and decentralized infrastructure. However, the current evidence remains largely proof-of-concept, and several claims about deployability, privacy guarantees, and clinical feasibility are not yet fully supported.",
         "All Reviewer 1 actions, R1.1 through R1.8",
-        "Abstract and Key Points (p. 1, lines 1-48); Introduction (pp. 1-2, lines 49-152); Discussion and Conclusion (pp. 12-14, lines 838-1002)",
+        "Abstract and Key Points (p. 1, lines 1-48); Introduction (pp. 1-3, lines 49-152); Discussion and Conclusion (pp. 13-15, lines 838-1002)",
         "evidence/ phases 1-8; Stage A boundary e6e2c1d",
         [
             "We agree with the reviewer's characterization and have converted the paper from a broad deployment argument into a bounded, evidence-classed prototype study. The revision now separates Live fhEVM, Hardhat mock, and Analytic projection evidence; reports one verified public Sepolia workflow; defines retained trust and input-authenticity assumptions; replaces the incorrect anti-probing estimate with measured attacks; validates all 200 individual scores independently; and removes clinical or commercial practicality claims.",
@@ -228,7 +239,7 @@ def build() -> None:
         "Comment 1 - Mock-only evaluation",
         "1. The empirical evaluation relies heavily on a mock coprocessor environment. The reported gas consumption, HCU budget, latency, and protocol behavior are mainly evaluated using a Hardhat in-process mock coprocessor rather than a real fhEVM deployment or public testnet. This substantially weakens the deployment claims. The authors should either provide real-network validation or clearly frame these results as simulation-based estimates.",
         "R1.1-E1, R1.1-E2, R1.1-M1",
-        "Model Marketplace (p. 4, lines 287-301); Experimental Setup (pp. 9-10, lines 648-684); Tables 4-9 (pp. 10-12)",
+        "Model Marketplace (p. 4, lines 287-301); Experimental Setup (p. 10, lines 648-684); Tables 4-9 (pp. 11-12)",
         "evidence/phase7/live_2026-07-31/; evidence/phase8/scale_evidence.json; measured_transaction_use.json",
         [
             "We now provide real-network validation and label every result by evidence class. A public 100-SNP classic-path workflow completed on Sepolia (chain ID 11155111) with 25 status-1 workflow receipts, 20,710,271 gas, 269,320 ms submission-to-result latency, 8,081 ms Gateway/KMS decryption, and decoded encoded score 758,685, exactly matching the independent reference. Contract addresses, transaction hashes, block numbers, bytecode digests, source hash, and the reference digest are preserved in the receipt-level record.",
@@ -242,7 +253,7 @@ def build() -> None:
         "Comment 2 - Trust language",
         "2. The privacy claims should be stated more cautiously. The manuscript argues that bioETH-PRS removes the trusted evaluator assumption. This is a meaningful architectural contribution, but the system still depends on the correctness and availability of the fhEVM stack, smart contracts, ACL/decryption infrastructure, and blockchain consensus. Terms such as “zero trust” or “trustless” should be softened or carefully qualified.",
         "R1.2-M1, R1.2-M2",
-        "Title, Abstract, and Key Points (p. 1, lines 1-48); Introduction (p. 2, lines 90-101); Security Model and Table 2 (pp. 7-9, lines 492-584); Conclusion (p. 14, lines 972-1002)",
+        "Title, Abstract, and Key Points (p. 1, lines 1-48); Introduction (p. 2, lines 90-101); Security Model and Table 2 (pp. 8-9, lines 492-584); Conclusion (p. 15, lines 972-1002)",
         "Table 2 trust/failure boundary; contracts and live provenance records",
         [
             "We agree. The revision consistently describes evaluator minimization: the designated application-level evaluator is replaced by publicly auditable contract orchestration, but trust is shifted rather than eliminated. The title was changed accordingly, and the abstract, graphical abstract, key points, introduction, comparison, discussion, and conclusion now use the same bounded vocabulary.",
@@ -255,7 +266,7 @@ def build() -> None:
         "Comment 3 - Differential-privacy framing",
         "3. The noisy output oracle does not provide formal differential privacy. The authors acknowledge that the current mechanism is DP-inspired rather than a calibrated (epsilon, delta)-differential privacy guarantee. Given the sensitivity of genomic data, this limitation should be emphasized more prominently. If the authors wish to retain strong privacy language, they should provide a formal adjacency definition, sensitivity analysis, and privacy-parameter calibration.",
         "R1.3-M1, R1.3-M2",
-        "Bounded Randomized Categorical Release (pp. 8-9, lines 561-602); Limitations and Future Directions (p. 13, lines 891-924)",
+        "Bounded Randomized Categorical Release (pp. 9-10, lines 561-602); Limitations and Future Directions (p. 14, lines 891-924)",
         "contracts/ResultOracle.sol; test/rate_limit_randomized_release_test.ts; evidence/phase5/category_agreement_100snp.json",
         [
             "We removed the differential-privacy framing and use the implementation term 'bounded randomized categorical release.' The manuscript states explicitly that the mechanism provides no (epsilon, delta) guarantee because the noise is one-sided on [0,B), is not calibrated to score sensitivity, and has no composition accounting across repeated queries.",
@@ -268,7 +279,7 @@ def build() -> None:
         "Comment 4 - Anti-probing evidence",
         "4. The manuscript estimates that model extraction would require thousands of hours under recommended rate-limiting settings. However, this calculation appears heuristic and does not fully address adaptive querying, multiple-wallet attacks, threshold manipulation, correlated SNP structure, or cross-sample probing. A stronger adversarial analysis is needed before the anti-probing claims can be considered established.",
         "R1.4-C1, R1.4-T1, R1.4-E1, R1.4-M1",
-        "Fixed release policy (Algorithms 1-2, p. 7); Anti-Probing and Table 3 (pp. 9-10, lines 603-647); Limitations (p. 13, lines 874-897)",
+        "Fixed release policy (Algorithms 1-2, pp. 7-8); Anti-Probing and Table 3 (pp. 10-11, lines 603-647); Limitations (p. 14, lines 874-897)",
         "evidence/phase6/anti_probing_results.json; scripts/anti_probing_evaluation.ts; contracts/attack-baseline/",
         [
             "We thank the reviewer for identifying a serious error. We deleted the submitted calculation rather than repairing it: it divided a count of candidate values by a bit rate, its stated 4,220 windows implied 14,067 rather than 2,800 hours, and the measured submitted-design cost is about 252 times lower than claimed.",
@@ -282,7 +293,7 @@ def build() -> None:
         "Comment 5 - SNP authenticity",
         "5. The inability to verify submitted encrypted SNPs is a major unresolved security issue. The system verifies access to a registered sample but cannot confirm that the submitted encrypted SNP values faithfully represent that sample. This allows malicious users to submit crafted inputs, which directly affects model-probing and misuse risks. This issue should be moved from a limitation to the main security discussion.",
         "R1.5-T1, R1.5-M1, R1.5-M2",
-        "Threat Model and Input Authenticity (pp. 7-8, lines 492-522); Table 2 (p. 9); Future Directions (p. 13, lines 913-918)",
+        "Threat Model and Input Authenticity (p. 8, lines 492-522); Table 2 (p. 9); Future Directions (p. 14, lines 913-918)",
         "test/prs_compute_engine_chunked_snp_test.ts trust-boundary regression; validation manifests",
         [
             "We agree and moved this boundary into the main Security Model. The threat model now includes a malicious authorized requester and states: contracts compute deterministically over submitted ciphertexts but do not prove those ciphertexts derive from the registered sample. GenomicRegistry.hasAccess gates who may create a job, not what is uploaded.",
@@ -295,7 +306,7 @@ def build() -> None:
         "Comment 6 - Bounded scale",
         "6. The prototype is evaluated on 100-5,000 SNP fixtures, whereas many PRS models contain tens of thousands to millions of variants. The authors should more clearly define the intended use case, such as curated small-panel PRS models, and avoid implying general applicability to large-scale clinical PRS deployment.",
         "R1.6-E1, R1.6-M1, R1.6-M2",
-        "Introduction (p. 2, lines 148-152); Background (p. 3, lines 164-171); Bounded Scale Evidence and Table 6 (pp. 10-11, lines 712-725); Discussion (pp. 12-14, lines 838-881, 991-1002)",
+        "Introduction (p. 3, lines 148-152); Background (p. 3, lines 164-171); Bounded Scale Evidence and Table 6 (pp. 11-12, lines 712-725); Discussion and Conclusion (pp. 13-15, lines 838-881, 991-1002)",
         "evidence/phase8/scale_evidence.json; heprs_profile.json",
         [
             "We narrowed the intended use to a bounded-size research prototype for curated additive PRS models. One public 100-variant row is Live fhEVM. The wider executed range is Hardhat mock: public workflows at 100, 500, 1,000, and 5,000 variants required 15, 47, 88, and 413 host transactions; the private 100-variant mock workflow required 17.",
@@ -308,7 +319,7 @@ def build() -> None:
         "Comment 7 - HEPRS comparison",
         "7. bioETH-PRS improves the trust model by removing the designated evaluator, but HEPRS supports much larger SNP counts and has different computational advantages. The manuscript should separate claims about privacy architecture, scalability, latency, memory use, and deployment assumptions rather than presenting bioETH-PRS as broadly superior.",
         "R1.7-M1, R1.7-M2",
-        "Comparison with HEPRS and Table 1 (pp. 4-5, lines 321-335); Complementary Systems (p. 13, lines 850-872); Conclusion (p. 14, lines 991-1002)",
+        "Comparison with HEPRS and Table 1 (pp. 4-6, lines 321-335); Complementary Systems (p. 14, lines 850-872); Conclusion (p. 15, lines 991-1002)",
         "Bundled HEPRS article, docs/PIIS2667237525003078.pdf; evidence/phase8/scale_evidence.json",
         [
             "We rebuilt the comparison one dimension per row: privacy architecture, designated evaluator, retained trust, arithmetic, demonstrated encrypted variants, latency evidence, memory evidence, deployment requirements, output policy, and metadata exposure. Every cell identifies its evidence type.",
@@ -321,7 +332,7 @@ def build() -> None:
         "Comment 8 - Cost claims",
         "8. The cost projections depend on L2-equivalent or application-chain gas pricing and are not based on measured production deployment. Claims that the system may be clinically or commercially practical should be toned down unless supported by real deployment data.",
         "R1.8-E1, R1.8-M1",
-        "Measured Transaction Use and Fee Sensitivity, Tables 4 and 9 (pp. 11-12, lines 744-774); Limitations (p. 13, lines 898-903); Conclusion (p. 14, lines 991-1002)",
+        "Measured Transaction Use and Fee Sensitivity, Tables 4 and 9 (pp. 11-12, lines 744-774); Limitations (p. 14, lines 898-903); Conclusion (p. 15, lines 991-1002)",
         "evidence/phase8/measured_transaction_use.json; fee_sensitivity.json",
         [
             "We removed the projected USD table and all clinical/commercial affordability claims. The replacement separates observations from arithmetic. Live deployment used four transactions and 5,892,559 gas (0.0062781714 Sepolia test ETH); the live public job used 25 transactions and 20,710,271 gas (0.0252747648 test ETH). These are test-network expenditures, not production prices.",
@@ -335,7 +346,7 @@ def build() -> None:
         "General assessment",
         "This manuscript presents bioETH-PRS, a blockchain-based protocol for privacy-preserving polygenic risk scoring (PRS) using TFHE/fhEVM smart contracts. The paper’s main claim is that it removes the need for a trusted evaluator found in prior homomorphic-encryption PRS pipelines by moving orchestration to auditable on-chain contracts. Overall, the paper tries to addresses an important problem at the intersection of genomics, privacy, and decentralized computation. The manuscript is interesting and original. However, I do have several comments.",
         "Reviewer 2 actions R2.1 through R2.7",
-        "Methods, Results, Discussion, and Conclusion (pp. 3-14)",
+        "Methods, Results, Discussion, and Conclusion (pp. 3-15)",
         "Independent validation and individual-level evidence under evidence/phase3 and evidence/phase5",
         [
             "We thank the reviewer. The revision preserves the architectural contribution while narrowing it to evaluator minimization under explicit infrastructure assumptions. We added executable preprocessing and alignment rules, a plain-language workflow, an independent implementation, a correctness-boundary table, and all 200 individual comparisons. We also surface the bounded-scale limitation throughout the paper.",
@@ -347,7 +358,7 @@ def build() -> None:
         "Comment 1 - Practical variant scale",
         "1. bioETH-PRS was evaluated only on 100-5000 SNPs, while a real PRS in practice can involve far larger number of SNPs. Although the authors acknowledged that the HCU budget and transaction count made the genome-wide model impractical on current infrastructure. This is still a serious limitation because the method may only apply to a narrow class of PRS models with limited number of SNPs.",
         "R2.1-M1; R1.6-E1, R1.6-M1, R1.6-M2",
-        "Introduction (p. 2, lines 148-152); Bounded Scale Evidence (pp. 10-11, lines 712-725); Discussion and Limitations (pp. 12-13, lines 838-881)",
+        "Introduction (p. 3, lines 148-152); Bounded Scale Evidence (p. 11, lines 712-725); Discussion and Limitations (pp. 13-14, lines 838-881)",
         "evidence/phase8/scale_evidence.json",
         [
             "We agree. The manuscript now calls bioETH-PRS a bounded-size research prototype for curated additive models and states that it is not a practical genome-wide PRS engine. The executed range and transaction counts are reported by evidence class, while the 10,000-1,000,000 rows are explicitly unexecuted transaction geometry. The limitation appears in the abstract, key points, introduction, opening of empirical evaluation, discussion, and conclusion rather than only in retrospective limitations.",
@@ -385,7 +396,7 @@ def build() -> None:
         "Comment 4 - Who guarantees correctness?",
         "4. How and who to guarantee the final PRS provided by bioETH-PRS is correctly computed? In other words, the bioETH-PRS will eventually provide some numbers. But how do I know I can trust these numbers?",
         "R2.4-E1, R2.4-M1",
-        "Quantisation Accuracy and Figure 7 (p. 10, lines 685-711); Correctness and Protocol Verification (p. 12, lines 775-786); Table 10 (p. 13)",
+        "Quantisation Accuracy and Figure 7 (pp. 10-11, lines 685-711); Correctness and Protocol Verification (pp. 12-13, lines 775-786); Table 10 (p. 13)",
         "evidence/phase5/individual_level_comparison.csv; provenance blocks; on-chain receipt verification",
         [
             "We replaced an undifferentiated correctness claim with a boundary table. The genotype preprocessor guarantees alignment/QC rules; the model provider is responsible for weights, thresholds, and scientific validity; contracts deterministically implement the encoded weighted sum; fhEVM infrastructure is responsible for encrypted execution and authorized decryption; the independent implementation checks agreement with Equation 1; and the end user can verify manifests, addresses, bytecode digests, receipts, and the reference digest.",
@@ -398,7 +409,7 @@ def build() -> None:
         "Comment 5 - Interpretability of the encoded pipeline",
         "5. The original PRS calculation is simple and easy to understand/interpret, which is a weighted sum of multiple SNPs. The PRS calculation by bioETH-PRS seems more complicated with certain black boxes. Could the authors comment on that?",
         "R2.5-M1",
-        "Three-Step Unsigned Encoding and worked example (pp. 5-6, lines 349-387); Figure 4 (p. 6); Algorithms 1-2 (p. 7)",
+        "Three-Step Unsigned Encoding and worked example (pp. 5-6, lines 349-387); Figure 4 (p. 6); Algorithms 1-2 (pp. 7-8)",
         "validation/cases/mixed_signed_weights.json; independent reference self-test",
         [
             "We reorganized the explanation around the original weighted sum. The three-SNP example now begins with the plaintext result 0.45, then shows six reversible steps: quantize, shift weights, accumulate, correct the weight zero-point, shift the score, and decode. The decoded result returns exactly to Equation 1.",
@@ -411,7 +422,7 @@ def build() -> None:
         "Comment 6 - Independent validation",
         "6. If I need double programming or independent validation of the final calculated PRS, could bioETH-PRS incorporate this?",
         "R2.6-C1, R2.6-T1",
-        "Experimental Setup and Reproducibility Identifiers (pp. 9-10, lines 648-684); Correctness and Protocol Verification (p. 12, lines 775-786)",
+        "Experimental Setup and Reproducibility Identifiers (p. 10, lines 648-684); Correctness and Protocol Verification (pp. 12-13, lines 775-786)",
         "validation/independent_prs_reference.py; npm run validate:cross-language; evidence/phase3/",
         [
             "Yes. We added a standard-library-only Python reference implementation derived independently from the TypeScript/Solidity path. One command runs its 56-rule self-test, scores three hand-computed cases, executes the TypeScript/contract path, and compares encoded and decoded outputs at tolerance zero. All three cases pass with zero mismatches.",
@@ -445,7 +456,7 @@ def build() -> None:
 
     doc.add_heading("Revision Verification Summary", level=1)
     for text in (
-        "Manuscript compile: successful line-numbered 15-page PDF with resolved bibliography.",
+        "Manuscript compile: successful line-numbered PDF with resolved bibliography.",
         "Automated suite: 174 passing, 0 failing on Node v22.23.1.",
         "Independent validation: three known-answer cases pass at tolerance zero; 56 reference self-checks pass.",
         "Live verification: four Sepolia deployments and all 25 successful public-workflow receipts independently rechecked; decoded encoded score 758,685.",
