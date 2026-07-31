@@ -1,0 +1,52 @@
+{
+  "network": "sepolia",
+  "chainId": "11155111",
+  "evidenceClass": "Live fhEVM",
+  "method": "Re-read every saved transaction receipt and deployed runtime bytecode from Sepolia; require status 1, exact block/gas equality, reconciled totals, matching source hash, and matching decoded/reference score.",
+  "deployment": {
+    "report": "evidence/phase7/live_2026-07-31/deployment.json",
+    "reportSha256": "522aa5d65b3e8d4f379ac84bc54af29397a4b6d65ecd1822a46436329d482087",
+    "transactionsVerified": 4,
+    "allStatusOne": true,
+    "receiptBlocks": {
+      "first": 11388858,
+      "last": 11388861
+    },
+    "totalGas": "5892559",
+    "feePaid": {
+      "wei": "6278171412391863",
+      "eth": "0.006278171412391863",
+      "classification": "actual Sepolia test-ETH fee; not a production or USD cost"
+    },
+    "runtimeBytecodeIdentitiesVerified": 4
+  },
+  "publicValidation": {
+    "report": "evidence/phase7/live_2026-07-31/public_success.json",
+    "reportSha256": "322ae4bc7c5113d3d97aebe1a3589e0a718469f8f4a7bc819891ccd95c7e8027",
+    "checkpoint": "evidence/phase7/live_2026-07-31/public_success_checkpoint.json",
+    "checkpointSha256": "d0f5ae70fd62ca4c04494e002ebf4faf1bbfb49a61513e31f9de45640e66abe2",
+    "consoleLog": "evidence/phase7/live_2026-07-31/public_success.txt",
+    "consoleLogSha256": "f682198a70409383ca2f246d44f052dc398a9e3a3b72eee5722c439397510833",
+    "transactionsVerified": 25,
+    "allStatusOne": true,
+    "totalGas": "20710271",
+    "feePaid": {
+      "wei": "25274764801306197",
+      "eth": "0.025274764801306197",
+      "classification": "actual Sepolia test-ETH fee; not a production or USD cost"
+    },
+    "runtimeBytecodeIdentitiesVerified": 3,
+    "runnerSourceVerified": {
+      "hash": "0xb45f5b59e9357990449cd0824c6d40259f89438ebb64cedbb4bd09662193e27a",
+      "bytes": 25811,
+      "repositoryCommit": "4fa7c9fae4866253fc210a01b83c3b56c3b874c0"
+    },
+    "decodedEncodedScore": "758685",
+    "expectedEncodedScore": "758685",
+    "scoreMatchesIndependentReference": true
+  },
+  "privateValidation": {
+    "executed": false,
+    "reason": "The remaining 0.012769081524632462 Sepolia ETH does not safely cover the 100-SNP private workflow; no underfunded transaction was submitted."
+  }
+}

@@ -673,55 +673,37 @@ the configuration that needs the protection costs roughly double the configurati
 priced. Phase 8 must report both, and the paper must not quote the public figure while
 discussing the private threat model.
 
-## CD-024 — Phase 7's live runs are blocked on a funded wallet; the manuscript must take the plan's own fallback
+## CD-024 — The original live-credential blocker was partially resolved; the outcome is public-live/private-mock
 
 - **Opened:** Phase 7, 29 July 2026
-- **Status:** **blocked** — not resolvable in this environment
-- **Resolves via:** `R1.1-E1`, `R1.1-E2` once credentials exist; otherwise `R1.1-M1` narrows the claim
+- **Updated:** Phase 7 follow-up, 31 July 2026
+- **Status:** **resolved with the explicit `R1.1-E2` fallback**
+- **Resolves via:** `R1.1-E1`, `R1.1-E2`, and the bounded wording in `R1.1-M1`
 
-`R1.1-E1` and `R1.1-E2` require transactions on a live fhEVM network. No `MNEMONIC` is
-configured (`npx hardhat vars list` is empty), and `scripts/sepolia_validation.ts` correctly
-refuses to run against the public Hardhat test mnemonic. The runs therefore cannot be executed
-here, and no live number has been fabricated.
+The initial record correctly found no configured safe wallet and fabricated no live result. A
+test-only wallet was subsequently configured and funded. It deployed all four contracts and
+completed one public 100-SNP workflow on Sepolia (chain ID 11155111). The verified public run
+has 25 status-1 workflow receipts, 20,710,271 gas, 269,320 ms submission-to-result latency,
+8,081 ms Gateway/KMS decryption, and decoded encoded score 758,685, exactly matching the
+independent reference. Receipt, bytecode, source-hash, and address verification are preserved in
+`evidence/phase7/live_2026-07-31/public_success.json` and `onchain_verification.json`.
 
-**Everything else about the live run is verified.** Sepolia RPC is reachable (chain ID
-11155111, block 11374028 at time of check). All four contracts are far inside the EIP-170 limit
-— the largest, `PRSComputeEngine`, is 10,426 B or 42.4%. The 31 July follow-up closes the two
-remaining software gaps: one harness now supports public and encrypted private weights, and
-both modes record chain ID, deployed identities, every transaction hash and block number,
-transaction count, host gas, timings, exact runner-source hash, and decoded/reference scores.
-Public/private modes pass on the mock at 20/22 classic-path transactions and the known encoded
-score 758,685. `npm run preflight:live` asserts **8/8** readiness properties.
+The first public attempt failed after one SNP upload when the official relayer closed a TLS
+socket. Its nine successful receipts and terminal error remain in
+`public_attempt1_failed.json`; they are not counted as a successful workflow. The harness was
+then hardened to prepare all proofs before state-changing workflow transactions, retry bounded
+transport failures, and checkpoint every receipt. The successful run followed that change.
 
-Measured budget, at a Sepolia gas price of 1.048 gwei read from the network:
+Private-weight execution remains implemented and Hardhat-mock validated, but was not executed
+live. After deployment, the preserved failed attempt, and the successful public run, the wallet
+held 0.0127690815 Sepolia ETH. That did not safely cover the measured mock private workflow
+geometry, so no underfunded transaction was submitted. This satisfies the action's stated
+fallback: the manuscript must say private-weight execution is mock-validated only and must not
+infer it from the public run.
 
-| | Gas | ETH |
-|---|---:|---:|
-| Deployment, all four contracts | 5,892,613 | 0.00617 |
-| + public 100-SNP job | 11,690,033 | 0.01842 cumulative |
-| + private 100-SNP job | 23,507,892 | 0.04305 cumulative |
-| Recommended with 3x headroom | | **~0.13** |
-
-**What the manuscript must do meanwhile.** `R1.1-E2` already provides for this: "either a
-successful private-weight transaction record exists, or the manuscript explicitly says
-private-weight execution is mock-validated only." Absent credentials that fallback applies to
-**both** runs, not just the private one. Until a live run exists, the paper must state that all
-results are Hardhat-mock validated, must not claim live-network deployment, and must leave the
-Sepolia HCU ceiling as unmeasured for both model visibilities. `MS-05` is updated accordingly
-with both branches.
-
-**Exact remaining commands:**
-
-```sh
-npx hardhat vars set MNEMONIC
-npm run deploy:sepolia
-MODEL_VISIBILITY=public npm run validate:sepolia
-MODEL_VISIBILITY=private npm run validate:sepolia
-npm run probe:hcu
-```
-
-The blocker is now wallet funding/execution only, not private-mode parameterisation or missing
-receipt fields. Evidence: `evidence/phase7/readiness_2026-07-31_final/`.
+The live HCU ceiling also remains unmeasured for both visibilities. A successful compute chunk
+size of 10 is an observation, not a ceiling. The prior mock ceiling of 21 must stay labelled
+Hardhat mock.
 
 ## CD-025 — Phase 7 prose copied total gas 12 units above its machine-readable record
 
@@ -748,3 +730,28 @@ machine-readable component sums authoritative, preserves their raw values in
 `measured_transaction_use.json`, and renders the manuscript-facing totals at meaningful
 precision as **11.690 M** and **23.508 M**. The earlier Phase 7 record is not rewritten; this
 delta documents the supersession.
+
+## CD-026 — One geometry-matched live/mock pair is informative but cannot support a general conversion factor
+
+- **Opened:** Phase 8 follow-up, 31 July 2026
+- **Status:** **resolved in evidence synthesis**; manuscript correction pending
+- **Resolves via:** `R1.1-M1` and `R1.8-M1`
+
+The submitted manuscript says Hardhat gas should be within 10–20% of live deployment. Phase 7
+now supplies one controlled comparison using the same public 100-SNP fixture, classic path,
+upload chunk size 32, compute chunk size 10, and 25 transactions:
+
+| Evidence class | Gas | End-to-end report timing |
+|---|---:|---:|
+| Live fhEVM | 20,710,271 | 464,253 ms |
+| Hardhat mock | 18,755,864 | 362 ms |
+
+Live gas is 1,954,407, or **10.42%**, above this one mock observation. Although that one point
+falls inside the submitted range, it does not validate a general conversion factor across
+contracts, chunk geometry, network conditions, or encrypted workloads. The sentence must be
+deleted, not retroactively defended.
+
+The timings are not a speed comparison: live timing includes real Sepolia confirmation,
+relayer proof handling, TFHE execution, and Gateway/KMS decryption, whereas mock timing is an
+in-process host measurement. The pair therefore supports evidence-class separation, not a
+mock-to-live latency ratio.

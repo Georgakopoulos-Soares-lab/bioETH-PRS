@@ -367,8 +367,9 @@ Removing the raw-score path is the single largest control — exact extraction i
 
 ## MS-05 · `R1.1-M1` · Phase 11 · Evidence-class labelling
 
-**Status: `READY` (branch B)** — Phase 7 is blocked on credentials, so the fallback branch
-applies. See `CD-024`, `CD-021`, `CD-022`, `CD-023`.
+**Status: `READY` (hybrid public-live/private-mock outcome)** — the public Phase 7 run passed
+on Sepolia and the private action took its explicit mock-only fallback. See `CD-024`, `CD-026`,
+`CD-021`, `CD-022`, `CD-023`.
 
 Label every result `Live fhEVM`, `Hardhat mock`, or `Analytic projection`. Delete the sentence
 "gas numbers are expected to be within 10--20\% of real-network deployment" — it is an
@@ -376,28 +377,24 @@ unsupported extrapolation. Stop placing the `~386 ms` mock latency beside HEPRS 
 as though comparable. Replace with: *Hardhat results validate contract logic and transaction
 geometry but do not measure real fhEVM latency, HCU availability, or production fees.*
 
-**Two branches. Take B unless a live run has happened.**
+Add one public "Live fhEVM validation" paragraph and table row. State chain ID 11155111, the four
+contract addresses (or point to the receipt table), 25 status-1 workflow receipts, 20.710271 M
+gas, 269,320 ms submission-to-result latency, 8,081 ms Gateway/KMS decryption, and decoded score
+758,685 matching the independent reference. The complete addresses, hashes, blocks, source hash,
+and receipts are in `evidence/phase7/live_2026-07-31/public_success.json` and
+`onchain_verification.json`; keep those identifiers out of dense narrative where a table or
+supplement reference is clearer.
 
-*Branch A — a live run exists.* Add the "Live fhEVM validation" paragraph and table row, with
-chain ID, contract addresses, transaction hashes, block numbers, host gas, submission-to-result
-latency, decryption latency, and the decoded result. In `System Design -> Model Marketplace`,
-separate "implemented in the contracts" from "validated on a live network", matching the actual
-`R1.1-E2` outcome.
+In `System Design -> Model Marketplace`, separate "implemented in the contracts" from "validated
+on a live network": public weights were validated live; private weights are implemented and
+Hardhat-mock validated only. Do not imply that the public point establishes private execution,
+live scaling, production fees, or genome-wide feasibility. The live HCU ceiling remains
+unmeasured for both modes. The failed first attempt is preserved as a failed attempt and must not
+be counted as a successful workflow.
 
-*Branch B — no live run (current state).* State plainly that **every result in the paper is
-Hardhat-mock validated**, that no live-network execution was performed, and that live deployment
-feasibility is therefore not established. Make no live claim anywhere, including the abstract and
-conclusion. `R1.1-E2`'s own fallback wording — "the manuscript explicitly says private-weight
-execution is mock-validated only" — applies to **both** the public and private paths, not just
-the private one.
-
-Under branch B the paper should also record, because it is verified and strengthens the honesty
-of the scope statement, that the contracts are within the EIP-170 size limit (largest 42.4%), the
-harness is **8/8 ready**, and the measured Sepolia budget is ~0.13 ETH — i.e. the obstacle is a
-credential, not missing public/private execution code or report fields. The final mock readiness
-record contains distinct public/private reports with 20/22 classic-path transactions, complete
-receipt trails, exact runner-source hashes, and the known score 758,685:
-`evidence/phase7/readiness_2026-07-31_final/`.
+The geometry-matched public mock used the same fixture, chunk sizes, and 25 transactions but
+18.755864 M gas, versus 20.710271 M live (10.42% higher). Treat this as one observed pair only;
+delete the general "within 10--20%" sentence rather than presenting the pair as validation of it.
 
 **Three measurement corrections that must land regardless of branch:**
 
@@ -479,9 +476,11 @@ claims.
 `evidence/phase8/scale_evidence.json`.
 
 Define the intended use as a **bounded-size research prototype for curated additive PRS
-models**. The executed public Hardhat-mock rows are 100 / 500 / 1,000 / 5,000 nominal
-variants, requiring 15 / 47 / 88 / 413 host-contract transactions for a fresh model, sample,
-and streaming job. A private 100-variant run requires 17. No live fhEVM row exists.
+models**. One public 100-variant workflow is verified on live fhEVM at 25 transactions using
+the classic path. The wider executed scale range is Hardhat mock: public 100 / 500 / 1,000 /
+5,000 nominal variants require 15 / 47 / 88 / 413 host-contract transactions for a fresh
+model, sample, and streaming job. A private 100-variant mock run requires 17. No private or
+larger-scale live row exists.
 
 Larger 10,000 / 100,000 / 1,000,000 rows are **Analytic projection / unexecuted** transaction
 geometry only. They carry no latency, gas, HCU, or fee evidence and cannot be described as
@@ -571,11 +570,13 @@ auditable rather than rhetorical, we now report one evidence-class table. The on
 scale rows are Hardhat-mock runs at 100, 500, 1,000, and 5,000 nominal variants. A fresh public
 model, one registered sample, and one completed streaming job required respectively 15, 47,
 88, and 413 host-contract transactions. A private 100-variant run required 17 because private
-model publication adds two reader-authorisation transactions. No live fhEVM scale row exists:
-the live runs remain blocked on a funded wallet, and we do not infer a live result from the
-mock. We include transaction-geometry calculations at 10,000, 100,000, and 1,000,000 variants
-only to show why the architecture becomes transaction-bound; every such row is labelled
-Analytic projection / unexecuted and carries no latency, gas, HCU, or fee claim. We have
+model publication adds two reader-authorisation transactions. Separately, one public
+100-variant classic-path workflow ran successfully on live Sepolia in 25 transactions. That
+single live point validates public end-to-end execution but does not establish live scaling,
+private-weight live behavior, or a live maximum. We include transaction-geometry calculations
+at 10,000, 100,000, and 1,000,000 variants only to show why the architecture becomes
+transaction-bound; every such row is labelled Analytic projection / unexecuted and carries no
+latency, gas, HCU, or fee claim. We have
 therefore replaced broad “linear scalability” language with the narrower result supported by
 the data: linear host-contract transaction growth over the measured 100–5,000-variant
 Hardhat-mock range. The limitation is now visible in the Abstract, Key Points, Introduction,
@@ -766,14 +767,16 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-28 | `evidence/phase7/live_preflight.json` - deployment gas, both job variants, Sepolia budget, harness readiness | MS-05, MS-08 |
 | EV-29 | `evidence/phase7/hcu_public.txt`, `hcu_private.txt` - ceiling 21 for both visibilities | MS-05 |
 | EV-30 | `scripts/live_preflight.ts` - `npm run preflight:live` | MS-05 |
-| EV-31 | `evidence/phase8/scale_evidence.json` - three-class scale rows; live empty, mock executed, projections unexecuted | MS-17; R1 C6, C7; R2 C1 |
-| EV-32 | `evidence/phase8/measured_transaction_use.json` - deployment and public/private workflow transaction/gas components | MS-08; R1 C8 |
+| EV-31 | `evidence/phase8/scale_evidence.json` - three-class scale rows; one verified public live row, mock range executed, projections unexecuted | MS-17; R1 C6, C7; R2 C1 |
+| EV-32 | `evidence/phase8/measured_transaction_use.json` - live deployment/public workflow, mock public/private components, actual test-ETH fees, and matched-geometry comparison | MS-08; R1 C8 |
 | EV-33 | `evidence/phase8/fee_sensitivity.json` - separate unexecuted ETH arithmetic, no USD | MS-08; R1 C8 |
 | EV-34 | `evidence/phase8/heprs_profile.json` - current post-provenance execution at 100/500/1,000/5,000 variants | MS-17; R1 C6 |
 | EV-35 | `test/phase8_evidence_synthesis_test.ts` - transaction geometry, class labels, reconciliation, fee-boundary tests | MS-08, MS-17 |
 | EV-36 | `evidence/phase7/readiness_2026-07-31_final/` - deployment receipts and public/private validator reports with exact source hashes | MS-05; R1 C1 |
 | EV-37 | `test/live_validation_readiness_test.ts` - both visibilities, report fields, non-overwriting paths, deployment provenance | MS-05; R1 C1 |
 | EV-38 | `scripts/sepolia_validation.ts`, `scripts/deploy.ts` - live-ready receipt-producing harnesses | MS-05; R1 C1 |
+| EV-39 | `evidence/phase7/live_2026-07-31/public_success.json` and `onchain_verification.json` - 25 status-1 public workflow receipts, 20,710,271 gas, exact score 758,685, source/bytecode verification | MS-05; R1 C1, C6, C8 |
+| EV-40 | `evidence/phase7/live_2026-07-31/public_matched_mock.json` - same 25-transaction geometry, 18,755,864 mock gas; live +10.42% at one point only | MS-05, MS-08; R1 C1, C8 |
 
 ## Commit trail
 
@@ -792,3 +795,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `33014aa` | Phase 7: live runs blocked on credentials; HCU/optimisation/private-cost findings |
 | `ecf9369` | Phase 8: scale and transaction-use synthesis; fee scenarios isolated |
 | `af04db5` | Phase 7 follow-up: private live harness + verifiable transaction reports |
+| `4fa7c9f` | Phase 7: preserve failed public attempt and harden relayer retry/checkpoint behavior |

@@ -89,6 +89,49 @@ export function parseReleasePolicyGas(text: string) {
   };
 }
 
+export function liveClassicTransactionBreakdown(report: any) {
+  requireCondition(report.evidenceClass === "Live fhEVM", "live report evidence class changed");
+  requireCondition(report.fheMode === "real", "live report is not real FHE");
+  requireCondition(report.modelVisibility === "public", "live report is not public-weight");
+  requireCondition(report.passed === true, "live public validation did not pass");
+  requireCondition(
+    report.decodedEncodedScore === report.expectedEncodedScore,
+    "live public score does not match the reference"
+  );
+  requireCondition(
+    Array.isArray(report.transactions) &&
+      report.transactions.length === report.transactionCount,
+    "live transaction count does not match its receipt array"
+  );
+  requireCondition(
+    report.transactions.every((transaction: any) => transaction.status === 1),
+    "live transaction trail contains a non-success receipt"
+  );
+  const labels = report.transactions.map((transaction: any) => transaction.label as string);
+  const count = (predicate: (label: string) => boolean) => labels.filter(predicate).length;
+  const breakdown = {
+    modelPublication: count((label) => label.startsWith("model.")),
+    sampleRegistration: count((label) => label === "sample.register"),
+    jobCreation: count((label) => label === "job.create"),
+    snpUploads: count((label) => label.startsWith("job.appendSnpChunk.")),
+    uploadFinalization: count((label) => label === "job.finalizeSnpUpload"),
+    compute: count((label) => label.startsWith("job.computeChunk.")),
+    resultFinalization: count((label) => label === "job.finalize"),
+    total: labels.length,
+  };
+  requireCondition(
+    Object.values(breakdown).slice(0, -1).reduce((sum, value) => sum + value, 0) ===
+      breakdown.total,
+    "live transaction labels do not reconcile"
+  );
+  const gasSum = report.transactions.reduce(
+    (sum: bigint, transaction: any) => sum + BigInt(transaction.gasUsed),
+    0n
+  );
+  requireCondition(gasSum === BigInt(report.gas.total), "live gas total does not reconcile");
+  return breakdown;
+}
+
 function sourceProvenance(sourcePaths: string[]): SynthesisProvenance {
   return {
     schema: "bioeth-prs/evidence-synthesis/1",
@@ -103,6 +146,7 @@ function sourceProvenance(sourcePaths: string[]): SynthesisProvenance {
 export function buildScaleEvidence(
   profiles: FixtureProfile[],
   preflight: any,
+  livePublic: any,
   provenance: SynthesisProvenance
 ) {
   const expectedSizes = [100, 500, 1_000, 5_000];
@@ -111,7 +155,40 @@ export function buildScaleEvidence(
     `fixture profiles must be ordered ${expectedSizes.join(", ")}`
   );
 
-  const rows: any[] = [];
+  const liveBreakdown = liveClassicTransactionBreakdown(livePublic);
+  const liveEncodedPositions =
+    livePublic.provenance?.model?.descriptor?.encodedPositions;
+  requireCondition(
+    Number.isSafeInteger(liveEncodedPositions) && liveEncodedPositions > 0,
+    "live encoded-position count is missing from provenance"
+  );
+  const rows: any[] = [{
+    evidenceClass: "Live fhEVM",
+    executionStatus: "executed",
+    nominalVariants: livePublic.fixtureSize,
+    encodedPositions: liveEncodedPositions,
+    modelVisibility: "public",
+    workflow:
+      "classic live workflow: public model + registered sample + separate SNP-upload and compute transactions; deployments excluded",
+    transactionCount: livePublic.transactionCount,
+    transactionBreakdown: liveBreakdown,
+    gas: livePublic.gas.total,
+    decodedEncodedScore: livePublic.decodedEncodedScore,
+    latencyAvailability: {
+      available: true,
+      kind: "real Sepolia submission-to-result and Gateway/KMS decryption timing",
+      inputProofPreparationMs: livePublic.timing.inputProofPreparationMs,
+      submissionToResultMs: livePublic.timing.submissionToResultMs,
+      endToEndValidationMs: livePublic.timing.endToEndValidationMs,
+      decryptMs: livePublic.timing.decryptMs,
+      source: "evidence/phase7/live_2026-07-31/public_success.json",
+    },
+    costAvailability: {
+      liveTestnetGasAvailable: true,
+      productionFeeAvailable: false,
+      source: "evidence/phase7/live_2026-07-31/public_success.json",
+    },
+  }];
   for (const profile of profiles) {
     requireCondition(profile.evidenceClass === "Hardhat mock", "fixture profile is not labelled Hardhat mock");
     requireCondition(profile.status === "full_flow", `fixture ${profile.fixtureSize} did not complete`);
@@ -155,7 +232,7 @@ export function buildScaleEvidence(
     privateExpected.total === privateJob.transactionCount,
     "Phase 7 private transaction count does not reconcile"
   );
-  rows.splice(1, 0, {
+  rows.splice(2, 0, {
     evidenceClass: "Hardhat mock",
     executionStatus: "executed",
     nominalVariants: 100,
@@ -208,14 +285,21 @@ export function buildScaleEvidence(
     title: "Three-class scale evidence",
     evidenceClasses: ["Live fhEVM", "Hardhat mock", "Analytic projection"],
     liveFhevm: {
-      executionStatus: "blocked",
-      successfulRows: [],
-      reason:
-        "No funded Sepolia wallet is configured. No live transaction was made and no live scale result is inferred.",
-      source: "evidence/phase7/README.md",
+      executionStatus: "executed",
+      successfulRows: [{
+        nominalVariants: livePublic.fixtureSize,
+        encodedPositions: liveEncodedPositions,
+        modelVisibility: "public",
+        transactionCount: livePublic.transactionCount,
+        gas: livePublic.gas.total,
+        decodedEncodedScore: livePublic.decodedEncodedScore,
+      }],
+      privateWeightStatus:
+        "not executed live; the private 100-SNP workflow remains Hardhat-mock validated",
+      source: "evidence/phase7/live_2026-07-31/public_success.json",
     },
     measuredRangeConclusion:
-      "The evidence supports linear host-contract transaction growth over the measured 100-5,000-variant Hardhat-mock range. It does not establish real-TFHE latency, production fees, or genome-wide feasibility.",
+      "One public 100-SNP workflow is validated end to end on live fhEVM. The wider 100-5,000-variant range is Hardhat-mock evidence only, so the live point does not establish real-TFHE scaling, private-weight live behavior, production fees, or genome-wide feasibility.",
     rows,
     provenance,
   };
@@ -224,6 +308,10 @@ export function buildScaleEvidence(
 export function buildTransactionUse(
   preflight: any,
   policyGas: ReturnType<typeof parseReleasePolicyGas>,
+  liveDeployment: any,
+  livePublic: any,
+  matchedPublicMock: any,
+  liveVerification: any,
   provenance: SynthesisProvenance
 ) {
   requireCondition(preflight.evidenceClass === "Hardhat mock", "pre-flight evidence class changed");
@@ -254,20 +342,112 @@ export function buildTransactionUse(
 
   const publicJob = jobs.public;
   const privateJob = jobs.private;
+  const liveBreakdown = liveClassicTransactionBreakdown(livePublic);
+  requireCondition(
+    liveDeployment.evidenceClass === "Live fhEVM" &&
+      liveDeployment.transactionCount === liveDeployment.transactions.length &&
+      liveDeployment.transactions.every((transaction: any) => transaction.status === 1),
+    "live deployment receipts are incomplete"
+  );
+  const liveDeploymentGas = liveDeployment.transactions.reduce(
+    (sum: bigint, transaction: any) => sum + BigInt(transaction.gasUsed),
+    0n
+  );
+  requireCondition(
+    liveDeploymentGas === BigInt(liveDeployment.totalDeploymentGas),
+    "live deployment gas does not reconcile"
+  );
+  requireCondition(
+    liveVerification.deployment.transactionsVerified === liveDeployment.transactionCount &&
+      liveVerification.deployment.totalGas === liveDeployment.totalDeploymentGas,
+    "live deployment verification does not match the report"
+  );
+  requireCondition(
+    liveVerification.publicValidation.transactionsVerified === livePublic.transactionCount &&
+      liveVerification.publicValidation.totalGas === livePublic.gas.total &&
+      liveVerification.publicValidation.decodedEncodedScore ===
+        livePublic.decodedEncodedScore,
+    "live public verification does not match the report"
+  );
+  requireCondition(
+    matchedPublicMock.evidenceClass === "Hardhat mock" &&
+      matchedPublicMock.fheMode === "mock" &&
+      matchedPublicMock.passed === true &&
+      matchedPublicMock.computeChunkSize === livePublic.computeChunkSize &&
+      matchedPublicMock.uploadChunkSize === livePublic.uploadChunkSize &&
+      matchedPublicMock.transactionCount === livePublic.transactionCount &&
+      matchedPublicMock.decodedEncodedScore === livePublic.decodedEncodedScore,
+    "geometry-matched mock report does not match the live public workflow"
+  );
+  const matchedMockGas = matchedPublicMock.transactions.reduce(
+    (sum: bigint, transaction: any) => sum + BigInt(transaction.gasUsed),
+    0n
+  );
+  requireCondition(
+    matchedMockGas === BigInt(matchedPublicMock.gas.total),
+    "geometry-matched mock gas does not reconcile"
+  );
+  const liveGasDelta = BigInt(livePublic.gas.total) - matchedMockGas;
   return {
     action: "R1.8-E1",
     title: "Measured transaction use",
-    evidenceClass: "Hardhat mock",
-    liveNetworkQuantitiesAvailable: false,
-    liveNetworkReason:
-      "Phase 7 is blocked on a funded wallet. These figures validate contract transaction geometry and mock host gas only.",
+    evidenceClass: "Mixed: Live fhEVM and Hardhat mock",
+    liveNetworkQuantitiesAvailable: true,
+    liveNetworkScope:
+      "Sepolia deployment plus one public 100-SNP classic-path workflow. Private weights remain mock-only; no production or USD cost is inferred.",
     deployment: {
+      evidenceClass: "Hardhat mock",
       transactionCount: preflight.deployment.contracts.length,
       gas: preflight.deployment.totalDeploymentGas,
       contracts: preflight.deployment.contracts,
     },
+    liveDeployment: {
+      evidenceClass: "Live fhEVM",
+      network: liveDeployment.network,
+      chainId: liveDeployment.chainId,
+      transactionCount: liveDeployment.transactionCount,
+      gas: liveDeployment.totalDeploymentGas,
+      testnetFeePaid: liveVerification.deployment.feePaid,
+      transactions: liveDeployment.transactions,
+      contracts: liveDeployment.contracts,
+    },
+    livePublicJob: {
+      evidenceClass: "Live fhEVM",
+      network: livePublic.network,
+      chainId: livePublic.chainId,
+      modelVisibility: livePublic.modelVisibility,
+      workflow: "classic separate upload and compute path",
+      transactionCount: livePublic.transactionCount,
+      transactionBreakdown: liveBreakdown,
+      gas: livePublic.gas,
+      timing: livePublic.timing,
+      decodedEncodedScore: livePublic.decodedEncodedScore,
+      expectedEncodedScore: livePublic.expectedEncodedScore,
+      scoreHandle: livePublic.scoreHandle,
+      testnetFeePaid: liveVerification.publicValidation.feePaid,
+    },
+    geometryMatchedPublicMock: {
+      evidenceClass: "Hardhat mock",
+      computeChunkSize: matchedPublicMock.computeChunkSize,
+      uploadChunkSize: matchedPublicMock.uploadChunkSize,
+      transactionCount: matchedPublicMock.transactionCount,
+      gas: matchedPublicMock.gas,
+      timing: matchedPublicMock.timing,
+      decodedEncodedScore: matchedPublicMock.decodedEncodedScore,
+    },
+    liveVsMatchedMock: {
+      comparisonScope:
+        "same public 100-SNP fixture, classic path, upload chunk 32, compute chunk 10, and 25 transactions",
+      gasDelta: liveGasDelta.toString(),
+      liveOverMockPercent: (
+        Number(liveGasDelta) * 100 / Number(matchedMockGas)
+      ).toFixed(2),
+      interpretation:
+        "The live total is 10.42% above this one geometry-matched mock observation. This single point does not justify a general 10-20% expectation.",
+    },
     jobs: {
       public: {
+        evidenceClass: "Hardhat mock",
         modelVisibility: "public",
         transactionCount: publicJob.transactionCount,
         gas: publicJob.gas,
@@ -277,6 +457,7 @@ export function buildTransactionUse(
         ),
       },
       private: {
+        evidenceClass: "Hardhat mock",
         modelVisibility: "private",
         transactionCount: privateJob.transactionCount,
         gas: privateJob.gas,
@@ -309,9 +490,12 @@ export function buildTransactionUse(
       decryption: {
         onChainTransactionCount: 0,
         hostGas: null,
-        liveLatency: null,
+        liveLatency: {
+          publicGatewayKmsMs: livePublic.timing.decryptMs,
+          privateWeightPath: null,
+        },
         note:
-          "The mock debugger and live Gateway/KMS user-decryption calls are off-chain from Ethereum's perspective. The live path remains unmeasured.",
+          "The mock debugger and live Gateway/KMS user-decryption calls are off-chain from Ethereum's perspective. Public live latency is measured; private live execution remains unmeasured.",
       },
     },
     reportingPrecision: {
@@ -406,17 +590,20 @@ export function renderScaleMarkdown(scale: ReturnType<typeof buildScaleEvidence>
     "# Phase 8 scale evidence table",
     "",
     "- Action: `R1.6-E1`",
-    "- Live status: **blocked** — no funded wallet, so there are no `Live fhEVM` rows.",
-    "- Transaction scope: fresh model publication + sample registration + one streaming job;",
-    "  contract deployment is excluded.",
+    "- Live status: **one public 100-SNP workflow executed successfully on Sepolia**.",
+    "- Private-weight live status: **not executed; mock-validated only**.",
+    "- Transaction scope: fresh model publication + sample registration + one job; contract",
+    "  deployment is excluded. The live row uses the classic separate upload/compute path;",
+    "  mock and projected rows use the streaming path.",
     "",
     "| Evidence class | Status | Nominal variants | Encoded positions | Visibility | Transactions | Latency / cost availability |",
     "|---|---|---:|---:|---|---:|---|",
-    "| Live fhEVM | blocked | — | — | — | — | unavailable; no live result inferred |",
   ];
   for (const row of scale.rows) {
     const availability =
-      row.evidenceClass === "Hardhat mock"
+      row.evidenceClass === "Live fhEVM"
+        ? "real Sepolia timing + testnet gas; no production fee"
+        : row.evidenceClass === "Hardhat mock"
         ? row.latencyAvailability.available
           ? "mock host timing + mock gas; no production fee"
           : "mock gas only; no live latency or production fee"
@@ -441,12 +628,28 @@ export function renderTransactionUseMarkdown(
 ): string {
   const pub = transactionUse.jobs.public;
   const priv = transactionUse.jobs.private;
+  const live = transactionUse.livePublicJob;
   const lines = [
     "# Phase 8 measured transaction use",
     "",
     "- Action: `R1.8-E1`",
-    "- Evidence class: **Hardhat mock**",
-    "- Live-network gas, latency, HCU availability, production fees, and USD cost: **unavailable**.",
+    "- Evidence classes: **Live fhEVM** and **Hardhat mock**",
+    "- Live scope: four-contract Sepolia deployment plus one public 100-SNP classic-path job.",
+    "- Private-weight live behavior, production fees, and USD cost: **unavailable**.",
+    "",
+    "## Live Sepolia observations",
+    "",
+    "| Operation | Visibility / path | Transactions | Gas | Sepolia test-ETH fee | Timing / result |",
+    "|---|---|---:|---:|---:|---|",
+    `| Four-contract deployment | shared | ${transactionUse.liveDeployment.transactionCount} | ${formatInteger(transactionUse.liveDeployment.gas)} | ${transactionUse.liveDeployment.testnetFeePaid.eth} ETH | blocks 11388858–11388861 |`,
+    `| Full 100-SNP job | public classic | ${live.transactionCount} | ${formatInteger(live.gas.total)} | ${live.testnetFeePaid.eth} ETH | ${(live.timing.endToEndValidationMs / 1000).toFixed(1)} s; decoded ${live.decodedEncodedScore} |`,
+    `| User decryption | public Gateway/KMS | 0 on-chain | n/a | included above | ${live.timing.decryptMs} ms |`,
+    "",
+    "Sepolia test ETH has no production-price interpretation. The successful live run is one",
+    "100-SNP point, not evidence of genome-wide scale or private-weight live execution.",
+    `The geometry-matched public mock also used 25 transactions and ${formatInteger(transactionUse.geometryMatchedPublicMock.gas.total)} gas; the live total was ${transactionUse.liveVsMatchedMock.liveOverMockPercent}% higher. This single pair does not support a general live/mock conversion factor.`,
+    "",
+    "## Hardhat-mock observations",
     "",
     "| Operation | Visibility / path | Transactions | Observed host gas | Reporting note |",
     "|---|---|---:|---:|---|",
@@ -460,7 +663,7 @@ export function renderTransactionUseMarkdown(
     `| Streaming upload + compute | private | ${priv.transactionBreakdown.uploadAndCompute} | ${(Number(priv.gas.streamingUploadCompute) / 1e6).toFixed(3)} M | encrypted calldata; rounded |`,
     `| Raw-score finalization | raw result | 1 | ${formatInteger(pub.gas.finalize)} | Phase 7 workflow |`,
     `| Randomized-category finalization | categorical result | 1 | ${formatInteger(transactionUse.releasePolicyAndResultPaths.randomizedCategoryFinalization.gas)} | separate Phase 2 measurement; replaces raw finalization |`,
-    `| User decryption | mock debugger / live Gateway-KMS | 0 on-chain | n/a | live latency unmeasured |`,
+    `| User decryption | mock debugger | 0 on-chain | n/a | public live Gateway/KMS latency is reported separately above |`,
     `| **Full 100-SNP job** | **public** | **${pub.transactionCount}** | **${(Number(pub.gas.totalExcludingDeployment) / 1e6).toFixed(3)} M** | deployment excluded |`,
     `| **Full 100-SNP job** | **private** | **${priv.transactionCount}** | **${(Number(priv.gas.totalExcludingDeployment) / 1e6).toFixed(3)} M** | deployment excluded |`,
     "",
@@ -520,19 +723,37 @@ function main() {
   const profilePath = path.join(outDir, "heprs_profile.json");
   const preflightPath = path.join(REPO_ROOT, "evidence", "phase7", "live_preflight.json");
   const policyPath = path.join(REPO_ROOT, "evidence", "phase2", "release_policy_gas.txt");
+  const liveDir = path.join(REPO_ROOT, "evidence", "phase7", "live_2026-07-31");
+  const liveDeploymentPath = path.join(liveDir, "deployment.json");
+  const livePublicPath = path.join(liveDir, "public_success.json");
+  const matchedPublicMockPath = path.join(liveDir, "public_matched_mock.json");
+  const liveVerificationPath = path.join(liveDir, "onchain_verification.json");
   const producerPaths = [
     path.join(REPO_ROOT, "scripts", "phase8_evidence_synthesis.ts"),
     path.join(REPO_ROOT, "scripts", "heprs_fixture_profile.ts"),
     path.join(REPO_ROOT, "scripts", "live_preflight.ts"),
     path.join(REPO_ROOT, "scripts", "release_policy_gas.ts"),
   ];
-  for (const sourcePath of [profilePath, preflightPath, policyPath, ...producerPaths]) {
+  for (const sourcePath of [
+    profilePath,
+    preflightPath,
+    policyPath,
+    liveDeploymentPath,
+    livePublicPath,
+    matchedPublicMockPath,
+    liveVerificationPath,
+    ...producerPaths,
+  ]) {
     requireCondition(fs.existsSync(sourcePath), `missing source artifact ${sourcePath}`);
   }
 
   const profiles = JSON.parse(fs.readFileSync(profilePath, "utf8")) as FixtureProfile[];
   const preflight = JSON.parse(fs.readFileSync(preflightPath, "utf8"));
   const policyGas = parseReleasePolicyGas(fs.readFileSync(policyPath, "utf8"));
+  const liveDeployment = JSON.parse(fs.readFileSync(liveDeploymentPath, "utf8"));
+  const livePublic = JSON.parse(fs.readFileSync(livePublicPath, "utf8"));
+  const matchedPublicMock = JSON.parse(fs.readFileSync(matchedPublicMockPath, "utf8"));
+  const liveVerification = JSON.parse(fs.readFileSync(liveVerificationPath, "utf8"));
   // Hash both the evidence inputs and the code that produced or synthesised them.
   // The runs are captured before their commit exists, so a dirty-file name alone is
   // insufficient to identify exact code; source hashes close that provenance gap.
@@ -540,11 +761,23 @@ function main() {
     profilePath,
     preflightPath,
     policyPath,
+    liveDeploymentPath,
+    livePublicPath,
+    matchedPublicMockPath,
+    liveVerificationPath,
     ...producerPaths,
   ]);
 
-  const scale = buildScaleEvidence(profiles, preflight, provenance);
-  const transactionUse = buildTransactionUse(preflight, policyGas, provenance);
+  const scale = buildScaleEvidence(profiles, preflight, livePublic, provenance);
+  const transactionUse = buildTransactionUse(
+    preflight,
+    policyGas,
+    liveDeployment,
+    livePublic,
+    matchedPublicMock,
+    liveVerification,
+    provenance
+  );
   const fee = buildFeeSensitivity(transactionUse, provenance);
 
   writeJson(path.join(outDir, "scale_evidence.json"), scale);
@@ -558,8 +791,9 @@ function main() {
   fs.writeFileSync(path.join(outDir, "fee_sensitivity.md"), renderFeeSensitivityMarkdown(fee));
 
   console.log("Phase 8 evidence synthesis complete");
-  console.log(`  scale rows            : ${scale.rows.length} + blocked live row`);
-  console.log(`  public/private 100-SNP: ${transactionUse.jobs.public.transactionCount}/${transactionUse.jobs.private.transactionCount} tx`);
+  console.log(`  scale rows            : ${scale.rows.length}, including one live row`);
+  console.log(`  live public 100-SNP   : ${transactionUse.livePublicJob.transactionCount} tx`);
+  console.log(`  mock public/private   : ${transactionUse.jobs.public.transactionCount}/${transactionUse.jobs.private.transactionCount} tx`);
   console.log(`  output directory      : ${outDir}`);
 }
 

@@ -90,6 +90,95 @@ function profileFixture(nominalVariants: number) {
   };
 }
 
+function livePublicFixture() {
+  const labels = [
+    "sample.register",
+    "model.createShell",
+    "model.appendPublicChunk.0",
+    "model.appendPublicChunk.1",
+    "model.appendPublicChunk.2",
+    "model.appendPublicChunk.3",
+    "model.finalize",
+    "job.create",
+    "job.appendSnpChunk.0",
+    "job.appendSnpChunk.1",
+    "job.appendSnpChunk.2",
+    "job.appendSnpChunk.3",
+    "job.finalizeSnpUpload",
+    ...Array.from({ length: 11 }, (_, i) => `job.computeChunk.${i}`),
+    "job.finalize",
+  ];
+  return {
+    network: "sepolia",
+    chainId: "11155111",
+    evidenceClass: "Live fhEVM",
+    fheMode: "real",
+    modelVisibility: "public",
+    fixtureSize: 100,
+    uploadChunkSize: 32,
+    computeChunkSize: 10,
+    passed: true,
+    transactionCount: labels.length,
+    transactions: labels.map((label) => ({ label, gasUsed: "1", status: 1 })),
+    gas: { total: labels.length.toString() },
+    timing: {
+      inputProofPreparationMs: 66_101,
+      submissionToResultMs: 269_320,
+      endToEndValidationMs: 464_253,
+      decryptMs: 8_081,
+    },
+    decodedEncodedScore: "758685",
+    expectedEncodedScore: "758685",
+    scoreHandle: "0xhandle",
+    provenance: { model: { descriptor: { encodedPositions: 101 } } },
+  };
+}
+
+function liveDeploymentFixture() {
+  return {
+    network: "sepolia",
+    chainId: "11155111",
+    evidenceClass: "Live fhEVM",
+    transactionCount: 4,
+    totalDeploymentGas: "4",
+    transactions: Array.from({ length: 4 }, (_, i) => ({
+      contract: `c${i}`,
+      gasUsed: "1",
+      status: 1,
+    })),
+    contracts: { a: "0x1" },
+  };
+}
+
+function matchedPublicMockFixture() {
+  const fixture = livePublicFixture();
+  return {
+    ...fixture,
+    network: "chain-31337",
+    chainId: "31337",
+    evidenceClass: "Hardhat mock",
+    fheMode: "mock",
+    uploadChunkSize: 32,
+    computeChunkSize: 10,
+  };
+}
+
+function liveVerificationFixture() {
+  return {
+    deployment: {
+      transactionsVerified: 4,
+      totalGas: "4",
+      feePaid: { wei: "4", eth: "0.000000000000000004" },
+    },
+    publicValidation: {
+      transactionsVerified: 25,
+      totalGas: "25",
+      decodedEncodedScore: "758685",
+      feePaid: { wei: "25", eth: "0.000000000000000025" },
+    },
+  };
+}
+
 describe("Phase 8 evidence synthesis", function () {
   it("uses ceiling division at chunk boundaries", function () {
     expect(ceilDiv(32, 32)).to.equal(1);
@@ -110,10 +199,11 @@ describe("Phase 8 evidence synthesis", function () {
     ).to.deep.equal([15, 47, 88, 413]);
   });
 
-  it("marks every larger projection unexecuted and keeps live rows empty", function () {
+  it("keeps projections unexecuted and adds only the verified public live row", function () {
     const scale = buildScaleEvidence(
       [100, 500, 1000, 5000].map(profileFixture) as any,
       preflightFixture(),
+      livePublicFixture(),
       provenanceFixture()
     );
     const projections = scale.rows.filter(
@@ -121,7 +211,16 @@ describe("Phase 8 evidence synthesis", function () {
     );
     expect(projections).to.have.lengthOf(6);
     expect(projections.every((row: any) => row.executionStatus === "unexecuted")).to.equal(true);
-    expect(scale.liveFhevm.successfulRows).to.deep.equal([]);
+    expect(scale.liveFhevm.successfulRows).to.have.lengthOf(1);
+    expect(scale.liveFhevm.successfulRows[0]).to.include({
+      nominalVariants: 100,
+      modelVisibility: "public",
+      transactionCount: 25,
+      decodedEncodedScore: "758685",
+    });
+    expect(
+      scale.rows.filter((row: any) => row.evidenceClass === "Live fhEVM")
+    ).to.have.lengthOf(1);
   });
 
   it("parses the saved release-policy measurements", function () {
@@ -142,6 +241,10 @@ describe("Phase 8 evidence synthesis", function () {
       buildTransactionUse(
         broken,
         { setReleasePolicy: "77314", finalizeAndClassify: "432230" },
+        liveDeploymentFixture(),
+        livePublicFixture(),
+        matchedPublicMockFixture(),
+        liveVerificationFixture(),
         provenanceFixture()
       )
     ).to.throw(/components do not sum/);
@@ -151,6 +254,10 @@ describe("Phase 8 evidence synthesis", function () {
     const transactionUse = buildTransactionUse(
       preflightFixture(),
       { setReleasePolicy: "77314", finalizeAndClassify: "432230" },
+      liveDeploymentFixture(),
+      livePublicFixture(),
+      matchedPublicMockFixture(),
+      liveVerificationFixture(),
       provenanceFixture()
     );
     const fee = buildFeeSensitivity(transactionUse, provenanceFixture());

@@ -1,0 +1,83 @@
+
+> bioeth-prs@0.1.0 validate:sepolia
+> hardhat test scripts/sepolia_validation.ts --network sepolia
+
+Compiled 7 Solidity files successfully (evm target: cancun).
+
+
+  Sepolia 100-SNP validation
+
+Network  : sepolia (chainId=11155111)
+FHE mode : REAL TFHE ciphertext
+Model    : public weights
+Fixture  : 100 SNPs, uploadChunkSize=32, computeChunkSize=10
+
+manifestHash    : 0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75
+sourceModelHash : 0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5
+genotypeHash    : 0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a
+
+Scale     : 3000000
+Expected  : 758685
+
+Using deployed contracts from deployments/sepolia.json
+  Registry   : 0xCb4ac006Eda926fb7AF947239641D51881A53689
+  Marketplace: 0xf8bF680D643df6288ECA5156158bF25B36Cf2642
+  Engine     : 0x76E3bE29F5e799Bbb6E5De660E702C42E2B9bB70
+Preparing relayer input proofs before submitting workflow transactions...
+  SNP input proof 1/4: transient RelayerV2FetchError; retry 2/4 in 2000ms
+  Prepared 4 proofs in 66101ms
+
+  SampleId   : 1
+
+Publishing 100-SNP public model...
+  Done in 117018ms  gas=1152558
+
+Creating PRS job...
+  Job 1 in 15648ms  gas=367222
+
+Uploading 4 SNP chunks (32 SNPs each)...
+  Upload 83581ms  gas=10623150
+  finalizeSnpUpload gas=37209
+
+Computing 11 chunks (10 SNPs each)...
+  chunk  1/11  12416ms  gas=827331
+  chunk  2/11  11653ms  gas=795127
+  chunk  3/11  23427ms  gas=795131
+  chunk  4/11  17244ms  gas=795131
+  chunk  5/11  19382ms  gas=795131
+  chunk  6/11  10626ms  gas=795131
+  chunk  7/11  14938ms  gas=795127
+  chunk  8/11  9592ms  gas=795131
+  chunk  9/11  11511ms  gas=795131
+  chunk 10/11  14895ms  gas=795131
+  chunk 11/11  11414ms  gas=241079
+  Compute total gas=8224581
+
+Finalizing...
+  finalize 12997ms  gas=207348
+  JobFinalized event received
+  Score handle: 0x436c958507716fb4f986e0c1f728068832e55faaa2ff0000000000aa36a70500
+
+Decrypting score (userDecrypt path)...
+  Decrypted in 8081ms
+  Actual  : 758685
+  Expected: 758685
+  PASS
+
+Report saved to /Users/kap4722/bioETH-PRS/deployments/sepolia-validation-100snp-public.json
+
+=== Summary ===
+Network    : sepolia (REAL FHE)
+Visibility : public
+Transactions: 25
+Upload     : 4 × uploadChunkSize=32
+Compute    : 11 × computeChunkSize=10
+Total gas  : 20710271
+Avg chunk  : 14281.6ms
+Decrypt    : 8081ms
+Status     : PASS
+    ✔ runs 100-SNP HEPRS fixture end-to-end and decrypts the score (474630ms)
+
+
+  1 passing (8m)
+

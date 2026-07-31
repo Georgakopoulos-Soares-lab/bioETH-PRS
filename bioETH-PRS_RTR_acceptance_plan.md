@@ -42,8 +42,8 @@ Status convention:
 - `[x]` Completed
 - `Progress: 0%` can be changed to an intermediate percentage while work is in progress.
 
-Overall RTR progress: **14/35 actions completed (40%)** — plus `R1.3-M2` at 50%
-Stage A: **14/16** &nbsp;&nbsp; Stage B: **0/19**
+Overall RTR progress: **16/35 actions completed (46%)** — plus `R1.3-M2` at 50%
+Stage A: **16/16** &nbsp;&nbsp; Stage B: **0/19**
 
 ## Baseline already verified
 
@@ -114,9 +114,10 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.1-E1 — Run and record a live public-model fhEVM experiment
 
-- [ ] Progress: 90% — BLOCKED only on a funded Sepolia wallet (updated 31 July 2026).
-  Public harness passes on mock and records every required receipt field; no live number
-  fabricated. See `evidence/phase7/readiness_2026-07-31_final/` and `CD-024`.
+- [x] Progress: 100% — completed 31 July 2026. The public 100-SNP Sepolia run produced
+  25 status-1 workflow receipts, 20,710,271 gas, a Gateway/KMS decryption in 8,081 ms, and
+  encoded score 758,685 matching the independent reference. See
+  `evidence/phase7/live_2026-07-31/public_success.json` and `CD-024`.
 - Stage: Code and evidence - Phase 7 (Live fhEVM validation)
 - Type: Experiment and existing script update
 - Code action:
@@ -132,10 +133,12 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.1-E2 — Run one live private-weight validation
 
-- [ ] Progress: 90% — BLOCKED only on a funded Sepolia wallet (updated 31 July 2026).
-  `MODEL_VISIBILITY=private` is implemented, passes end to end on mock, and writes a distinct
-  verifiable report; no live number fabricated. See
-  `evidence/phase7/readiness_2026-07-31_final/` and `CD-024`.
+- [x] Progress: 100% — fallback accepted 31 July 2026. Private mode passes end to end on mock
+  and writes a distinct verifiable report, but the 0.012769 ETH remaining after deployment, a
+  preserved failed attempt, and the successful public run does not safely cover the 100-SNP
+  private workflow. No underfunded transaction was submitted. Per the completion criterion, the
+  revision will say private-weight execution is mock-validated only. See
+  `evidence/phase7/live_2026-07-31/`, `MS-05`, and `CD-024`.
 - Stage: Code and evidence - Phase 7 (Live fhEVM validation)
 - Type: Experiment
 - Code action:
@@ -843,7 +846,8 @@ Exit gate:
 
 # Stage A - Code and evidence (Phases 1-8, 16 actions)
 
-Stage A progress: **14/16 actions (87.5%)** — Phases 1-6 and 8 complete; Phase 7 blocked on credentials
+Stage A progress: **16/16 actions (100%)** — complete 31 July 2026. The public Phase 7 run
+passed; the private action takes its documented mock-only fallback after an exact funding blocker
 
 Stage A rule: the manuscript is not touched. If a code result contradicts something the
 submitted paper claims, record the contradiction in `evidence/claim_deltas.md` and resolve
@@ -1162,61 +1166,64 @@ Phase exit gate:
       these are **lower bounds** on attacker effort. A better attack may exist; the absence of one
       here is not a security proof.
 
-## Phase 7 - Live fhEVM validation — **BLOCKED**
+## Phase 7 - Live fhEVM validation — **COMPLETE: PUBLIC LIVE; PRIVATE MOCK-ONLY FALLBACK**
 
 Why after correctness: the live run should validate known answers, not create another unverified
 number. That intent is preserved — the harness asserts the decoded score against the Phase 3/5
 known answer, so a live pass would be a validation rather than a new claim.
 
-Phase progress: **0/2 actions complete; both 90% ready** — **blocked on credentials**, with
-all software-side acceptance fields implemented and mock-verified.
+Phase progress: **2/2 actions complete** — the public 100-SNP run passed on live Sepolia; the
+private action takes its explicit mock-only fallback because the remaining wallet balance is
+insufficient for a safe run.
 Record: `evidence/phase7/`.
 
-- [ ] `R1.1-E1` Public-weight live run. **Cannot execute here.** No `MNEMONIC` is configured and
-      `scripts/sepolia_validation.ts` correctly refuses the public Hardhat test mnemonic. The
-      guard was not worked around and no live result was synthesised. The same harness now
-      records chain ID, addresses/bytecode identities, every transaction hash and block number,
-      transaction count, host gas, submission-to-result/decryption timing, and decoded/reference
-      scores. Public mode passes on mock with 20 classic-path transactions.
-- [ ] `R1.1-E2` Private-weight live run. Same credential blocker. Parameterisation is now
-      **complete**, not remaining work: `MODEL_VISIBILITY=private` encrypts and uploads weights,
-      authorises the engine/requester, and writes a distinct report. It passes end to end on
-      mock with 22 classic-path transactions and encoded score 758,685. One live-specific risk
-      remains: `classifyPreauthorized` imports the score with an empty-proof
-      `FHE.fromExternal`, which holds within a transaction but has not been exercised against a
-      real coprocessor.
+- [x] `R1.1-E1` Public-weight live run. Four contracts were deployed once, then the complete
+      public 100-SNP classic workflow executed in **25 transactions / 20,710,271 gas**. All
+      receipts have status 1. Eleven real compute chunks passed, `JobFinalized` emitted score
+      handle `0x436c...0500`, Gateway/KMS user decryption took **8,081 ms**, and the decoded
+      score **758,685** exactly matched the independent reference. The full report, checkpoint,
+      transcript, source hash, bytecode hashes, and an independent receipt re-check are under
+      `evidence/phase7/live_2026-07-31/`.
+- [x] `R1.1-E2` Private-weight live run or documented fallback. Parameterisation is complete:
+      `MODEL_VISIBILITY=private` encrypts and uploads weights, authorises the engine/requester,
+      and writes a distinct checkpointed report. It passes end to end on mock with 22
+      classic-path transactions and score 758,685. The wallet now holds **0.012769 ETH**, below
+      the safe budget for the roughly 29.8 M-gas mock workflow, so no underfunded private
+      transaction was submitted. The accepted fallback is to state that private execution is
+      implemented and mock-validated but not validated live; no private live result is reported.
 
-### What Phase 7 did establish
-
-The remaining gap is now exactly "fund a wallet and run one command".
+### What Phase 7 established
 
 | Check | Result |
 |---|---|
-| Sepolia RPC reachable | yes — chain ID 11155111, block 11374028 |
-| Sepolia gas price, read from network | 1.048 gwei |
+| Network | Sepolia, chain ID 11155111 |
 | All contracts within EIP-170 | yes — largest `PRSComputeEngine` 10,426 B (42.4%) |
 | Live harness readiness | **8/8 asserted**, including both visibilities, transaction trail, and exact runner-source hash |
-| Deployment gas | 5,892,613 (0.00617 ETH) |
-| 100-SNP job, public / private | 15 tx / 11.69 M gas · 17 tx / 23.51 M gas |
-| **Recommended Sepolia budget** | **~0.13 ETH** with 3x headroom |
+| Live deployment | 4 tx / **5,892,559 gas** / **0.0062781714 test ETH** |
+| Live public 100-SNP job | 25 tx / **20,710,271 gas** / **0.0252747648 test ETH** |
+| Live result | encoded score **758,685**, exact; submission-to-result 269,320 ms; decryption 8,081 ms |
+| Geometry-matched public mock | 25 tx / 18,755,864 gas; live total **10.42%** higher at this one point |
+| Private 100-SNP mock | 22 classic-path tx / 29,797,061 gas; live not executed |
+| Remaining wallet balance | **0.0127690815 test ETH** — insufficient for the private workflow |
 
-`npm run preflight:live` now verifies all eight properties without contacting a network.
-Authoritative follow-up: `evidence/phase7/readiness_2026-07-31_final/`.
+The first public attempt is retained rather than overwritten: nine transactions mined before the
+Zama relayer closed a TLS socket during the second SNP proof. It produced no final result and is
+labelled failed. The runner now prepares all proofs before workflow writes, retries transport-only
+failures, and checkpoints every receipt. Attempt 2 exercised that retry before spending and then
+completed successfully. The previously flagged empty-proof finalization path also passed against
+the real coprocessor; this is a live validation point, not a general proof of future SDK behavior.
 
 Phase exit gate:
 
-- [ ] At least one real fhEVM end-to-end score matches the independent Equation 1 reference.
-      **Blocked.** The expected answer already exists and is agreed by both arms — 100-SNP
-      individual 0, encoded score **758,685** — so the live run has a known answer waiting.
-- [ ] The paper's live private-weight claim matches the actual result.
-      **Taking the plan's own fallback.** `R1.1-E2` provides that absent a successful run the
-      manuscript must say private-weight execution is mock-validated only; absent credentials
-      that applies to **both** runs. `MS-05` now carries both branches so Stage B can proceed
-      either way. Until a live run exists the paper must state that all results are Hardhat-mock
-      validated, must not claim live-network deployment, and must leave the Sepolia HCU ceiling
-      unmeasured for both model visibilities.
+- [x] At least one real fhEVM end-to-end score matches the independent Equation 1 reference.
+      Public 100-SNP individual 0 decoded to **758,685**, exactly matching both independent and
+      mock arms; all 25 transaction receipts and three runtime bytecode identities re-verified.
+- [x] The paper's live private-weight claim matches the actual result.
+      The accepted `R1.1-E2` fallback requires the manuscript to distinguish the successful
+      public live result from the mock-only private path. The Sepolia HCU ceiling remains
+      unmeasured; one successful chunk size of 10 is not a ceiling measurement.
 
-### Findings, three of them unrelated to the blocker
+### Findings
 
 - [x] `CD-021` The HCU ceiling is **21, not 20**, and is **identical for public and private
       models** (21 pass / 22 fail for both). The old figure was an artefact of a coarse candidate
@@ -1236,8 +1243,9 @@ Phase exit gate:
       transactions). The manuscript prices public models while its anti-probing discussion is
       explicitly about private ones, and Phase 6 established extraction is only a threat for
       private models — so the configuration needing protection costs double the one priced.
-- [x] `CD-024` The blocker recorded with the exact commands, measured budget, and the manuscript
-      fallback.
+- [x] `CD-024` The original credential blocker is partially resolved: public live execution
+      passed; private live execution is now blocked only on additional test ETH. The failed
+      attempt, actual fees, remaining balance, and manuscript fallback are recorded.
 
 ## Phase 8 - Evidence synthesis
 
@@ -1248,16 +1256,22 @@ Phase progress: **2/2 actions (100%)** — complete 31 July 2026. Record:
 `evidence/phase8/`.
 
 - [x] `R1.6-E1` Three-class table saved machine-first as
-      `scale_evidence.json` and rendered as `scale_evidence.md`. No live row is fabricated:
-      Phase 7 contributes an explicit blocked row with no successful sizes. Current
-      Hardhat-mock execution covers public 100 / 500 / 1,000 / 5,000-variant flows at
+      `scale_evidence.json` and rendered as `scale_evidence.md`. The table now contains one
+      verified `Live fhEVM` public 100-SNP row at **25 transactions / 20,710,271 gas**, while
+      private live execution remains absent. Hardhat-mock execution covers public
+      100 / 500 / 1,000 / 5,000-variant streaming flows at
       **15 / 47 / 88 / 413 transactions**, plus private 100 at **17**. Larger public/private
       rows at 10,000 / 100,000 / 1,000,000 are labelled `Analytic projection / unexecuted`
       and report transaction geometry only — no latency or gas extrapolation.
 - [x] `R1.8-E1` `measured_transaction_use.json` reports deployment, publication,
       sample registration, job creation, streaming compute, raw/category result alternatives,
-      and the off-chain decryption boundary. Four-contract deployment is 5,892,613 mock gas;
+      and the off-chain decryption boundary. The live Sepolia deployment is **4 tx / 5,892,559
+      gas / 0.0062781714 test ETH**; the live public job is **25 tx / 20,710,271 gas /
+      0.0252747648 test ETH**, with 8,081 ms decryption. Four-contract mock deployment is
+      5,892,613 gas;
       public/private 100-variant jobs are **15 / 17 tx** and **11.690 / 23.508 M mock gas**.
+      A geometry-matched 25-transaction mock used 18,755,864 gas, so the one live point was
+      **10.42%** higher; that does not justify a general conversion factor.
       `fee_sensitivity.json` is a separate `Analytic projection`, gives ETH arithmetic only,
       and makes no USD or production-affordability claim. `CD-025` records why totals are
       rounded: Phase 7 prose and machine JSON differ by 12 gas.
@@ -1266,17 +1280,19 @@ Dependencies: Phases 5, 6, and 7.
 
 Stage A exit gate - do not begin Stage B until all of the following hold:
 
-- [ ] All 16 Stage A actions are complete. **14/16; only `R1.1-E1` and `R1.1-E2` remain,
-      blocked on a funded Sepolia wallet.**
-- [x] `npm run build` and the full test suite pass. Latest Phase 7 readiness follow-up:
-      **167 passing**, 0 failing (Phase 8 exit was 163), node v22.23.1.
+- [x] All 16 Stage A actions are complete. **16/16:** `R1.1-E1` passed live and `R1.1-E2`
+      takes its documented private-mock-only fallback after the recorded funding blocker.
+- [x] `npm run build` and the full test suite pass. Final Stage A gate:
+      **174 passing**, 0 failing, node v22.23.1. Cross-language validation also passes all
+      three known-answer cases at tolerance 0. `tsc --noEmit` retains the same 14 pre-existing
+      generated-contract typing diagnostics and reports none in the Phase 7/8 changed files.
 - [x] Every number that will appear in the revised manuscript exists in a saved file under
       `evidence/`, with a stated evidence class of `Live fhEVM`, `Hardhat mock`, or
       `Analytic projection`.
 - [x] `evidence/claim_deltas.md` lists every submitted claim the new evidence contradicts,
       weakens, or fails to support.
 - [x] No planned manuscript sentence requires a number that does not yet exist. `MS-05`
-      takes its explicit no-live fallback branch unless Phase 7 later completes.
+      takes the public-live/private-mock branch unless the private run later completes.
 
 ---
 
@@ -1473,16 +1489,16 @@ Phase exit gate:
 | A | 4. Evidence provenance | 1 | 1 | **100%** |
 | A | 5. Individual-level correctness evidence | 1 | 1 | **100%** |
 | A | 6. Adversarial evidence | 1 | 1 | **100%** |
-| A | 7. Live fhEVM validation | 2 | 0 | **blocked** |
-| A | 8. Evidence synthesis | 2 | 0 | 0% |
-| **A** | **Code and evidence subtotal** | **16** | **12** | **75%** |
+| A | 7. Live fhEVM validation | 2 | 2 | **100% (public live; private fallback)** |
+| A | 8. Evidence synthesis | 2 | 2 | **100%** |
+| **A** | **Code and evidence subtotal** | **16** | **16** | **100%** |
 | B | 9. Methods written from code | 3 | 0 | 0% |
 | B | 10. Security model and release narrative | 5 | 0 | 0% |
 | B | 11. Results from measured evidence | 4 | 0 | 0% |
 | B | 12. Scope, cost, and HEPRS comparison | 6 | 0 | 0% |
 | B | 13. Front matter and conclusion | 1 | 0 | 0% |
 | **B** | **Manuscript subtotal** | **19** | **0** | **0%** |
-| | **Total reviewer actions** | **35** | **12** | **34%** |
+| | **Total reviewer actions** | **35** | **16** | **46%** |
 
 Phase 0 and Phase 14 are coordination and final-integration gates; they do not add reviewer
 action IDs to the 35-action total.

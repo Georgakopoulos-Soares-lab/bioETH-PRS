@@ -29,11 +29,15 @@ manuscript from it and touches nothing else.
 | Path | Produced by | Contents |
 |---|---|---|
 | `baseline/` | Phase 0 | Pre-revision compile, test, and environment capture |
-| `phase1/`–`phase7/` | Phases 1–7 | Code-conformity, provenance, correctness, adversarial, and live-readiness evidence |
-| `phase8/` | Phase 8 | Three-class scale table, measured transaction use, and separate fee sensitivity |
+| `phase1/`–`phase6/` | Phases 1–6 | Code conformity, provenance, correctness, and adversarial evidence |
+| `phase7/` | Phase 7 | Live readiness, one verified public Sepolia run, a preserved failed attempt, private mock-only fallback, and receipt-level provenance |
+| `phase8/` | Phase 8 | Three-class scale table, live and mock transaction use, and separate fee sensitivity |
 | `claim_deltas.md` | Phases 1–8 | Every submitted claim the new evidence contradicts or fails to support |
 
-Directories for phases 3–8 are created by the actions that fill them.
+Stage A is complete. Its live boundary is deliberately asymmetric: the public 100-SNP path is
+verified on Sepolia, while private-weight execution is implemented and Hardhat-mock validated
+but was not executed live. Larger rows remain mock observations or unexecuted projections as
+labelled in `phase8/scale_evidence.json`.
 
 ## Stage A → Stage B gate
 

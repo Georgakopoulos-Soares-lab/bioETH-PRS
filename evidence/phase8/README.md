@@ -2,15 +2,20 @@
 
 - Status: **complete**
 - Actions: `R1.6-E1`, `R1.8-E1`
-- Evidence classes: **Hardhat mock** and **Analytic projection**
-- Live fhEVM rows: **none** — Phase 7 remains blocked on a funded wallet
+- Evidence classes: **Live fhEVM**, **Hardhat mock**, and **Analytic projection**
+- Live fhEVM rows: **one verified public 100-SNP workflow**; private remains mock-only
 - Runtime: node v22.23.1
 - Date: 31 July 2026
 
 ## Headline
 
 Phase 8 turns the frozen Stage A measurements into the two machine-readable tables the
-manuscript will consume. It does not infer a live result from mock execution.
+manuscript will consume. The 31 July follow-up incorporates the verified public live run without
+promoting any mock or projected row to live evidence.
+
+The public live classic-path workflow used **25 transactions / 20,710,271 gas**, paid
+**0.025274764801306197 Sepolia test ETH**, completed in **464,253 ms**, and decrypted score
+**758,685** in **8,081 ms**. Private-weight execution remains mock-validated only.
 
 The measured public streaming workflow uses **15, 47, 88, and 413 host-contract
 transactions** at 100, 500, 1,000, and 5,000 nominal variants. The private 100-variant
@@ -28,29 +33,30 @@ The primary files are `scale_evidence.json` and its rendering `scale_evidence.md
 
 | Evidence class | Executed range | Visibility | What is available |
 |---|---|---|---|
-| Live fhEVM | none — blocked | none | no transaction, latency, HCU, or fee result |
+| Live fhEVM | 100 variants | public | 25 receipts, testnet gas/fee, real timing, exact decrypted result |
 | Hardhat mock | 100–5,000 variants | public; private at 100 | contract correctness, transaction geometry, mock host timing/gas |
 | Analytic projection | 10,000–1,000,000 variants | public and private | unexecuted transaction count only |
 
-The supported conclusion is deliberately narrow: **linear host-contract transaction growth
-over the measured 100–5,000-variant Hardhat-mock range**. The evidence does not establish
-real-TFHE latency, production fees, or genome-wide feasibility.
+The supported conclusion is deliberately narrow: one public 100-SNP point is live-validated,
+while **linear host-contract transaction growth over 100–5,000 variants** is supported only by
+Hardhat-mock runs. The evidence does not establish live scaling, private-weight live behavior,
+production fees, or genome-wide feasibility.
 
 The four mock rows were re-executed after the provenance changes rather than copied from the
 Phase 0 baseline. `heprs_profile.json` is the machine-readable run and
 `heprs_profile.txt` is its transcript. Every encoded score was checked against the independent
 reference as part of the profiler and the run fails on a mismatch.
 
-Each synthesis JSON hashes seven inputs: the three source-evidence files and the four scripts
-that produced or synthesised them. This records exact dirty-source content rather than relying
-only on the pre-commit `dirtyFiles` names in the run provenance.
+Each synthesis JSON hashes eleven inputs: seven source-evidence files (including the live
+deployment, public report, on-chain verification, and geometry-matched mock) and four producer
+scripts. This records exact content rather than relying only on commit labels.
 
 ## `R1.8-E1` — measured transaction use and fee sensitivity
 
 The authoritative files are:
 
-- `measured_transaction_use.json` and `.md` — observed Hardhat-mock transaction counts and
-  host gas;
+- `measured_transaction_use.json` and `.md` — observed live and Hardhat-mock transaction counts,
+  gas, timing, and testnet-fee boundaries;
 - `fee_sensitivity.json` and `.md` — separate, explicitly unexecuted ETH arithmetic;
 - `evidence/phase7/live_preflight.json` — source measurement for deployment and public/private
   100-variant flows;
@@ -59,15 +65,17 @@ The authoritative files are:
 
 Key observed quantities:
 
-| Quantity | Transactions | Hardhat-mock host gas |
-|---|---:|---:|
-| Four-contract deployment | 4 | 5,892,613 |
-| Public 100-variant job | 15 | 11.690 M |
-| Private 100-variant job | 17 | 23.508 M |
-| One-time release-policy setup | 1 | 77,314 |
-| Raw-score finalization | 1 | 169,898 |
-| Randomized-category finalization | 1 | 432,230 |
-| User decryption | 0 on-chain | not applicable; live latency unmeasured |
+| Quantity | Evidence class | Transactions | Gas |
+|---|---|---:|---:|
+| Four-contract deployment | Live fhEVM | 4 | 5,892,559 |
+| Public 100-variant classic job | Live fhEVM | 25 | 20,710,271 |
+| Geometry-matched public classic job | Hardhat mock | 25 | 18,755,864 |
+| Public 100-variant streaming job | Hardhat mock | 15 | 11.690 M |
+| Private 100-variant streaming job | Hardhat mock | 17 | 23.508 M |
+| One-time release-policy setup | Hardhat mock | 1 | 77,314 |
+| Raw-score finalization | Hardhat mock | 1 | 169,898 |
+| Randomized-category finalization | Hardhat mock | 1 | 432,230 |
+| Public Gateway/KMS decryption | Live fhEVM | 0 on-chain | 8,081 ms, no host gas |
 
 The raw and randomized-category finalizations are alternatives measured in different runs;
 they must not be added together. Release-policy setup is one additional transaction per model.
@@ -75,6 +83,10 @@ they must not be added together. Release-policy setup is one additional transact
 Fee sensitivity is kept in a different artifact and is labelled `Analytic projection`. It
 multiplies the mock-observed gas by hypothetical gas prices, gives ETH only, and makes no USD,
 production-affordability, clinical-feasibility, or commercial-viability claim.
+
+The geometry-matched live/mock pair has the same chunk sizes and 25 transactions. Live gas is
+**1,954,407 / 10.42% higher**. That one pair is useful evidence but does not justify a general
+"within 10–20%" expectation for other models or network conditions.
 
 ## Finding: machine-readable evidence wins over hand transcription
 
@@ -112,7 +124,7 @@ No partial profile was used as evidence.
 | Extra `npx tsc --noEmit` audit | exit 2 — 14 existing errors, all in untouched Phase 6/HCU/baseline-test files; no Phase 8 file appears |
 | Four HEPRS flows | 1 profiler test passing; all four `status=full_flow` |
 | JSON/source reconciliation | synthesis aborts unless transaction counts and component sums reconcile |
-| Evidence-class guard | all larger rows are `Analytic projection / unexecuted`; live successful row set is empty |
+| Evidence-class guard | one verified public live row; private live absent; all larger projections remain unexecuted |
 | Manuscript | `bioeth_prs (4).tex` untouched |
 
 ## Files
@@ -134,7 +146,6 @@ No partial profile was used as evidence.
 
 ## Stage A status
 
-Phase 8 is 2/2 complete. Stage A is now **14/16**: all code, mock evaluation, synthesis, and
-saved-number gates are complete; only the two Phase 7 live actions remain blocked on a funded
-Sepolia wallet. Stage B must not begin while the plan's `All 16 Stage A actions` gate remains
-open.
+Phase 8 is 2/2 complete. Stage A is **16/16**: the public live action passed and the private
+action takes its recorded mock-only fallback. Stage B may now write the manuscript strictly from
+these saved evidence classes.

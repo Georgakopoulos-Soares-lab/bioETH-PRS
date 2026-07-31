@@ -1,8 +1,23 @@
 # Phase 8 measured transaction use
 
 - Action: `R1.8-E1`
-- Evidence class: **Hardhat mock**
-- Live-network gas, latency, HCU availability, production fees, and USD cost: **unavailable**.
+- Evidence classes: **Live fhEVM** and **Hardhat mock**
+- Live scope: four-contract Sepolia deployment plus one public 100-SNP classic-path job.
+- Private-weight live behavior, production fees, and USD cost: **unavailable**.
+
+## Live Sepolia observations
+
+| Operation | Visibility / path | Transactions | Gas | Sepolia test-ETH fee | Timing / result |
+|---|---|---:|---:|---:|---|
+| Four-contract deployment | shared | 4 | 5,892,559 | 0.006278171412391863 ETH | blocks 11388858–11388861 |
+| Full 100-SNP job | public classic | 25 | 20,710,271 | 0.025274764801306197 ETH | 464.3 s; decoded 758685 |
+| User decryption | public Gateway/KMS | 0 on-chain | n/a | included above | 8081 ms |
+
+Sepolia test ETH has no production-price interpretation. The successful live run is one
+100-SNP point, not evidence of genome-wide scale or private-weight live execution.
+The geometry-matched public mock also used 25 transactions and 18,755,864 gas; the live total was 10.42% higher. This single pair does not support a general live/mock conversion factor.
+
+## Hardhat-mock observations
 
 | Operation | Visibility / path | Transactions | Observed host gas | Reporting note |
 |---|---|---:|---:|---|
@@ -16,7 +31,7 @@
 | Streaming upload + compute | private | 6 | 12.209 M | encrypted calldata; rounded |
 | Raw-score finalization | raw result | 1 | 169,898 | Phase 7 workflow |
 | Randomized-category finalization | categorical result | 1 | 432,230 | separate Phase 2 measurement; replaces raw finalization |
-| User decryption | mock debugger / live Gateway-KMS | 0 on-chain | n/a | live latency unmeasured |
+| User decryption | mock debugger | 0 on-chain | n/a | public live Gateway/KMS latency is reported separately above |
 | **Full 100-SNP job** | **public** | **15** | **11.690 M** | deployment excluded |
 | **Full 100-SNP job** | **private** | **17** | **23.508 M** | deployment excluded |
 
