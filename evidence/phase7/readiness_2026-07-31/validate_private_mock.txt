@@ -1,0 +1,74 @@
+
+> bioeth-prs@0.1.0 validate:mock
+> hardhat test scripts/sepolia_validation.ts
+
+
+
+  Sepolia 100-SNP validation
+
+Network  : hardhat (chainId=31337)
+FHE mode : mock — plaintext arithmetic
+Model    : private weights
+Fixture  : 100 SNPs, uploadChunkSize=32, computeChunkSize=20
+
+manifestHash    : 0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75
+sourceModelHash : 0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5
+genotypeHash    : 0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a
+
+Scale     : 3000000
+Expected  : 758685
+
+Deploying fresh contracts...
+  Deployed in 16ms
+  Registry   : 0x5FbDB2315678afecb367f032d93F642f64180aa3
+  Marketplace: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+  Engine     : 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+  SampleId   : 0
+
+Publishing 100-SNP private model...
+  Done in 87ms  gas=10687099
+
+Creating PRS job...
+  Job 0 in 1ms  gas=326695
+
+Uploading 4 SNP chunks (32 SNPs each)...
+  Upload 76ms  gas=10335975
+  finalizeSnpUpload gas=37197
+
+Computing 6 chunks (20 SNPs each)...
+  chunk  1/6  5ms  gas=1604024
+  chunk  2/6  7ms  gas=1571824
+  chunk  3/6  7ms  gas=1571824
+  chunk  4/6  6ms  gas=1571824
+  chunk  5/6  6ms  gas=1571824
+  chunk  6/6  1ms  gas=233766
+  Compute total gas=8125086
+
+Finalizing...
+  finalize 3ms  gas=169898
+  JobFinalized event received
+  Score handle: 0x74e6442597737d7759c1a500a5efd9e3e7abbab80bff0000000000007a690500
+
+Decrypting score (debugger path)...
+  Decrypted in 108ms
+  Actual  : 758685
+  Expected: 758685
+  PASS
+
+Report saved to /Users/kap4722/bioETH-PRS/evidence/phase7/readiness_2026-07-31/chain-31337-validation-100snp-private.json
+
+=== Summary ===
+Network    : chain-31337 (mock)
+Visibility : private
+Transactions: 22
+Upload     : 4 × uploadChunkSize=32
+Compute    : 6 × computeChunkSize=20
+Total gas  : 29797253
+Avg chunk  : 5.3ms
+Decrypt    : 108ms
+Status     : PASS
+    ✔ runs 100-SNP HEPRS fixture end-to-end and decrypts the score (382ms)
+
+
+  1 passing (383ms)
+

@@ -686,10 +686,12 @@ here, and no live number has been fabricated.
 
 **Everything else about the live run is verified.** Sepolia RPC is reachable (chain ID
 11155111, block 11374028 at time of check). All four contracts are far inside the EIP-170 limit
-— the largest, `PRSComputeEngine`, is 10,426 B or 42.4%. The live harness passes a readiness
-check for all five properties it needs: refuses the default mnemonic, emits a provenance block,
-labels its evidence class, compares against the independent reference, and uses real manifest
-hashes.
+— the largest, `PRSComputeEngine`, is 10,426 B or 42.4%. The 31 July follow-up closes the two
+remaining software gaps: one harness now supports public and encrypted private weights, and
+both modes record chain ID, deployed identities, every transaction hash and block number,
+transaction count, host gas, timings, exact runner-source hash, and decoded/reference scores.
+Public/private modes pass on the mock at 20/22 classic-path transactions and the known encoded
+score 758,685. `npm run preflight:live` asserts **8/8** readiness properties.
 
 Measured budget, at a Sepolia gas price of 1.048 gwei read from the network:
 
@@ -707,6 +709,19 @@ private-weight execution is mock-validated only." Absent credentials that fallba
 results are Hardhat-mock validated, must not claim live-network deployment, and must leave the
 Sepolia HCU ceiling as unmeasured for both model visibilities. `MS-05` is updated accordingly
 with both branches.
+
+**Exact remaining commands:**
+
+```sh
+npx hardhat vars set MNEMONIC
+npm run deploy:sepolia
+MODEL_VISIBILITY=public npm run validate:sepolia
+MODEL_VISIBILITY=private npm run validate:sepolia
+npm run probe:hcu
+```
+
+The blocker is now wallet funding/execution only, not private-mode parameterisation or missing
+receipt fields. Evidence: `evidence/phase7/readiness_2026-07-31_final/`.
 
 ## CD-025 — Phase 7 prose copied total gas 12 units above its machine-readable record
 

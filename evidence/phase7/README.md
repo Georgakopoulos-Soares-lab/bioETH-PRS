@@ -21,20 +21,22 @@ that fallback applies to **both** runs. See `CD-024`.
 
 ## What Phase 7 did establish
 
-The remaining gap is now exactly "fund a wallet and run one command", not an open question.
+The 31 July readiness follow-up removes the remaining software-side gaps. The blocker is now
+exactly a funded wallet plus execution of the recorded commands, not missing harness behavior.
 
 | Check | Result |
 |---|---|
 | Sepolia RPC reachable | yes — chain ID 11155111, block 11374028 |
 | Sepolia gas price (read from network) | 1.048 gwei |
 | All contracts within EIP-170 (24,576 B) | yes — largest is `PRSComputeEngine` at 10,426 B (42.4%) |
-| Live harness readiness | 5/5 properties verified |
+| Live harness readiness | **8/8 properties verified** after the 31 July follow-up |
 | Deployment gas measured | 5,892,613 |
 | 100-SNP job measured, public and private | 15 tx / 11.69 M gas and 17 tx / 23.51 M gas |
 
 Harness readiness, each asserted rather than eyeballed: refuses the default mnemonic, emits a
-provenance block, labels its evidence class, compares against the independent reference, and
-uses real manifest hashes.
+provenance block, labels its evidence class, compares against the independent reference, uses
+real manifest hashes, supports both model visibilities, records transaction hashes and block
+numbers, and hashes the exact validation-runner source.
 
 ### Sepolia budget
 
@@ -54,7 +56,8 @@ npx hardhat vars set MNEMONIC          # a funded Sepolia wallet, NOT the test m
 npx hardhat vars set INFURA_API_KEY    # optional; a public RPC is the default
 
 npm run deploy:sepolia                 # writes deployments/sepolia.json
-npm run validate:sepolia               # R1.1-E1: public 100-SNP live run
+MODEL_VISIBILITY=public npm run validate:sepolia   # R1.1-E1
+MODEL_VISIBILITY=private npm run validate:sepolia  # R1.1-E2
 npm run probe:hcu                      # the live HCU ceiling, still unmeasured
 ```
 
@@ -65,9 +68,13 @@ a validation rather than a new unverified number: for the 100-SNP fixture, indiv
 expected encoded score is **758,685**, agreed by both the Python reference and the mock contract
 path.
 
-`R1.1-E2` needs a private-weight variant of `sepolia_validation.ts`. The pre-flight confirms the
-private path works end to end on the mock, so the work is parameterisation rather than
-discovery. One live-specific risk to watch, already flagged in the contract comments:
+`R1.1-E2` no longer needs a private-weight variant:
+`MODEL_VISIBILITY=private npm run validate:sepolia` uses the same report-producing harness.
+Both public and private modes pass on the Hardhat mock against encoded score 758,685, with
+20/22 classic-workflow transactions and a complete receipt trail. The authoritative readiness
+record is `readiness_2026-07-31_final/`.
+
+One live-specific risk remains to watch, already flagged in the contract comments:
 `classifyPreauthorized` imports the score with an empty-proof `FHE.fromExternal`, which depends
 on the sender owning the handle — that holds within a single transaction but has not been
 exercised against a real coprocessor.
@@ -144,8 +151,10 @@ visibilities. `MS-05` now carries both branches so Stage B can proceed either wa
 |---|---|
 | Contract edits are comment-only | confirmed — zero non-comment diff lines in both contracts |
 | `npm run build` | exit 0 |
-| `npm run test` | **156 passing**, 0 failing |
+| `npm run test` | original Phase 7: 156 passing; 31 July readiness follow-up: **167 passing**, 0 failing |
 | HCU probe reproducible | `MODEL_VISIBILITY` and `HCU_CHUNK_SIZES` env-controlled |
+| Public/private validator modes | PASS on mock; 20/22 transactions; exact score 758,685 |
+| Transaction record | every hash, block number, status, gas, timing, and runner-source hash saved |
 | No live number fabricated | no network transaction was made |
 
 ## Layout
@@ -155,3 +164,5 @@ visibilities. `MS-05` now carries both branches so Stage B can proceed either wa
 | `live_preflight.json` | Deployment gas, both job variants, budget, harness readiness |
 | `hcu_public.txt`, `hcu_private.txt` | Fine-bracketed ceiling measurements |
 | `tests_after.txt` | Full suite |
+| `readiness_2026-07-31_final/` | authoritative deployment + public/private validator readiness reports |
+| `readiness_2026-07-31/` | preserved superseded capture, missing exact runner-source hash |

@@ -393,8 +393,11 @@ the private one.
 
 Under branch B the paper should also record, because it is verified and strengthens the honesty
 of the scope statement, that the contracts are within the EIP-170 size limit (largest 42.4%), the
-harness is ready, and the measured Sepolia budget is ~0.13 ETH — i.e. the obstacle is a
-credential, not a technical barrier.
+harness is **8/8 ready**, and the measured Sepolia budget is ~0.13 ETH — i.e. the obstacle is a
+credential, not missing public/private execution code or report fields. The final mock readiness
+record contains distinct public/private reports with 20/22 classic-path transactions, complete
+receipt trails, exact runner-source hashes, and the known score 758,685:
+`evidence/phase7/readiness_2026-07-31_final/`.
 
 **Three measurement corrections that must land regardless of branch:**
 
@@ -749,7 +752,7 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-14 | `validation/cases/*.json` — 27 hand-computed expectations, all re-derived and agreeing | R2 C6 |
 | EV-15 | `evidence/phase3/reference/heprs_*snp_reference.json` — expected answers, all 200 individuals, round-trip error 0 | MS-13; R2 C7 |
 | EV-16 | `scripts/utils/provenance.ts` - commit, input digests, bytecode digests, reference-output digest | MS-14; R2 C4 |
-| EV-17 | `test/provenance_guard_test.ts` - 10 tests; zero-hash regression guard incl. exemption-list staleness; 10 evidence producers | R2 C4 |
+| EV-17 | `test/provenance_guard_test.ts` - 10 tests; zero-hash regression guard incl. exemption-list staleness; 11 evidence producers | R2 C4 |
 | EV-18 | `evidence/phase4/gas_delta.md` - +40,568 gas/model for real provenance, attributed by phase | MS-14, MS-08; R1 C8 |
 | EV-19 | 100-SNP cross-validation: reference and contract agree at `encodedScore = 758,685` | R2 C4, C7 |
 | EV-20 | `evidence/phase5/individual_level_comparison.csv` - 200 rows, all exact | MS-15; R2 C7 |
@@ -768,6 +771,9 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | EV-33 | `evidence/phase8/fee_sensitivity.json` - separate unexecuted ETH arithmetic, no USD | MS-08; R1 C8 |
 | EV-34 | `evidence/phase8/heprs_profile.json` - current post-provenance execution at 100/500/1,000/5,000 variants | MS-17; R1 C6 |
 | EV-35 | `test/phase8_evidence_synthesis_test.ts` - transaction geometry, class labels, reconciliation, fee-boundary tests | MS-08, MS-17 |
+| EV-36 | `evidence/phase7/readiness_2026-07-31_final/` - deployment receipts and public/private validator reports with exact source hashes | MS-05; R1 C1 |
+| EV-37 | `test/live_validation_readiness_test.ts` - both visibilities, report fields, non-overwriting paths, deployment provenance | MS-05; R1 C1 |
+| EV-38 | `scripts/sepolia_validation.ts`, `scripts/deploy.ts` - live-ready receipt-producing harnesses | MS-05; R1 C1 |
 
 ## Commit trail
 
@@ -785,3 +791,4 @@ Stable references the manuscript and response letter may cite. Keep in sync with
 | `7c1ffd2` | Phase 6: adversarial evaluation; 2,800-hour claim refuted and replaced |
 | `33014aa` | Phase 7: live runs blocked on credentials; HCU/optimisation/private-cost findings |
 | `ecf9369` | Phase 8: scale and transaction-use synthesis; fee scenarios isolated |
+| `<phase7-readiness>` | Phase 7 follow-up: private live harness + verifiable transaction reports |

@@ -1,0 +1,326 @@
+{
+  "network": "chain-31337",
+  "chainId": "31337",
+  "fheMode": "mock",
+  "evidenceClass": "Hardhat mock",
+  "startedAt": "2026-07-31T09:55:38.494Z",
+  "completedAt": "2026-07-31T09:55:38.823Z",
+  "modelVisibility": "private",
+  "signer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "fixtureSize": 100,
+  "uploadChunkSize": 32,
+  "computeChunkSize": 20,
+  "scale": 3000000,
+  "passed": true,
+  "expectedEncodedScore": "758685",
+  "decodedEncodedScore": "758685",
+  "scoreHandle": "0x74e6442597737d7759c1a500a5efd9e3e7abbab80bff0000000000007a690500",
+  "decryptionPath": "hardhat debugger",
+  "transactionCount": 22,
+  "deploymentTransactionCount": 3,
+  "transactions": [
+    {
+      "label": "sample.register",
+      "hash": "0xc1d7054c07ace464d52c3bd3cea74453d0e2610b69ab3d1db663e543546e9ccd",
+      "blockNumber": 6,
+      "gasUsed": "115303",
+      "status": 1
+    },
+    {
+      "label": "model.createShell",
+      "hash": "0x52486c8866e8c5f511fdcdbdf640e4dca4b7d712ceddc9155b5771188b93e5e1",
+      "blockNumber": 7,
+      "gasUsed": "274436",
+      "status": 1
+    },
+    {
+      "label": "model.appendEncryptedChunk.0",
+      "hash": "0x8211312e3881dcb7af9d232f776f3121ce62bd61c90e1cdc49929a0745926840",
+      "blockNumber": 8,
+      "gasUsed": "3281392",
+      "status": 1
+    },
+    {
+      "label": "model.appendEncryptedChunk.1",
+      "hash": "0xb9b3e64c19dd303b2c7efe8612c24e865450bd2d8984e3f9b5f714deb0c01940",
+      "blockNumber": 9,
+      "gasUsed": "3247180",
+      "status": 1
+    },
+    {
+      "label": "model.appendEncryptedChunk.2",
+      "hash": "0xfa487f1f7327014f46ea59e6aa1b6108642a786076f3dd64fdde1898826ef0db",
+      "blockNumber": 10,
+      "gasUsed": "3247192",
+      "status": 1
+    },
+    {
+      "label": "model.appendEncryptedChunk.3",
+      "hash": "0x42e58ac48b8d97e551fe60bdf56a17d289bab39bb4501d841d6b061339a60ed0",
+      "blockNumber": 11,
+      "gasUsed": "520291",
+      "status": 1
+    },
+    {
+      "label": "model.authorizeEngine",
+      "hash": "0x7c853ac8c25e2faa71071aad392ffafc884ad2ef0a4c2767d85a0652826b6767",
+      "blockNumber": 12,
+      "gasUsed": "50942",
+      "status": 1
+    },
+    {
+      "label": "model.authorizeRequester",
+      "hash": "0xee3cd6d88823d05a8299c77e7ebd573f49c040c2965f90a876acc6b4271a623d",
+      "blockNumber": 13,
+      "gasUsed": "31042",
+      "status": 1
+    },
+    {
+      "label": "model.finalize",
+      "hash": "0x7d4c5cfd6b0921eb08ea0df37e9af87b4ead7bd6c8d7ff6540736364ec2ec662",
+      "blockNumber": 14,
+      "gasUsed": "34624",
+      "status": 1
+    },
+    {
+      "label": "job.create",
+      "hash": "0x4de859af1b4d19231dde40be93d121f436165419ba2891ffde6598d11bc8e19a",
+      "blockNumber": 15,
+      "gasUsed": "326695",
+      "status": 1
+    },
+    {
+      "label": "job.appendSnpChunk.0",
+      "hash": "0xfb17174028b8ab01ec28ca5544d432a869b372db9cfe17126db99040f87a15ca",
+      "blockNumber": 16,
+      "gasUsed": "3293394",
+      "status": 1
+    },
+    {
+      "label": "job.appendSnpChunk.1",
+      "hash": "0x5a982f9a37193a758721022b69e760ab6454902dcd81ef156ea69ff8985899d6",
+      "blockNumber": 17,
+      "gasUsed": "3259254",
+      "status": 1
+    },
+    {
+      "label": "job.appendSnpChunk.2",
+      "hash": "0x2086dbec92cbba0fff215eba0dd7b1223aa472b56e56488825b59dd402140003",
+      "blockNumber": 18,
+      "gasUsed": "3259230",
+      "status": 1
+    },
+    {
+      "label": "job.appendSnpChunk.3",
+      "hash": "0x387b1ad7e7062439984cd3b64183f7b936b6083033c3d6674330b7039613fe42",
+      "blockNumber": 19,
+      "gasUsed": "524097",
+      "status": 1
+    },
+    {
+      "label": "job.finalizeSnpUpload",
+      "hash": "0x51bfe3f674f5887c33d9eca85cc90c93eff91719c75569087415edbe429bacf9",
+      "blockNumber": 20,
+      "gasUsed": "37197",
+      "status": 1
+    },
+    {
+      "label": "job.computeChunk.0",
+      "hash": "0xe0de3a9d1c1a885b22a47dced417dffd16f240313e6f329e66c58205595cbb31",
+      "blockNumber": 21,
+      "gasUsed": "1604024",
+      "status": 1
+    },
+    {
+      "label": "job.computeChunk.1",
+      "hash": "0x9eb7ffb2775ed31af42d4340a864d8add1bfcb67faec241920e11c96bbf8a2f6",
+      "blockNumber": 22,
+      "gasUsed": "1571824",
+      "status": 1
+    },
+    {
+      "label": "job.computeChunk.2",
+      "hash": "0x69a3b24412dd7a598f4835b7437ac49cfab455d03771ffb01b375bddcbbb282d",
+      "blockNumber": 23,
+      "gasUsed": "1571824",
+      "status": 1
+    },
+    {
+      "label": "job.computeChunk.3",
+      "hash": "0x492aceea8620b886bfe3d994ef3a71c4444c7e6d8df63481a8354b18be46cf4a",
+      "blockNumber": 24,
+      "gasUsed": "1571824",
+      "status": 1
+    },
+    {
+      "label": "job.computeChunk.4",
+      "hash": "0x283403e273e9d0d36ef96684f711067c11e90405597966c89c048dce4eae5163",
+      "blockNumber": 25,
+      "gasUsed": "1571824",
+      "status": 1
+    },
+    {
+      "label": "job.computeChunk.5",
+      "hash": "0xbc775643252ff12677ee94936118a464127b2d99402271ba1a42a9d4bf681428",
+      "blockNumber": 26,
+      "gasUsed": "233766",
+      "status": 1
+    },
+    {
+      "label": "job.finalize",
+      "hash": "0x4a395875ad6167177979fec071142dace5758cea8055f85e1f9a4fc015fc1dab",
+      "blockNumber": 27,
+      "gasUsed": "169898",
+      "status": 1
+    }
+  ],
+  "deploymentTransactions": [
+    {
+      "label": "deploy.GenomicRegistry",
+      "hash": "0x9b27c30c303fc4ecab6313922b23679038959392b12fe322c8480e977dce701d",
+      "blockNumber": 3,
+      "gasUsed": "660271",
+      "status": 1
+    },
+    {
+      "label": "deploy.ModelMarketplace",
+      "hash": "0x334262d9e992b1e231e2849e556320f51662b2d73ce8c3e39bcee994e5744950",
+      "blockNumber": 4,
+      "gasUsed": "1891790",
+      "status": 1
+    },
+    {
+      "label": "deploy.PRSComputeEngine",
+      "hash": "0xd72f0f43a7c049cabed871acdf005541992616c1caee50ae9da9e68fb7873f08",
+      "blockNumber": 5,
+      "gasUsed": "2430713",
+      "status": 1
+    }
+  ],
+  "gas": {
+    "sampleRegistration": "115303",
+    "publishModel": "10687099",
+    "createJob": "326695",
+    "uploadSnps": "10335975",
+    "finalizeSnpUpload": "37197",
+    "compute": "8125086",
+    "finalize": "169898",
+    "total": "29797253",
+    "chunkGasPerCall": [
+      "1604024",
+      "1571824",
+      "1571824",
+      "1571824",
+      "1571824",
+      "233766"
+    ]
+  },
+  "timing": {
+    "submissionToResultMs": 111,
+    "endToEndValidationMs": 329,
+    "chunkTimesMs": [
+      5,
+      7,
+      7,
+      6,
+      6,
+      1
+    ],
+    "avgChunkMs": 5.333333333333333,
+    "minChunkMs": 1,
+    "maxChunkMs": 7,
+    "decryptMs": 108
+  },
+  "contracts": {
+    "GenomicRegistry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "ModelMarketplace": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "PRSComputeEngine": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+  },
+  "provenance": {
+    "schema": "bioeth-prs/provenance/1",
+    "repository": {
+      "commit": "8653810362b3295ebca2899ea344b560024d3d8f",
+      "shortCommit": "8653810",
+      "branch": "rtr-revision",
+      "dirty": true,
+      "dirtyFiles": [
+        "M scripts/deploy.ts",
+        "M scripts/live_preflight.ts",
+        "M scripts/sepolia_validation.ts",
+        "M test/provenance_guard_test.ts",
+        "?? evidence/phase7/readiness_2026-07-31/",
+        "?? test/live_validation_readiness_test.ts"
+      ]
+    },
+    "runtime": {
+      "node": "v22.23.1",
+      "platform": "darwin"
+    },
+    "network": {
+      "name": "hardhat",
+      "chainId": "31337"
+    },
+    "inputs": [
+      {
+        "role": "model_manifest",
+        "path": "validation/manifests/heprs_100snp.json",
+        "hash": "0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75",
+        "bytes": 17524
+      },
+      {
+        "role": "model_weights",
+        "path": "test/fixtures/heprs/beta_100SNP_phenotype0.csv",
+        "hash": "0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5",
+        "bytes": 940
+      },
+      {
+        "role": "genotypes",
+        "path": "test/fixtures/heprs/genotype_100SNP_50individual.csv",
+        "hash": "0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a",
+        "bytes": 10100
+      }
+    ],
+    "model": {
+      "manifestHash": "0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75",
+      "sourceModelHash": "0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5",
+      "genotypeManifestHash": "0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a",
+      "descriptor": {
+        "kind": "heprs_fixture",
+        "manifest": "validation/manifests/heprs_100snp.json",
+        "weights": "test/fixtures/heprs/beta_100SNP_phenotype0.csv",
+        "genotypes": "test/fixtures/heprs/genotype_100SNP_50individual.csv",
+        "nominalSnpCount": 100,
+        "encodedPositions": 101,
+        "scale": 3000000,
+        "uploadChunkSize": 32,
+        "computeChunkSize": 20,
+        "individual": 0,
+        "modelVisibility": "private"
+      }
+    },
+    "contracts": [
+      {
+        "name": "GenomicRegistry",
+        "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        "bytecodeHash": "0x1b2e38bee44ca3a96c813fc05e41fd0b59e8e08b09320503cdfade32aa1400da",
+        "bytecodeBytes": 2808
+      },
+      {
+        "name": "ModelMarketplace",
+        "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "bytecodeHash": "0xbe6163c1267e3aa83c56ebdc292138e457ed853396d170bd445b1905dc92f0ff",
+        "bytecodeBytes": 8151
+      },
+      {
+        "name": "PRSComputeEngine",
+        "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+        "bytecodeHash": "0x66c177bca198e6ff8f19f4133cb5a104f9c94662198930aa779b3aa1faa9da4f",
+        "bytecodeBytes": 10426
+      }
+    ],
+    "referenceOutput": {
+      "path": "evidence/phase3/reference/heprs_100snp_reference.json",
+      "hash": "0x6fe5e6a78b58a1f3965e266009a57e57c7bfa3727173e16cc4fd26c3c5cd2f2c"
+    }
+  }
+}

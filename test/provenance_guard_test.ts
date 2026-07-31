@@ -54,6 +54,9 @@ const EVIDENCE_PRODUCING = [
   // source for manuscript numbers. It therefore records hashes of every source
   // artifact it synthesises and belongs in the guarded set.
   "scripts/phase8_evidence_synthesis.ts",
+  // Phase 7 readiness follow-up: deployment receipts, transaction hashes, block
+  // numbers, gas, exact source, and bytecode identities now feed the live report.
+  "scripts/deploy.ts",
 ];
 
 // Behavioural tests: they assert contract logic and report no measurement, so

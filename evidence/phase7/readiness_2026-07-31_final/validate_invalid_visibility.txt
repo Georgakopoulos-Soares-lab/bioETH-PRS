@@ -1,0 +1,21 @@
+
+> bioeth-prs@0.1.0 validate:mock
+> hardhat test scripts/sepolia_validation.ts
+
+
+
+  Sepolia 100-SNP validation
+    1) runs 100-SNP HEPRS fixture end-to-end and decrypts the score
+
+
+  0 passing (3ms)
+  1 failing
+
+  1) Sepolia 100-SNP validation
+       runs 100-SNP HEPRS fixture end-to-end and decrypts the score:
+     Error: MODEL_VISIBILITY must be "public" or "private"
+      at parseModelVisibility (scripts/sepolia_validation.ts:91:11)
+      at Context.<anonymous> (scripts/sepolia_validation.ts:131:29)
+
+
+

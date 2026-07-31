@@ -1,0 +1,103 @@
+{
+  "network": "chain-31337",
+  "chainId": "31337",
+  "deployedAt": "2026-07-31T09:56:22.994Z",
+  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "evidenceClass": "Hardhat mock",
+  "transactionCount": 4,
+  "totalDeploymentGas": "5892625",
+  "transactions": [
+    {
+      "contract": "GenomicRegistry",
+      "hash": "0x3c335c6867b080d1bc25f414e9f2954534a6fa16f1f12bf0a2ae1b1e2b6e45ef",
+      "blockNumber": 1,
+      "gasUsed": "660271",
+      "status": 1
+    },
+    {
+      "contract": "ModelMarketplace",
+      "hash": "0x5f57235fe9263fbe8946ff1f637d390d6b26697215b24146e14ae7e972db8058",
+      "blockNumber": 2,
+      "gasUsed": "1891790",
+      "status": 1
+    },
+    {
+      "contract": "PRSComputeEngine",
+      "hash": "0x6405de20616d3430d840db8cf6dced4be6e0f1ac910545e80836d2609de5baed",
+      "blockNumber": 3,
+      "gasUsed": "2430713",
+      "status": 1
+    },
+    {
+      "contract": "ResultOracle",
+      "hash": "0x21569959f433ad0956b7a954f432fb8cba2f8d95e6b470241b1fae816a545275",
+      "blockNumber": 4,
+      "gasUsed": "909851",
+      "status": 1
+    }
+  ],
+  "contracts": {
+    "GenomicRegistry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "ModelMarketplace": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "PRSComputeEngine": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "ResultOracle": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+  },
+  "provenance": {
+    "schema": "bioeth-prs/provenance/1",
+    "repository": {
+      "commit": "8653810362b3295ebca2899ea344b560024d3d8f",
+      "shortCommit": "8653810",
+      "branch": "rtr-revision",
+      "dirty": true,
+      "dirtyFiles": [
+        "M scripts/deploy.ts",
+        "M scripts/live_preflight.ts",
+        "M scripts/sepolia_validation.ts",
+        "M test/provenance_guard_test.ts",
+        "?? evidence/phase7/readiness_2026-07-31/",
+        "?? evidence/phase7/readiness_2026-07-31_final/",
+        "?? test/live_validation_readiness_test.ts"
+      ]
+    },
+    "runtime": {
+      "node": "v22.23.1",
+      "platform": "darwin"
+    },
+    "network": {
+      "name": "hardhat",
+      "chainId": "31337"
+    },
+    "source": {
+      "role": "deployment_script",
+      "path": "scripts/deploy.ts",
+      "hash": "0xf81528b5680d9ae5cf0efc41a73ecdeded8b9171029d37b049a591ba18d2fbd4",
+      "bytes": 6405
+    },
+    "contracts": [
+      {
+        "name": "GenomicRegistry",
+        "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        "bytecodeHash": "0x1b2e38bee44ca3a96c813fc05e41fd0b59e8e08b09320503cdfade32aa1400da",
+        "bytecodeBytes": 2808
+      },
+      {
+        "name": "ModelMarketplace",
+        "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "bytecodeHash": "0xbe6163c1267e3aa83c56ebdc292138e457ed853396d170bd445b1905dc92f0ff",
+        "bytecodeBytes": 8151
+      },
+      {
+        "name": "PRSComputeEngine",
+        "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+        "bytecodeHash": "0x66c177bca198e6ff8f19f4133cb5a104f9c94662198930aa779b3aa1faa9da4f",
+        "bytecodeBytes": 10426
+      },
+      {
+        "name": "ResultOracle",
+        "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+        "bytecodeHash": "0xdb3a8e24c0646cd84eeacc57935debd78ba74c2cee3c1ba3dc5c172ec369eaf3",
+        "bytecodeBytes": 3594
+      }
+    ]
+  }
+}

@@ -114,7 +114,9 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.1-E1 — Run and record a live public-model fhEVM experiment
 
-- [ ] Progress: 60% — BLOCKED on a funded Sepolia wallet (Phase 7, 29 July 2026). Harness verified ready, budget measured, no live number fabricated. See `CD-024`.
+- [ ] Progress: 90% — BLOCKED only on a funded Sepolia wallet (updated 31 July 2026).
+  Public harness passes on mock and records every required receipt field; no live number
+  fabricated. See `evidence/phase7/readiness_2026-07-31_final/` and `CD-024`.
 - Stage: Code and evidence - Phase 7 (Live fhEVM validation)
 - Type: Experiment and existing script update
 - Code action:
@@ -130,7 +132,10 @@ This is the reviewer’s summary, not a separate numbered request. It is address
 
 ### R1.1-E2 — Run one live private-weight validation
 
-- [ ] Progress: 60% — BLOCKED on a funded Sepolia wallet (Phase 7, 29 July 2026). Harness verified ready, budget measured, no live number fabricated. See `CD-024`.
+- [ ] Progress: 90% — BLOCKED only on a funded Sepolia wallet (updated 31 July 2026).
+  `MODEL_VISIBILITY=private` is implemented, passes end to end on mock, and writes a distinct
+  verifiable report; no live number fabricated. See
+  `evidence/phase7/readiness_2026-07-31_final/` and `CD-024`.
 - Stage: Code and evidence - Phase 7 (Live fhEVM validation)
 - Type: Experiment
 - Code action:
@@ -1163,17 +1168,23 @@ Why after correctness: the live run should validate known answers, not create an
 number. That intent is preserved — the harness asserts the decoded score against the Phase 3/5
 known answer, so a live pass would be a validation rather than a new claim.
 
-Phase progress: **0/2 actions (0%)** — **blocked on credentials**, not on work.
+Phase progress: **0/2 actions complete; both 90% ready** — **blocked on credentials**, with
+all software-side acceptance fields implemented and mock-verified.
 Record: `evidence/phase7/`.
 
 - [ ] `R1.1-E1` Public-weight live run. **Cannot execute here.** No `MNEMONIC` is configured and
       `scripts/sepolia_validation.ts` correctly refuses the public Hardhat test mnemonic. The
-      guard was not worked around and no live result was synthesised.
-- [ ] `R1.1-E2` Private-weight live run. Same blocker. The pre-flight confirms the private path
-      works end to end on the mock, so the remaining work is parameterising the script rather
-      than discovery. One live-specific risk is flagged: `classifyPreauthorized` imports the
-      score with an empty-proof `FHE.fromExternal`, which holds within a transaction but has not
-      been exercised against a real coprocessor.
+      guard was not worked around and no live result was synthesised. The same harness now
+      records chain ID, addresses/bytecode identities, every transaction hash and block number,
+      transaction count, host gas, submission-to-result/decryption timing, and decoded/reference
+      scores. Public mode passes on mock with 20 classic-path transactions.
+- [ ] `R1.1-E2` Private-weight live run. Same credential blocker. Parameterisation is now
+      **complete**, not remaining work: `MODEL_VISIBILITY=private` encrypts and uploads weights,
+      authorises the engine/requester, and writes a distinct report. It passes end to end on
+      mock with 22 classic-path transactions and encoded score 758,685. One live-specific risk
+      remains: `classifyPreauthorized` imports the score with an empty-proof
+      `FHE.fromExternal`, which holds within a transaction but has not been exercised against a
+      real coprocessor.
 
 ### What Phase 7 did establish
 
@@ -1184,13 +1195,13 @@ The remaining gap is now exactly "fund a wallet and run one command".
 | Sepolia RPC reachable | yes — chain ID 11155111, block 11374028 |
 | Sepolia gas price, read from network | 1.048 gwei |
 | All contracts within EIP-170 | yes — largest `PRSComputeEngine` 10,426 B (42.4%) |
-| Live harness readiness | 5/5 asserted, not eyeballed |
+| Live harness readiness | **8/8 asserted**, including both visibilities, transaction trail, and exact runner-source hash |
 | Deployment gas | 5,892,613 (0.00617 ETH) |
 | 100-SNP job, public / private | 15 tx / 11.69 M gas · 17 tx / 23.51 M gas |
 | **Recommended Sepolia budget** | **~0.13 ETH** with 3x headroom |
 
-New: `npm run preflight:live` (`scripts/live_preflight.ts`), which measures all of the above
-without contacting a network.
+`npm run preflight:live` now verifies all eight properties without contacting a network.
+Authoritative follow-up: `evidence/phase7/readiness_2026-07-31_final/`.
 
 Phase exit gate:
 
@@ -1257,8 +1268,8 @@ Stage A exit gate - do not begin Stage B until all of the following hold:
 
 - [ ] All 16 Stage A actions are complete. **14/16; only `R1.1-E1` and `R1.1-E2` remain,
       blocked on a funded Sepolia wallet.**
-- [x] `npm run build` and the full test suite pass. Phase 8 exit: **163 passing**, 0 failing,
-      node v22.23.1.
+- [x] `npm run build` and the full test suite pass. Latest Phase 7 readiness follow-up:
+      **167 passing**, 0 failing (Phase 8 exit was 163), node v22.23.1.
 - [x] Every number that will appear in the revised manuscript exists in a saved file under
       `evidence/`, with a stated evidence class of `Live fhEVM`, `Hardhat mock`, or
       `Analytic projection`.

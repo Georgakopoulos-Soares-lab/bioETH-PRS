@@ -1,0 +1,43 @@
+
+> bioeth-prs@0.1.0 preflight:live
+> hardhat test scripts/live_preflight.ts
+
+
+
+  Live-network pre-flight (R1.1 preparation)
+
+  deployment gas:
+    GenomicRegistry         660271 gas     2808 B (11.4% of EIP-170)
+    ModelMarketplace       1891790 gas     8151 B (33.2% of EIP-170)
+    ResultOracle            909851 gas     3594 B (14.6% of EIP-170)
+    PRSComputeEngine       2430701 gas    10426 B (42.4% of EIP-170)
+    TOTAL                  5892613 gas   = 0.006174033955518606 ETH at 1.047758262 gwei
+    ✔ measures deployment gas for every contract the live run needs
+
+  100-SNP job, public weights: 15 transactions (6 compute), 11690069 gas = 0.012248366378100078 ETH
+    ✔ measures a full 100-SNP job end to end — public weights (173ms)
+
+  100-SNP job, private weights: 17 transactions (6 compute), 23507820 gas = 0.02463051262660884 ETH
+    ✔ measures a full 100-SNP job end to end — private weights (223ms)
+
+  live-run harness readiness:
+    ready  refusesDefaultHardhatMnemonic
+    ready  emitsProvenanceBlock
+    ready  labelsEvidenceClass
+    ready  comparesAgainstIndependentReference
+    ready  usesRealManifestHashes
+    ready  supportsPublicAndPrivateWeights
+    ready  recordsVerifiableTransactionTrail
+    ✔ verifies the live-run guards and configuration are in place
+
+  Sepolia ETH budget at 1.047758262 gwei:
+    deployment only          0.006174033955518606
+    + public 100-SNP job     0.018422400333618684
+    + private 100-SNP job    0.043052912960227524
+    recommended (3x headroom) 0.129158738880682572
+
+  written to evidence/phase7/readiness_2026-07-31/live_preflight.json
+
+
+  4 passing (424ms)
+

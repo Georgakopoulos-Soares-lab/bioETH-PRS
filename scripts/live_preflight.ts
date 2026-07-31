@@ -298,6 +298,16 @@ describe("Live-network pre-flight (R1.1 preparation)", function () {
       // non-comment lines. Special-casing the file would have been the alternative,
       // and an exemption is worse than a two-token concatenation.
       usesRealManifestHashes: !new RegExp("Zero" + "Hash").test(src),
+      supportsPublicAndPrivateWeights:
+        /MODEL_VISIBILITY/.test(src) &&
+        /appendPublicModelChunk/.test(src) &&
+        /appendEncryptedModelChunk/.test(src),
+      recordsVerifiableTransactionTrail:
+        /workflowTransactions/.test(src) &&
+        /blockNumber/.test(src) &&
+        /transactionCount/.test(src),
+      hashesValidationRunnerSource:
+        /hashedInput/.test(src) && /runnerSource/.test(src),
     };
     report.liveRunReadiness = checks;
     console.log("\n  live-run harness readiness:");

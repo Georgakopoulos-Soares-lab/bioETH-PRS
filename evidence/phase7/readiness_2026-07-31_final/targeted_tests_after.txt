@@ -1,0 +1,23 @@
+
+
+  Live validation report readiness (R1.1-E1 / R1.1-E2)
+    ✔ supports both public and private model publication from one harness
+    ✔ records the verifiable transaction trail required by R1.1-E1
+    ✔ writes distinct public and private reports so one run cannot overwrite the other
+    ✔ deployment reports transaction receipts and exact source provenance
+
+  Evidence provenance guard (R2.4-E1)
+    ✔ no evidence-producing file uses a zero manifest hash
+    ✔ the zero-hash scan ignores prose but not code
+    ✔ every evidence-producing file imports the provenance helper
+    ✔ the behavioural exemption list is accurate, not aspirational
+    ✔ assertProvenanceHash rejects the zero hash and malformed values
+    ✔ canonical JSON hashing is key-order independent
+    ✔ synthetic provenance yields three distinct non-zero hashes
+    ✔ synthetic provenance is deterministic for the same spec
+    ✔ fixture provenance hashes the real fixture bytes
+    ✔ the registry rejects a zero sample manifest hash
+
+
+  14 passing (44ms)
+
