@@ -26,27 +26,22 @@ import {
  * that the individual PRS calculated by bioETH-PRS is consistent with the PRS
  * calculated from Equation 1."
  *
- * The submitted evaluation executed the encrypted contract path for only the FIRST
- * individual at each fixture size. The other 49 were checked solely for TypeScript-side
- * uint64 overflow, never against a decoded contract result. This script closes that gap:
- * all 50 individuals at each of the four sizes, one job per individual, 200 rows.
+ * The analysis compares all 50 individuals at each of four sizes, one calculation per individual,
+ * for 200 comparisons in total.
  *
  * WHAT THIS VALIDATES, AND WHAT IT DOES NOT (CD-006).
- * The quantisation round-trip error on these fixtures is identically ZERO, not merely
+ * The quantisation round-trip error on these fixtures is zero, not merely
  * small, because every fixture weight carries at most six decimal places and the
  * advisor's recommended scale makes the quantisation lossless by construction. So this
- * comparison does NOT measure arithmetic precision — MAE and RMSE are zero a priori.
- * What it does validate is the PIPELINE: preprocessing, effect-allele alignment,
- * encoding, chunked on-chain execution, ACL-gated decryption, and decoding, end to end,
- * against an independently derived reference. That is a different and weaker claim than
- * "the encoding is accurate", and the manuscript must say which one it makes.
+ * comparison does not measure arithmetic precision. It checks that preprocessing,
+ * effect-allele alignment, encoding, local contract execution, permitted decryption, and
+ * decoding agree with an independently calculated reference.
  *
  * INTERCEPT COLUMN. Each fixture carries a leading constant column (weight 0, dosage 1
  * for every individual), so the encoded vector length is nominal + 1 — 101 positions
  * for the "100 SNP" fixture. Reported explicitly per R2.7-E1.
  *
- * Output is written in the shape `independent_prs_reference.py compare` consumes, so
- * the Phase 3 comparator is reused rather than a second one written.
+ * Output is written in the shape consumed by `independent_prs_reference.py compare`.
  *
  * Usage:
  *   npm run validate:individual-level
@@ -83,7 +78,7 @@ function loadReference(size: number) {
   const p = heprsReferencePath(size);
   if (!fs.existsSync(p)) {
     throw new Error(
-      `missing independent reference for ${size} SNPs at ${p}. Run Phase 3 first: ` +
+      `missing independent reference for ${size} SNPs at ${p}. Create it first with: ` +
         `python3 validation/independent_prs_reference.py score ...`
     );
   }
@@ -284,8 +279,8 @@ describe("Individual-level Equation 1 comparison (R2.7-E1)", function () {
 
       const out = {
         tool: "individual_level_validation.ts",
-        arm: "typescript + fhevm mock coprocessor",
-        evidenceClass: "Hardhat mock",
+        arm: "TypeScript calculation in a local contract simulation",
+        evidenceClass: "local simulation",
         nominalSnpCount: size,
         encodedPositions,
         encodedPositionsNote:
@@ -329,11 +324,9 @@ describe("Individual-level Equation 1 comparison (R2.7-E1)", function () {
   // size is fully representative and running all four would add time without adding
   // information. 100 SNPs is used.
   //
-  // Category agreement cannot be exact by construction: the release adds one-sided
-  // noise on [0, B), so an individual whose score lies within B of a threshold may
-  // legitimately classify either side of it. The honest measurement is therefore
-  // twofold: agreement for individuals outside the ambiguous band, and the SIZE of
-  // that band. Reporting a single agreement percentage would hide the mechanism.
+  // A random value from 0 through B-1 is added before the score is compared with the
+  // thresholds. A score within B below a threshold can therefore move to the next category.
+  // Report agreement outside this range and count the individuals inside it separately.
   it("measures category agreement and the width of the ambiguous band (100 SNPs)", async function () {
     const size: HeprsFixtureSize = 100;
     const [signer] = await ethers.getSigners();
@@ -343,9 +336,9 @@ describe("Individual-level Equation 1 comparison (R2.7-E1)", function () {
     const encodedPositions = quantized.weights.length;
     const count = Math.min(genotypes.length, Number.isFinite(limit) ? limit : 50);
 
-    // Thresholds from the reference score distribution: tertiles of the encoded
-    // scores, then lifted by the expected noise bias so the noisy comparison aligns
-    // with the intended plaintext boundary.
+    // Thresholds from the reference score distribution: tertiles of the encoded scores,
+    // then lifted by the integer correction B/2. The exact mean of uniform integer noise
+    // on {0,...,B-1} is (B-1)/2, which is 63.5 when B=128; the contract guidance uses 64.
     const encodedScores = reference.individuals
       .slice(0, count)
       .map((i) => BigInt(i.encodedScore ?? 0))
@@ -456,51 +449,58 @@ describe("Individual-level Equation 1 comparison (R2.7-E1)", function () {
       rows.push({
         individual: idx,
         encodedScore: encoded.toString(),
-        plaintextCategory: Number(plaintextCategory),
-        onchainCategory: Number(onchainCategory),
+        categoryWithoutRandomAddition: Number(plaintextCategory),
+        contractCategory: Number(onchainCategory),
         agrees,
-        withinNoiseBandOfThreshold: isAmbiguous,
+        withinNoiseRangeOfThreshold: isAmbiguous,
       });
     }
+
+    const changedWithinRange = rows.filter(
+      (row) => row.withinNoiseRangeOfThreshold && !row.agrees
+    ).length;
 
     console.log(
       `  category agreement (100 SNPs, B=${NOISE_BOUND}): ` +
         `${unambiguousAgree}/${unambiguous} outside the ambiguous band, ` +
-        `${ambiguous}/${count} within B of a threshold`
+        `${ambiguous}/${count} within B of a threshold, ` +
+        `${changedWithinRange} changed category`
     );
 
     fs.writeFileSync(
       path.join(OUT_DIR, "category_agreement_100snp.json"),
       JSON.stringify(
         {
-          tool: "individual_level_validation.ts",
-          evidenceClass: "Hardhat mock",
-          note:
-            "Category agreement cannot be exact by construction: the bounded randomized " +
-            "release adds one-sided noise on [0, B), so a score within B below a " +
-            "threshold may legitimately classify either side of it. Agreement is " +
-            "therefore reported only for individuals outside that band, alongside the " +
-            "band's population. Classification consumes a single encoded score and is " +
-            "independent of variant count, so one fixture size is representative.",
+          title: "Category agreement for 100 variants",
+          setting: "local simulation",
+          method:
+            "A random integer is chosen with equal probability from 0 through B-1 and " +
+            "added before the score is compared with " +
+            "the category thresholds. A score within B below a threshold can therefore " +
+            "move into the next category. We report agreement for scores outside this " +
+            "range and count the scores inside it separately. Category assignment uses " +
+            "one final score, so it was evaluated with the 100-SNP data. The exact mean " +
+            "random addition is (B-1)/2, or 63.5 when B=128. The integer threshold " +
+            "correction uses B/2, or 64 when B=128.",
           nominalSnpCount: size,
           noiseUpperBound: Number(NOISE_BOUND),
           lowThreshold: low.toString(),
           highThreshold: high.toString(),
-          thresholdSource: "tertiles of the reference encoded-score distribution, + B/2 bias",
+          thresholdSource:
+            "tertiles of the reference encoded-score distribution plus the integer " +
+            "threshold correction B/2 (64 when B=128); the exact noise mean is " +
+            "(B-1)/2 (63.5 when B=128)",
           individualsScored: count,
           outsideBand: unambiguous,
           outsideBandAgreeing: unambiguousAgree,
           withinBand: ambiguous,
           rows,
-          provenance: await buildProvenance({
-            model: prov,
-            contracts: [
-              await contractIdentity("ModelMarketplace", marketplace),
-              await contractIdentity("ResultOracle", oracle),
-              await contractIdentity("PRSComputeEngine", engine),
-            ],
-            referenceOutputPath: heprsReferencePath(size),
-          }),
+          interpretation:
+            `${unambiguousAgree} of ${unambiguous} individuals outside the noise range ` +
+            `agreed with the category calculated without random addition. ${ambiguous} of ` +
+            `${count} individuals were close enough to a threshold for the random addition ` +
+            `to change the category; ${changedWithinRange} of these ${ambiguous} individuals ` +
+            "changed category in this calculation.",
         },
         null,
         2
@@ -510,8 +510,7 @@ describe("Individual-level Equation 1 comparison (R2.7-E1)", function () {
     if (unambiguousAgree !== unambiguous) {
       throw new Error(
         `${unambiguous - unambiguousAgree} individuals outside the ambiguous band ` +
-          `classified differently from the plaintext category — that is a real defect, ` +
-          `not noise.`
+          `classified differently from the expected category.`
       );
     }
   });

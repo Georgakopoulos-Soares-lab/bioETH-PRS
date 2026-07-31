@@ -79,41 +79,42 @@ def save(fig, output_dir: Path, name: str):
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / name
     fig.savefig(path, format="pdf", bbox_inches="tight",
-                metadata={"Creator": "bioETH-PRS revised evidence pipeline"})
+                metadata={"Creator": "bioETH-PRS figure generator"})
     plt.close(fig)
     print(f"wrote {path.relative_to(ROOT)}")
 
 
 def graphical_abstract(output_dir: Path):
     fig, ax = canvas(12.5, 5.8)
-    heading(ax, "Confidential PRS with auditable fhEVM orchestration",
-            subtitle="Evaluator minimization shifts trust to explicit contract and infrastructure assumptions")
+    heading(ax, "Confidential PRS calculation with fhEVM",
+            subtitle="Smart contracts coordinate the calculation; fhEVM services and the blockchain remain trusted dependencies")
 
-    ax.text(0.25, 0.83, "Designated-evaluator HE pipeline", ha="center", va="center",
+    ax.text(0.25, 0.83, "HE system with a designated evaluator", ha="center", va="center",
             fontsize=12.5, fontweight="bold", color=ORANGE)
     box(ax, 0.03, 0.52, 0.14, 0.18, "Encrypted inputs", "genotype +\nmodel", face=PALE_ORANGE, edge=ORANGE)
-    box(ax, 0.21, 0.52, 0.17, 0.18, "Evaluator", "executes the\nHE pipeline", face=PALE_ORANGE, edge=ORANGE)
-    box(ax, 0.42, 0.52, 0.11, 0.18, "Client", "receives\nscore", face=PALE_ORANGE, edge=ORANGE)
+    box(ax, 0.21, 0.52, 0.17, 0.18, "Evaluator", "performs the encrypted\ncalculation", face=PALE_ORANGE, edge=ORANGE)
+    box(ax, 0.42, 0.52, 0.11, 0.18, "Requester", "receives\nscore", face=PALE_ORANGE, edge=ORANGE)
     arrow(ax, (0.17, 0.61), (0.21, 0.61), color=ORANGE)
     arrow(ax, (0.38, 0.61), (0.42, 0.61), color=ORANGE)
-    ax.text(0.28, 0.43, "Application-level evaluator remains a trust anchor",
+    ax.text(0.28, 0.43, "The application relies on this evaluator",
             ha="center", fontsize=9.5, color=ORANGE, fontweight="bold")
 
     ax.plot([0.56, 0.56], [0.35, 0.86], color="#B8C0C7", linewidth=1.0, linestyle="--")
     ax.text(0.78, 0.83, "bioETH-PRS", ha="center", va="center",
             fontsize=12.5, fontweight="bold", color=TEAL)
     box(ax, 0.59, 0.52, 0.13, 0.18, "Prepared inputs", "QC + effect-allele\nalignment", face=PALE_TEAL, edge=TEAL)
-    box(ax, 0.75, 0.52, 0.13, 0.18, "Contracts", "fixed policy +\nstate machine", face=PALE_TEAL, edge=TEAL)
-    box(ax, 0.91, 0.52, 0.08, 0.18, "Output", "ACL score\nor category", face=PALE_TEAL, edge=TEAL, title_size=10)
+    box(ax, 0.75, 0.52, 0.13, 0.18, "Contracts", "calculation rules +\nprogress", face=PALE_TEAL, edge=TEAL)
+    box(ax, 0.89, 0.52, 0.10, 0.18, "Output", "score for\nrequester\nor category", face=PALE_TEAL, edge=TEAL,
+        title_size=10, body_size=7.2)
     arrow(ax, (0.72, 0.61), (0.75, 0.61), color=TEAL)
-    arrow(ax, (0.88, 0.61), (0.91, 0.61), color=TEAL)
-    ax.text(0.795, 0.43, "fhEVM coprocessor + relayer + ACL/Gateway/KMS + chain",
+    arrow(ax, (0.88, 0.61), (0.89, 0.61), color=TEAL)
+    ax.text(0.795, 0.43, "fhEVM services + blockchain",
             ha="center", fontsize=9.2, color=TEAL, fontweight="bold")
 
     badges = [
-        (0.03, "Live fhEVM", "100-SNP public workflow\n25 transactions; exact score", PALE_BLUE, BLUE),
-        (0.35, "Independent agreement", "200/200 mock jobs exact\nlossless fixture quantisation", PALE_PURPLE, PURPLE),
-        (0.68, "Streaming path", "35.4-37.2% lower mock host gas\nover 100-5,000 variants", PALE_GREEN, GREEN),
+        (0.03, "Sepolia", "Public-weight 100-SNP calculation\n25 transactions; exact score", PALE_BLUE, BLUE),
+        (0.35, "Local agreement", "200 of 200 scores matched\nindependent calculations", PALE_PURPLE, PURPLE),
+        (0.68, "Local gas comparison", "Streaming used 35.4-37.2% less gas\nfor 100-5,000 variants", PALE_GREEN, GREEN),
     ]
     for x, title, body, face, edge in badges:
         box(ax, x, 0.08, 0.29, 0.21, title, body, face=face, edge=edge,
@@ -124,26 +125,26 @@ def graphical_abstract(output_dir: Path):
 def architecture(output_dir: Path):
     fig, ax = canvas(7.0, 6.1)
     heading(ax, "bioETH-PRS system architecture",
-            subtitle="Four contracts orchestrate policy while fhEVM services execute encrypted operations")
-    box(ax, 0.05, 0.68, 0.38, 0.15, "Genomic Registry",
-        "sample URI + ACL\nprovenance commitment", face=PALE_BLUE, edge=BLUE,
+            subtitle="Four contracts coordinate the encrypted PRS calculation with fhEVM services")
+    box(ax, 0.05, 0.68, 0.38, 0.15, "Sample registry",
+        "sample location + who may use it\nrecord of input preparation", face=PALE_BLUE, edge=BLUE,
         body_size=8.4)
-    box(ax, 0.57, 0.68, 0.38, 0.15, "Model Marketplace",
-        "public/private weights\nimmutable release policy", face=PALE_GREEN, edge=GREEN,
+    box(ax, 0.57, 0.68, 0.38, 0.15, "Model contract",
+        "public or encrypted weights\nfixed output rules", face=PALE_GREEN, edge=GREEN,
         body_size=8.4)
-    box(ax, 0.18, 0.43, 0.52, 0.17, "PRS Compute Engine",
-        "PENDING -> UPLOADING -> READY\n-> COMPUTING -> DONE\nencrypted weighted sum + genotype sum",
+    box(ax, 0.18, 0.43, 0.52, 0.17, "Calculation contract",
+        "receive encrypted inputs\ncalculate the weighted sum\nrecord completion",
         face=PALE_PURPLE, edge=PURPLE, body_size=7.8)
-    box(ax, 0.29, 0.18, 0.42, 0.14, "Result Oracle",
-        "model-fixed bounded randomized category", face=PALE_ORANGE, edge=ORANGE)
+    box(ax, 0.29, 0.18, 0.42, 0.14, "Result contract",
+        "randomized risk category\nusing thresholds fixed by model provider", face=PALE_ORANGE, edge=ORANGE)
     arrow(ax, (0.24, 0.68), (0.34, 0.60), color=BLUE)
     arrow(ax, (0.76, 0.68), (0.58, 0.60), color=GREEN)
     arrow(ax, (0.44, 0.43), (0.48, 0.32), color=PURPLE)
     box(ax, 0.75, 0.34, 0.22, 0.23, "fhEVM services",
-        "coprocessor\nrelayer\nACL/Gateway/KMS", face=PALE_TEAL, edge=TEAL, title_size=10)
+        "encrypted calculation\nsubmit transactions\nmanage encryption keys", face=PALE_TEAL, edge=TEAL, title_size=10)
     arrow(ax, (0.75, 0.50), (0.70, 0.50), color=TEAL, style="<->")
     ax.text(0.5, 0.075,
-            "Public weights and metadata are observable by design.\nGenotype dosages and private weights remain encrypted during computation.\nAuthorized outputs are decrypted under ACL policy.",
+            "Public weights and model details can be read on the blockchain.\nGenotypes and encrypted model weights are not decrypted during calculation.\nOnly the intended requester can receive the numeric score.",
             ha="center", va="center", fontsize=8.1, color=MUTED,
             bbox=dict(boxstyle="round,pad=0.45", facecolor="#F6F7F8", edgecolor="#AAB2B9"))
     save(fig, output_dir, "fig_architecture.pdf")
@@ -151,9 +152,9 @@ def architecture(output_dir: Path):
 
 def quantization(output_dir: Path):
     fig, ax = canvas(7.1, 6.0)
-    heading(ax, "Overflow-safe unsigned fixed-point encoding",
-            subtitle="Half-away-from-zero rounding and a clamped weight zero-point are part of the executable specification")
-    box(ax, 0.04, 0.57, 0.27, 0.25, "1  Quantise",
+    heading(ax, "Converting signed decimal weights to nonnegative integers",
+            subtitle="Weights are rounded and shifted; decoding restores the score after calculation")
+    box(ax, 0.04, 0.57, 0.27, 0.25, "1  Round weights",
         "$q_i = \\mathrm{round}_{HAZ}(s\\beta_i)$\n$\\beta=[-0.30,0.10,0.25]$\n$s=100$; $q=[-30,10,25]$",
         face=PALE_ORANGE, edge=ORANGE, body_size=8.1)
     box(ax, 0.365, 0.57, 0.27, 0.25, "2  Shift weights",
@@ -166,25 +167,25 @@ def quantization(output_dir: Path):
     arrow(ax, (0.635, 0.695), (0.69, 0.695), color=INK)
 
     box(ax, 0.12, 0.24, 0.76, 0.20, "Worked example begins with Equation 1",
-        "$g=[0,2,1]$; plaintext PRS $=0.45$\npartialSum $=135$; $G=3$; $z_s=60$\nencoded $e=105$; decoded PRS $=0.45$",
+        "$g=[0,2,1]$; PRS from Equation 1 $=0.45$\nshifted weighted sum $=135$; $G=3$; $z_s=60$\nencoded $e=105$; decoded PRS $=0.45$",
         face=PALE_BLUE, edge=BLUE, title_size=10.5, body_size=8.5)
     ax.text(0.5, 0.11,
-            "Safety condition for all materialized values:  $4sMN \\leq 2^{64}-1$",
+            "Safety condition for all values used in the calculation:  $4sMN \\leq 2^{64}-1$",
             ha="center", va="center", fontsize=10.5, color=PURPLE, fontweight="bold")
     save(fig, output_dir, "fig_quantization.pdf")
 
 
 def scoring_workflow(output_dir: Path):
     fig, ax = canvas(7.0, 6.6)
-    heading(ax, "Six-stage scoring workflow",
-            subtitle="Public identifiers enable local alignment before private quantities enter the encrypted path")
+    heading(ax, "Six steps in PRS calculation",
+            subtitle="Variant identifiers are aligned before genotypes and model weights are encrypted")
     stages = [
-        ("1", "Validate metadata and QC", "build, identity, order, missingness,\nhard-call validity", PALE_BLUE, BLUE),
+        ("1", "Check data and metadata", "genome build, variant identity and order,\nmissing values, genotype values", PALE_BLUE, BLUE),
         ("2", "Orient effect-allele dosage", "retain $g$ or apply $2-g$; reject\nunresolved palindromes", PALE_BLUE, BLUE),
-        ("3", "Quantise and encrypt", "encode signed weights safely; encrypt\ngenotype dosages", PALE_TEAL, TEAL),
-        ("4", "Create job and upload", "registry ACL gates the requester; ciphertext\nhandles enter the engine", PALE_PURPLE, PURPLE),
-        ("5", "Compute and finalize", "chunked encrypted dot product under a\nfixed model release policy", PALE_PURPLE, PURPLE),
-        ("6", "Release and decode", "ACL-gated encoded score or publicly\ndecryptable randomized category", PALE_GREEN, GREEN),
+        ("3", "Convert weights and encrypt", "convert weights to nonnegative integers;\nencrypt genotype dosages", PALE_TEAL, TEAL),
+        ("4", "Submit encrypted genotypes", "only an intended requester can start\nthe calculation for a registered sample", PALE_PURPLE, PURPLE),
+        ("5", "Calculate the score", "process variant groups and add\ntheir weighted contributions", PALE_PURPLE, PURPLE),
+        ("6", "Return the result", "numeric score to the intended requester\nor a randomized risk category", PALE_GREEN, GREEN),
     ]
     y_positions = [0.76, 0.635, 0.51, 0.385, 0.26, 0.135]
     for (num, title, body, face, edge), y in zip(stages, y_positions):
@@ -196,7 +197,7 @@ def scoring_workflow(output_dir: Path):
         if y != y_positions[-1]:
             arrow(ax, (0.54, y), (0.54, y - 0.027), color="#7A858E", width=1.0)
     ax.text(0.5, 0.055,
-            "Boundary: sample ACL and manifest provenance do not prove that uploaded ciphertexts\nderive from the registered biological sample.",
+            "The registry records who may use a sample and how it was prepared,\nbut it cannot prove that submitted genotypes came from that sample.",
             ha="center", va="center", fontsize=7.8, color=RED,
             bbox=dict(boxstyle="round,pad=0.4", facecolor=PALE_RED, edgecolor=RED))
     save(fig, output_dir, "fig_scoring_workflow.pdf")
@@ -204,24 +205,24 @@ def scoring_workflow(output_dir: Path):
 
 def protocol(output_dir: Path):
     fig, ax = canvas(9.3, 6.4)
-    heading(ax, "Classic chunked and streaming execution paths",
-            subtitle="Both return bit-identical encoded scores; their storage and participation models differ")
-    ax.text(0.25, 0.84, "Classic chunked", ha="center", fontsize=12.5,
+    heading(ax, "Classic and streaming calculation methods",
+            subtitle="The Classic method stores encrypted genotypes; the Streaming method uses each group once")
+    ax.text(0.25, 0.84, "Classic method (stored inputs)", ha="center", fontsize=12.5,
             fontweight="bold", color=BLUE)
-    ax.text(0.75, 0.84, "Streaming", ha="center", fontsize=12.5,
+    ax.text(0.75, 0.84, "Streaming method", ha="center", fontsize=12.5,
             fontweight="bold", color=GREEN)
     classic = [
-        ("createPRSJob", "requester"),
-        ("appendSnpChunk x U", "persist SNP handles + ACL"),
-        ("finalizeSnpUpload", "requester"),
-        ("computeChunk x C", "permissionless relayer supported"),
-        ("finalize / finalizeAndClassify", "ACL release or oracle path"),
+        ("Create calculation", "requester"),
+        ("Upload variant groups", "store encrypted genotype values"),
+        ("Finish input upload", "requester confirms all inputs"),
+        ("Calculate each group", "any account may submit this step"),
+        ("Return score or category", "result follows the model output rule"),
     ]
     stream = [
-        ("createPRSJob", "requester"),
-        ("appendAndComputeChunk x C", "upload + compute in one call"),
-        ("transient handle grants", "no persistent SNP storage"),
-        ("finalize / finalizeAndClassify", "ACL release or oracle path"),
+        ("Create calculation", "requester"),
+        ("Upload and calculate each group", "one transaction per group"),
+        ("Use each group once", "encrypted genotypes are not stored"),
+        ("Return score or category", "result follows the model output rule"),
     ]
     for i, (title, body) in enumerate(classic):
         y = 0.69 - i * 0.125
@@ -235,30 +236,30 @@ def protocol(output_dir: Path):
             title_size=9.4, body_size=7.8, radius=0.012)
         if i < len(stream) - 1:
             arrow(ax, (0.75, y), (0.75, y - 0.06), color=GREEN, width=1.0)
-    ax.text(0.25, 0.085, "Multi-party and relayer friendly\nPersistent storage costs dominate host gas",
+    ax.text(0.25, 0.085, "Several accounts can submit calculation steps\nStoring genotypes increases local gas use",
             ha="center", fontsize=8.8, color=BLUE, fontweight="bold")
-    ax.text(0.75, 0.085, "Single-signer flow\n35.4-37.2% lower Hardhat-mock host gas",
+    ax.text(0.75, 0.085, "One requester submits all inputs\n35.4-37.2% less gas in local simulation",
             ha="center", fontsize=8.8, color=GREEN, fontweight="bold")
     save(fig, output_dir, "fig_protocol.pdf")
 
 
 def security(output_dir: Path):
     fig, ax = canvas(8.4, 6.5)
-    heading(ax, "Security boundary and retained trust",
-            subtitle="Contract invariants are conditional properties, not proof of biological or infrastructure correctness")
-    box(ax, 0.28, 0.53, 0.44, 0.25, "Contract-guaranteed behavior",
-        "fixed model release policy\nstate-machine integrity\nACL grants on encrypted outputs\nno public raw-score decryption\nsingle finalization + rate limits",
+    heading(ax, "What the system protects and what it assumes",
+            subtitle="The contracts control calculation and result release, but do not prove biological origin or clinical validity")
+    box(ax, 0.28, 0.53, 0.44, 0.25, "What the contracts enforce",
+        "result rules fixed by model provider\nvalid calculation order\nnumeric score only to intended requester\nno public numeric-score release\none result per calculation + query limits",
         face=PALE_BLUE, edge=BLUE, title_size=11.2, body_size=9.0)
-    box(ax, 0.04, 0.30, 0.30, 0.15, "Adversary capabilities",
-        "observe chain; operate nodes;\nsubmit arbitrary transactions;\nmalicious requester; chosen-input queries",
+    box(ax, 0.04, 0.30, 0.30, 0.15, "Possible attacker actions",
+        "read public blockchain data;\noperate a blockchain node; submit transactions;\nmake repeated requests with chosen inputs",
         face=PALE_RED, edge=RED, title_size=10.0, body_size=7.3)
-    box(ax, 0.66, 0.30, 0.30, 0.15, "Outside the boundary",
-        "sample authenticity; ciphertext/sample\nbinding; model validity; calibration;\nancestry portability; formal confidentiality",
+    box(ax, 0.66, 0.30, 0.30, 0.15, "Not established by the system",
+        "whether genotypes came from the sample;\nmodel validity and calibration;\nperformance across ancestry groups;\nformal privacy guarantee",
         face=PALE_ORANGE, edge=ORANGE, title_size=10.0, body_size=7.3)
     arrow(ax, (0.34, 0.38), (0.40, 0.53), color=RED)
     arrow(ax, (0.66, 0.38), (0.60, 0.53), color=ORANGE)
-    box(ax, 0.10, 0.08, 0.80, 0.14, "Retained trust and availability dependencies",
-        "TFHE/RLWE hardness; contract bytecode; chain consensus; fhEVM coprocessor;\nrelayer; ACL and Gateway/KMS",
+    box(ax, 0.10, 0.08, 0.80, 0.14, "Assumptions and services the system depends on",
+        "security of TFHE encryption; deployed contract code; blockchain consensus;\nfhEVM services that calculate encrypted values, submit transactions, and manage keys",
         face=PALE_TEAL, edge=TEAL, title_size=10.5, body_size=8.0)
     arrow(ax, (0.50, 0.22), (0.50, 0.53), color=TEAL, width=1.2)
     save(fig, output_dir, "fig_security.pdf")
@@ -283,9 +284,9 @@ def individual_agreement(output_dir: Path):
     lower, upper = min(values), max(values)
     margin = (upper - lower) * 0.04 or 0.01
     lower, upper = lower - margin, upper + margin
-    axis.plot([lower, upper], [lower, upper], color="black", linewidth=0.7, label="identity")
-    axis.set(xlim=(lower, upper), ylim=(lower, upper), xlabel="Equation 1 PRS",
-             ylabel="Decoded bioETH-PRS")
+    axis.plot([lower, upper], [lower, upper], color="black", linewidth=0.7, label="line of exact agreement")
+    axis.set(xlim=(lower, upper), ylim=(lower, upper), xlabel="PRS from Equation 1",
+             ylabel="bioETH-PRS after decoding")
     axis.set_aspect("equal", adjustable="box")
     axis.grid(alpha=0.2, linewidth=0.5)
     axis.legend(frameon=False, fontsize=7, loc="upper left")
@@ -294,15 +295,18 @@ def individual_agreement(output_dir: Path):
 
 def gas_scaling(output_dir: Path):
     source = ROOT / "evidence" / "phase8" / "heprs_profile.json"
-    rows = json.loads(source.read_text(encoding="utf-8"))
+    rows = [
+        row for row in json.loads(source.read_text(encoding="utf-8"))
+        if int(row["fixtureSize"]) <= 5000
+    ]
     sizes = [int(row["fixtureSize"]) for row in rows]
     classic = [int(row["gas"]["total"]) / 1_000_000 for row in rows]
     streaming = [int(row["streamingGas"]["total"]) / 1_000_000 for row in rows]
     fig, axis = plt.subplots(figsize=(4.8, 3.8), constrained_layout=True)
-    axis.plot(sizes, classic, marker="o", linewidth=1.2, color=BLUE, label="classic")
-    axis.plot(sizes, streaming, marker="s", linewidth=1.2, color=ORANGE, label="streaming")
-    axis.set_xlabel("Nominal variants")
-    axis.set_ylabel("Hardhat-mock host gas (millions)")
+    axis.plot(sizes, classic, marker="o", linewidth=1.2, color=BLUE, label="Classic method (stored inputs)")
+    axis.plot(sizes, streaming, marker="s", linewidth=1.2, color=ORANGE, label="Streaming method")
+    axis.set_xlabel("Number of variants")
+    axis.set_ylabel("Gas used in local simulation (millions)")
     axis.grid(alpha=0.2, linewidth=0.5)
     axis.legend(frameon=False)
     axis.ticklabel_format(style="plain", axis="x")

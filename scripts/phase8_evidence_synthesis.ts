@@ -1,13 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
-
-import { gitInfo, hashedInput } from "./utils/provenance";
+import { assertProvenanceHash, hashFile } from "./utils/provenance";
 
 const REPO_ROOT = path.join(__dirname, "..");
 const DEFAULT_OUT_DIR = path.join(REPO_ROOT, "evidence", "phase8");
 const UPLOAD_CHUNK_SIZE = 32;
 const COMPUTE_CHUNK_SIZE = 20;
-const PROJECTED_NOMINAL_VARIANTS = [10_000, 100_000, 1_000_000];
 
 type Visibility = "public" | "private";
 
@@ -33,15 +31,8 @@ interface FixtureProfile {
   };
 }
 
-interface SynthesisProvenance {
-  schema: string;
-  repository: ReturnType<typeof gitInfo>;
-  runtime: { node: string; platform: string };
-  sourceArtifacts: ReturnType<typeof hashedInput>[];
-}
-
 function requireCondition(condition: unknown, message: string): asserts condition {
-  if (!condition) throw new Error(`Phase 8 synthesis: ${message}`);
+  if (!condition) throw new Error(`Evidence summary: ${message}`);
 }
 
 export function ceilDiv(value: number, divisor: number): number {
@@ -56,18 +47,20 @@ export function streamingTransactionGeometry(
 ) {
   const modelUploadChunks = ceilDiv(encodedPositions, UPLOAD_CHUNK_SIZE);
   const uploadAndCompute = ceilDiv(encodedPositions, COMPUTE_CHUNK_SIZE);
-  const readerAuthorizations = visibility === "private" ? 2 : 0;
-  const modelPublication = 1 + modelUploadChunks + readerAuthorizations + 1;
+  const transactionsToAllowPrivateWeightUse = visibility === "private" ? 2 : 0;
+  const modelPublication = 1 + modelUploadChunks + transactionsToAllowPrivateWeightUse + 1;
   const sampleRegistration = 1;
   const jobCreation = 1;
   const resultFinalization = 1;
   return {
     modelPublication,
     modelUploadChunks,
-    readerAuthorizations,
+    ...(transactionsToAllowPrivateWeightUse > 0
+      ? { transactionsToAllowPrivateWeightUse }
+      : {}),
     sampleRegistration,
-    jobCreation,
-    uploadAndCompute,
+    calculationCreation: jobCreation,
+    inputUploadAndCalculation: uploadAndCompute,
     resultFinalization,
     total:
       modelPublication +
@@ -81,8 +74,8 @@ export function streamingTransactionGeometry(
 export function parseReleasePolicyGas(text: string) {
   const policy = text.match(/setReleasePolicy gas\s*:\s*(\d+)/);
   const classify = text.match(/finalizeAndClassify gas\s*:\s*(\d+)/);
-  requireCondition(policy, "setReleasePolicy gas is missing from the Phase 2 artifact");
-  requireCondition(classify, "finalizeAndClassify gas is missing from the Phase 2 artifact");
+  requireCondition(policy, "setReleasePolicy gas is missing from the saved measurement");
+  requireCondition(classify, "finalizeAndClassify gas is missing from the saved measurement");
   return {
     setReleasePolicy: policy[1],
     finalizeAndClassify: classify[1],
@@ -90,7 +83,7 @@ export function parseReleasePolicyGas(text: string) {
 }
 
 export function liveClassicTransactionBreakdown(report: any) {
-  requireCondition(report.evidenceClass === "Live fhEVM", "live report evidence class changed");
+  requireCondition(report.evidenceClass === "Live fhEVM", "Sepolia input label changed");
   requireCondition(report.fheMode === "real", "live report is not real FHE");
   requireCondition(report.modelVisibility === "public", "live report is not public-weight");
   requireCondition(report.passed === true, "live public validation did not pass");
@@ -112,10 +105,10 @@ export function liveClassicTransactionBreakdown(report: any) {
   const breakdown = {
     modelPublication: count((label) => label.startsWith("model.")),
     sampleRegistration: count((label) => label === "sample.register"),
-    jobCreation: count((label) => label === "job.create"),
-    snpUploads: count((label) => label.startsWith("job.appendSnpChunk.")),
-    uploadFinalization: count((label) => label === "job.finalizeSnpUpload"),
-    compute: count((label) => label.startsWith("job.computeChunk.")),
+    calculationCreation: count((label) => label === "job.create"),
+    inputUploads: count((label) => label.startsWith("job.appendSnpChunk.")),
+    inputUploadFinalization: count((label) => label === "job.finalizeSnpUpload"),
+    calculation: count((label) => label.startsWith("job.computeChunk.")),
     resultFinalization: count((label) => label === "job.finalize"),
     total: labels.length,
   };
@@ -132,22 +125,10 @@ export function liveClassicTransactionBreakdown(report: any) {
   return breakdown;
 }
 
-function sourceProvenance(sourcePaths: string[]): SynthesisProvenance {
-  return {
-    schema: "bioeth-prs/evidence-synthesis/1",
-    repository: gitInfo(),
-    runtime: { node: process.version, platform: process.platform },
-    sourceArtifacts: sourcePaths.map((sourcePath) =>
-      hashedInput("source_evidence", sourcePath)
-    ),
-  };
-}
-
 export function buildScaleEvidence(
   profiles: FixtureProfile[],
   preflight: any,
-  livePublic: any,
-  provenance: SynthesisProvenance
+  livePublic: any
 ) {
   const expectedSizes = [100, 500, 1_000, 5_000];
   requireCondition(
@@ -163,34 +144,27 @@ export function buildScaleEvidence(
     "live encoded-position count is missing from provenance"
   );
   const rows: any[] = [{
-    evidenceClass: "Live fhEVM",
-    executionStatus: "executed",
-    nominalVariants: livePublic.fixtureSize,
-    encodedPositions: liveEncodedPositions,
-    modelVisibility: "public",
-    workflow:
-      "classic live workflow: public model + registered sample + separate SNP-upload and compute transactions; deployments excluded",
+    setting: "Sepolia",
+    variantCount: livePublic.fixtureSize,
+    leadingConstantIncluded: true,
+    weightVisibility: "public",
+    calculation:
+      "public weights + registered sample + one calculation using separate upload and calculation transactions; deployments excluded",
     transactionCount: livePublic.transactionCount,
     transactionBreakdown: liveBreakdown,
     gas: livePublic.gas.total,
     decodedEncodedScore: livePublic.decodedEncodedScore,
-    latencyAvailability: {
-      available: true,
-      kind: "real Sepolia submission-to-result and Gateway/KMS decryption timing",
-      inputProofPreparationMs: livePublic.timing.inputProofPreparationMs,
+    timing: {
+      description: "measured Sepolia submission-to-result and user-decryption time",
+      inputPreparationMs: livePublic.timing.inputProofPreparationMs,
       submissionToResultMs: livePublic.timing.submissionToResultMs,
       endToEndValidationMs: livePublic.timing.endToEndValidationMs,
       decryptMs: livePublic.timing.decryptMs,
-      source: "evidence/phase7/live_2026-07-31/public_success.json",
     },
-    costAvailability: {
-      liveTestnetGasAvailable: true,
-      productionFeeAvailable: false,
-      source: "evidence/phase7/live_2026-07-31/public_success.json",
-    },
+    costNote: "Sepolia gas is reported; no production fee is inferred.",
   }];
   for (const profile of profiles) {
-    requireCondition(profile.evidenceClass === "Hardhat mock", "fixture profile is not labelled Hardhat mock");
+    requireCondition(profile.evidenceClass === "Hardhat mock", "local profile input label changed");
     requireCondition(profile.status === "full_flow", `fixture ${profile.fixtureSize} did not complete`);
     requireCondition(
       profile.uploadChunkSize === UPLOAD_CHUNK_SIZE &&
@@ -203,105 +177,58 @@ export function buildScaleEvidence(
       `fixture ${profile.fixtureSize} transaction count does not match the executed geometry`
     );
     rows.push({
-      evidenceClass: "Hardhat mock",
-      executionStatus: "executed",
-      nominalVariants: profile.fixtureSize,
-      encodedPositions: profile.vectorLength,
-      modelVisibility: "public",
-      workflow:
-        "fresh public model + registered sample + one streaming job; contract deployments excluded",
+      setting: "local simulation",
+      variantCount: profile.fixtureSize,
+      leadingConstantIncluded: true,
+      weightVisibility: "public",
+      calculation:
+        "public weights + registered sample + one calculation; contract deployments excluded",
       transactionCount: expected.total,
       transactionBreakdown: expected,
-      latencyAvailability: {
-        available: true,
-        kind: "Hardhat in-process host timing only; not TFHE or network latency",
-        source: "evidence/phase8/heprs_profile.json",
-      },
-      costAvailability: {
-        mockHostGasAvailable: true,
-        productionFeeAvailable: false,
-        source: "evidence/phase8/heprs_profile.json",
-      },
+      timingNote:
+        "Time was measured in a local contract simulation, not on a live network.",
+      costNote: "Local gas is reported; no production fee is inferred.",
     });
   }
 
   const privateJob = preflight.jobs.find((job: any) => job.visibility === "private");
-  requireCondition(privateJob, "Phase 7 private-weight pre-flight row is missing");
+  requireCondition(privateJob, "the private-weight local result is missing");
   const privateExpected = streamingTransactionGeometry(privateJob.encodedPositions, "private");
   requireCondition(
     privateExpected.total === privateJob.transactionCount,
-    "Phase 7 private transaction count does not reconcile"
+    "the private transaction count does not reconcile"
   );
   rows.splice(2, 0, {
-    evidenceClass: "Hardhat mock",
-    executionStatus: "executed",
-    nominalVariants: 100,
-    encodedPositions: privateJob.encodedPositions,
-    modelVisibility: "private",
-    workflow:
-      "fresh private model + two reader authorizations + registered sample + one streaming job; deployments excluded",
+    setting: "local simulation",
+    variantCount: 100,
+    leadingConstantIncluded: true,
+    weightVisibility: "private",
+    calculation:
+      "private weights + two transactions that record who may use them and receive the result + registered sample + one calculation; deployments excluded",
     transactionCount: privateExpected.total,
     transactionBreakdown: privateExpected,
-    latencyAvailability: {
-      available: false,
-      reason: "the Phase 7 pre-flight measured transaction geometry and gas, not elapsed time",
-    },
-    costAvailability: {
-      mockHostGasAvailable: true,
-      productionFeeAvailable: false,
-      source: "evidence/phase7/live_preflight.json",
-    },
+    timingNote: "Transactions and local gas were recorded; elapsed time was not recorded.",
+    costNote: "Local gas is reported; no production fee is inferred.",
   });
 
-  for (const nominalVariants of PROJECTED_NOMINAL_VARIANTS) {
-    const encodedPositions = nominalVariants + 1;
-    for (const visibility of ["public", "private"] as const) {
-      const geometry = streamingTransactionGeometry(encodedPositions, visibility);
-      rows.push({
-        evidenceClass: "Analytic projection",
-        executionStatus: "unexecuted",
-        nominalVariants,
-        encodedPositions,
-        modelVisibility: visibility,
-        workflow:
-          "same chunk geometry as the measured streaming workflow; contract deployments excluded",
-        transactionCount: geometry.total,
-        transactionBreakdown: geometry,
-        latencyAvailability: {
-          available: false,
-          reason: "unexecuted projection",
-        },
-        costAvailability: {
-          mockHostGasAvailable: false,
-          productionFeeAvailable: false,
-          reason: "transaction geometry only; no gas or fee extrapolation",
-        },
-      });
-    }
-  }
-
   return {
-    action: "R1.6-E1",
-    title: "Three-class scale evidence",
-    evidenceClasses: ["Live fhEVM", "Hardhat mock", "Analytic projection"],
-    liveFhevm: {
-      executionStatus: "executed",
-      successfulRows: [{
-        nominalVariants: livePublic.fixtureSize,
-        encodedPositions: liveEncodedPositions,
-        modelVisibility: "public",
+    title: "Scale results",
+    setup: {
+      settings: ["Sepolia", "local simulation"],
+      publicSepoliaCalculation: {
+        variantCount: livePublic.fixtureSize,
+        leadingConstantIncluded: true,
+        weightVisibility: "public",
         transactionCount: livePublic.transactionCount,
         gas: livePublic.gas.total,
         decodedEncodedScore: livePublic.decodedEncodedScore,
-      }],
-      privateWeightStatus:
-        "not executed live; the private 100-SNP workflow remains Hardhat-mock validated",
-      source: "evidence/phase7/live_2026-07-31/public_success.json",
+      },
+      privateWeights:
+        "evaluated only by local simulation; it was not evaluated on Sepolia",
     },
-    measuredRangeConclusion:
-      "One public 100-SNP workflow is validated end to end on live fhEVM. The wider 100-5,000-variant range is Hardhat-mock evidence only, so the live point does not establish real-TFHE scaling, private-weight live behavior, production fees, or genome-wide feasibility.",
-    rows,
-    provenance,
+    interpretation:
+      "The public 100-SNP calculation completed successfully on Sepolia. Calculations with public weights for 100, 500, 1,000, and 5,000 variants and a 100-SNP calculation with private weights completed in a local contract simulation. The local results do not measure live network time or production cost.",
+    results: rows,
   };
 }
 
@@ -311,37 +238,36 @@ export function buildTransactionUse(
   liveDeployment: any,
   livePublic: any,
   matchedPublicMock: any,
-  liveVerification: any,
-  provenance: SynthesisProvenance
+  liveVerification: any
 ) {
-  requireCondition(preflight.evidenceClass === "Hardhat mock", "pre-flight evidence class changed");
-  const jobs = Object.fromEntries(
+  requireCondition(preflight.evidenceClass === "Hardhat mock", "local pre-flight input label changed");
+  const calculationRecords = Object.fromEntries(
     preflight.jobs.map((job: any) => [job.visibility, job])
   ) as Record<Visibility, any>;
 
   for (const visibility of ["public", "private"] as const) {
-    const job = jobs[visibility];
-    requireCondition(job, `${visibility} pre-flight job is missing`);
+    const calculationRecord = calculationRecords[visibility];
+    requireCondition(calculationRecord, `${visibility} local calculation record is missing`);
     const componentSum = [
       "modelPublication",
       "sampleRegistration",
       "jobCreation",
       "streamingUploadCompute",
       "finalize",
-    ].reduce((sum, key) => sum + BigInt(job.gas[key]), 0n);
+    ].reduce((sum, key) => sum + BigInt(calculationRecord.gas[key]), 0n);
     requireCondition(
-      componentSum === BigInt(job.gas.totalExcludingDeployment),
+      componentSum === BigInt(calculationRecord.gas.totalExcludingDeployment),
       `${visibility} pre-flight gas components do not sum to the recorded total`
     );
     requireCondition(
-      streamingTransactionGeometry(job.encodedPositions, visibility).total ===
-        job.transactionCount,
+      streamingTransactionGeometry(calculationRecord.encodedPositions, visibility).total ===
+        calculationRecord.transactionCount,
       `${visibility} transaction count does not reconcile`
     );
   }
 
-  const publicJob = jobs.public;
-  const privateJob = jobs.private;
+  const publicCalculation = calculationRecords.public;
+  const privateCalculation = calculationRecords.private;
   const liveBreakdown = liveClassicTransactionBreakdown(livePublic);
   requireCondition(
     liveDeployment.evidenceClass === "Live fhEVM" &&
@@ -377,7 +303,7 @@ export function buildTransactionUse(
       matchedPublicMock.uploadChunkSize === livePublic.uploadChunkSize &&
       matchedPublicMock.transactionCount === livePublic.transactionCount &&
       matchedPublicMock.decodedEncodedScore === livePublic.decodedEncodedScore,
-    "geometry-matched mock report does not match the live public workflow"
+    "the local comparison does not match the Sepolia public calculation"
   );
   const matchedMockGas = matchedPublicMock.transactions.reduce(
     (sum: bigint, transaction: any) => sum + BigInt(transaction.gasUsed),
@@ -388,136 +314,131 @@ export function buildTransactionUse(
     "geometry-matched mock gas does not reconcile"
   );
   const liveGasDelta = BigInt(livePublic.gas.total) - matchedMockGas;
+  const localCalculation = (record: any, visibility: Visibility) => ({
+    setting: "local simulation",
+    weightVisibility: visibility,
+    transactionCount: record.transactionCount,
+    gas: {
+      modelPublication: record.gas.modelPublication,
+      sampleRegistration: record.gas.sampleRegistration,
+      calculationCreation: record.gas.jobCreation,
+      inputUploadAndCalculation: record.gas.streamingUploadCompute,
+      resultFinalization: record.gas.finalize,
+      totalExcludingDeployment: record.gas.totalExcludingDeployment,
+    },
+    transactionBreakdown: streamingTransactionGeometry(
+      record.encodedPositions,
+      visibility
+    ),
+  });
   return {
-    action: "R1.8-E1",
     title: "Measured transaction use",
-    evidenceClass: "Mixed: Live fhEVM and Hardhat mock",
-    liveNetworkQuantitiesAvailable: true,
-    liveNetworkScope:
-      "Sepolia deployment plus one public 100-SNP classic-path workflow. Private weights remain mock-only; no production or USD cost is inferred.",
-    deployment: {
-      evidenceClass: "Hardhat mock",
+    summary:
+      "Sepolia deployment plus one public 100-SNP calculation. The calculation with private weights was evaluated only in a local contract simulation. No production or USD cost is inferred.",
+    localDeployment: {
+      setting: "local simulation",
       transactionCount: preflight.deployment.contracts.length,
       gas: preflight.deployment.totalDeploymentGas,
       contracts: preflight.deployment.contracts,
     },
-    liveDeployment: {
-      evidenceClass: "Live fhEVM",
-      network: liveDeployment.network,
-      chainId: liveDeployment.chainId,
+    sepoliaDeployment: {
+      setting: "Sepolia",
       transactionCount: liveDeployment.transactionCount,
       gas: liveDeployment.totalDeploymentGas,
-      testnetFeePaid: liveVerification.deployment.feePaid,
-      transactions: liveDeployment.transactions,
-      contracts: liveDeployment.contracts,
+      feePaidEth: liveVerification.deployment.feePaid.eth,
+      blockRange: "11388858-11388861",
     },
-    livePublicJob: {
-      evidenceClass: "Live fhEVM",
-      network: livePublic.network,
-      chainId: livePublic.chainId,
-      modelVisibility: livePublic.modelVisibility,
-      workflow: "classic separate upload and compute path",
+    sepoliaPublicCalculation: {
+      setting: "Sepolia",
+      weightVisibility: livePublic.modelVisibility,
+      method: "Classic method (stored inputs)",
+      calculation: "separate input-upload and calculation transactions",
       transactionCount: livePublic.transactionCount,
       transactionBreakdown: liveBreakdown,
-      gas: livePublic.gas,
-      timing: livePublic.timing,
+      gas: {
+        sampleRegistration: livePublic.gas.sampleRegistration,
+        modelPublication: livePublic.gas.publishModel,
+        calculationCreation: livePublic.gas.createJob,
+        inputUploads: livePublic.gas.uploadSnps,
+        inputUploadFinalization: livePublic.gas.finalizeSnpUpload,
+        calculation: livePublic.gas.compute,
+        resultFinalization: livePublic.gas.finalize,
+        total: livePublic.gas.total,
+      },
+      timing: {
+        inputPreparationMs: livePublic.timing.inputProofPreparationMs,
+        submissionToResultMs: livePublic.timing.submissionToResultMs,
+        inputPreparationThroughValidationMs: livePublic.timing.endToEndValidationMs,
+        decryptionMs: livePublic.timing.decryptMs,
+      },
       decodedEncodedScore: livePublic.decodedEncodedScore,
       expectedEncodedScore: livePublic.expectedEncodedScore,
-      scoreHandle: livePublic.scoreHandle,
-      testnetFeePaid: liveVerification.publicValidation.feePaid,
+      feePaidEth: liveVerification.publicValidation.feePaid.eth,
     },
-    geometryMatchedPublicMock: {
-      evidenceClass: "Hardhat mock",
+    matchedLocalPublicCalculation: {
+      setting: "local simulation",
+      method: "Classic method (stored inputs)",
       computeChunkSize: matchedPublicMock.computeChunkSize,
       uploadChunkSize: matchedPublicMock.uploadChunkSize,
       transactionCount: matchedPublicMock.transactionCount,
-      gas: matchedPublicMock.gas,
-      timing: matchedPublicMock.timing,
+      gas: {
+        sampleRegistration: matchedPublicMock.gas.sampleRegistration,
+        modelPublication: matchedPublicMock.gas.publishModel,
+        calculationCreation: matchedPublicMock.gas.createJob,
+        inputUploads: matchedPublicMock.gas.uploadSnps,
+        inputUploadFinalization: matchedPublicMock.gas.finalizeSnpUpload,
+        calculation: matchedPublicMock.gas.compute,
+        resultFinalization: matchedPublicMock.gas.finalize,
+        total: matchedPublicMock.gas.total,
+      },
+      timing: {
+        inputPreparationMs: matchedPublicMock.timing.inputProofPreparationMs,
+        submissionToResultMs: matchedPublicMock.timing.submissionToResultMs,
+        inputPreparationThroughValidationMs: matchedPublicMock.timing.endToEndValidationMs,
+        decryptionMs: matchedPublicMock.timing.decryptMs,
+      },
       decodedEncodedScore: matchedPublicMock.decodedEncodedScore,
     },
-    liveVsMatchedMock: {
+    sepoliaAndMatchedLocalComparison: {
       comparisonScope:
-        "same public 100-SNP fixture, classic path, upload chunk 32, compute chunk 10, and 25 transactions",
+        "same public 100-SNP data, upload groups of 32, calculation groups of 10, and 25 transactions",
       gasDelta: liveGasDelta.toString(),
-      liveOverMockPercent: (
+      sepoliaOverLocalPercent: (
         Number(liveGasDelta) * 100 / Number(matchedMockGas)
       ).toFixed(2),
       interpretation:
-        "The live total is 10.42% above this one geometry-matched mock observation. This single point does not justify a general 10-20% expectation.",
+        "The Sepolia total was 10.42% above the matched local observation. This one comparison does not establish a general conversion between local and Sepolia gas.",
     },
-    jobs: {
-      public: {
-        evidenceClass: "Hardhat mock",
-        modelVisibility: "public",
-        transactionCount: publicJob.transactionCount,
-        gas: publicJob.gas,
-        transactionBreakdown: streamingTransactionGeometry(
-          publicJob.encodedPositions,
-          "public"
-        ),
-      },
-      private: {
-        evidenceClass: "Hardhat mock",
-        modelVisibility: "private",
-        transactionCount: privateJob.transactionCount,
-        gas: privateJob.gas,
-        transactionBreakdown: streamingTransactionGeometry(
-          privateJob.encodedPositions,
-          "private"
-        ),
-      },
+    localCalculations: {
+      method: "Streaming method",
+      public: localCalculation(publicCalculation, "public"),
+      private: localCalculation(privateCalculation, "private"),
     },
-    releasePolicyAndResultPaths: {
-      setReleasePolicy: {
-        evidenceClass: "Hardhat mock",
+    resultOptions: {
+      categorySetup: {
+        setting: "local simulation",
         transactionCount: 1,
         gas: policyGas.setReleasePolicy,
-        scope: "one-time per model; additional to Phase 7 model-publication figures",
+        scope: "one transaction when a model is configured",
       },
-      rawScoreFinalization: {
-        evidenceClass: "Hardhat mock",
+      rawScore: {
+        setting: "local simulation",
         transactionCount: 1,
-        gas: publicJob.gas.finalize,
-        scope: "Phase 7 100-SNP workflow",
+        gas: publicCalculation.gas.finalize,
+        scope: "100-SNP local calculation",
       },
-      randomizedCategoryFinalization: {
-        evidenceClass: "Hardhat mock",
+      categoryWithRandomAddition: {
+        setting: "local simulation",
         transactionCount: 1,
         gas: policyGas.finalizeAndClassify,
         scope:
-          "separate Phase 2 synthetic measurement; an alternative to raw-score finalization, not an additive transaction",
+          "separate local measurement; this is used instead of raw-score finalization",
       },
       decryption: {
         onChainTransactionCount: 0,
-        hostGas: null,
-        liveLatency: {
-          publicGatewayKmsMs: livePublic.timing.decryptMs,
-          privateWeightPath: null,
-        },
+        publicSepoliaTimeMs: livePublic.timing.decryptMs,
         note:
-          "The mock debugger and live Gateway/KMS user-decryption calls are off-chain from Ethereum's perspective. Public live latency is measured; private live execution remains unmeasured.",
-      },
-    },
-    reportingPrecision: {
-      rule:
-        "Preserve raw observations in JSON, but round SNP-upload and total-gas values in manuscript tables because encrypted calldata changes zero/non-zero byte counts.",
-      phase7ProseVsJson: {
-        public: {
-          proseGas: "11690033",
-          machineGas: publicJob.gas.totalExcludingDeployment,
-          proseMinusMachineGas: (
-            11690033n - BigInt(publicJob.gas.totalExcludingDeployment)
-          ).toString(),
-        },
-        private: {
-          proseGas: "23507892",
-          machineGas: privateJob.gas.totalExcludingDeployment,
-          proseMinusMachineGas: (
-            23507892n - BigInt(privateJob.gas.totalExcludingDeployment)
-          ).toString(),
-        },
-        interpretation:
-          "Both differences are 12 gas and disappear at the required reporting precision. Machine-readable component sums are authoritative.",
+          "User decryption does not add an Ethereum transaction. The public Sepolia decryption time was measured; the calculation with private weights was evaluated only by local simulation.",
       },
     },
     productionUsdCost: {
@@ -525,7 +446,6 @@ export function buildTransactionUse(
       reason:
         "No documented current production fee schedule or production deployment measurement exists.",
     },
-    provenance,
   };
 }
 
@@ -536,21 +456,20 @@ function formatEthFromWei(wei: bigint): string {
 }
 
 export function buildFeeSensitivity(
-  transactionUse: ReturnType<typeof buildTransactionUse>,
-  provenance: SynthesisProvenance
+  transactionUse: ReturnType<typeof buildTransactionUse>
 ) {
   const quantities = [
     {
       label: "four-contract deployment",
-      gas: BigInt(transactionUse.deployment.gas),
+      gas: BigInt(transactionUse.localDeployment.gas),
     },
     {
-      label: "public 100-SNP job, excluding deployment",
-      gas: BigInt(transactionUse.jobs.public.gas.totalExcludingDeployment),
+      label: "public 100-SNP calculation, excluding deployment",
+      gas: BigInt(transactionUse.localCalculations.public.gas.totalExcludingDeployment),
     },
     {
-      label: "private 100-SNP job, excluding deployment",
-      gas: BigInt(transactionUse.jobs.private.gas.totalExcludingDeployment),
+      label: "private 100-SNP calculation, excluding deployment",
+      gas: BigInt(transactionUse.localCalculations.private.gas.totalExcludingDeployment),
     },
   ];
   const gasPrices = [
@@ -561,23 +480,20 @@ export function buildFeeSensitivity(
     { gwei: "30", wei: 30_000_000_000n },
   ];
   return {
-    action: "R1.8-E1",
-    title: "Fee sensitivity, separate from measured transaction use",
-    evidenceClass: "Analytic projection",
-    executionStatus: "unexecuted",
-    formula: "fee_ETH = mock_observed_gas * hypothetical_gas_price_wei / 1e18",
-    caveat:
-      "This is arithmetic sensitivity only. It is not a production price, affordability result, or claim that mock gas equals live-network gas.",
-    usdConversion: null,
+    title: "Calculated fee examples",
+    setting: "calculated estimate",
+    formula: "fee_ETH = local_gas * example_gas_price_wei / 1e18",
+    interpretation:
+      "These values are calculated examples using gas from a local contract simulation. They are not production prices or live-network measurements.",
+    usdConversion: "not provided because no production fee schedule was documented",
     quantities: quantities.map((quantity) => ({
       label: quantity.label,
       sourceGas: quantity.gas.toString(),
       scenarios: gasPrices.map((price) => ({
-        hypotheticalGasPriceGwei: price.gwei,
+        exampleGasPriceGwei: price.gwei,
         feeEth: formatEthFromWei(quantity.gas * price.wei),
       })),
     })),
-    provenance,
   };
 }
 
@@ -587,38 +503,42 @@ function formatInteger(value: number | string): string {
 
 export function renderScaleMarkdown(scale: ReturnType<typeof buildScaleEvidence>): string {
   const lines = [
-    "# Phase 8 scale evidence table",
+    "# Scale results",
     "",
-    "- Action: `R1.6-E1`",
-    "- Live status: **one public 100-SNP workflow executed successfully on Sepolia**.",
-    "- Private-weight live status: **not executed; mock-validated only**.",
-    "- Transaction scope: fresh model publication + sample registration + one job; contract",
-    "  deployment is excluded. The live row uses the classic separate upload/compute path;",
-    "  mock and projected rows use the streaming path.",
+    "One public-weight 100-SNP calculation completed on **Sepolia** using the **Classic method (stored",
+    "inputs)**. The remaining rows used the **Streaming method** in a **local contract simulation**.",
+    "These local results do not measure live network time or production cost.",
     "",
-    "| Evidence class | Status | Nominal variants | Encoded positions | Visibility | Transactions | Latency / cost availability |",
-    "|---|---|---:|---:|---|---:|---|",
+    "The transaction count includes model publication, sample registration, and one score calculation;",
+    "contract deployment is excluded. The Sepolia row stores inputs before calculation, while the",
+    "local rows combine input upload and calculation. Each data set also contains one leading constant",
+    "used in the calculation; it is not an additional variant. The maximum evaluated model contains",
+    "5,000 variants.",
+    "",
+    "| Setting | Method | Model | Variants | Transactions | Timing and cost |",
+    "|---|---|---|---:|---:|---|",
   ];
-  for (const row of scale.rows) {
+  for (const row of scale.results) {
     const availability =
-      row.evidenceClass === "Live fhEVM"
-        ? "real Sepolia timing + testnet gas; no production fee"
-        : row.evidenceClass === "Hardhat mock"
-        ? row.latencyAvailability.available
-          ? "mock host timing + mock gas; no production fee"
-          : "mock gas only; no live latency or production fee"
-        : "unexecuted transaction geometry only";
+      row.setting === "Sepolia"
+        ? "Sepolia time and gas; no production fee"
+        : row.timingNote.startsWith("Time was measured")
+        ? "local time and gas; no production fee"
+        : "local gas only; no Sepolia time or production fee";
+    const setting = row.setting === "Sepolia" ? "Public Sepolia" : "Local simulation";
+    const method = row.setting === "Sepolia"
+      ? "Classic method (stored inputs)"
+      : "Streaming method";
+    const model = row.weightVisibility === "private" ? "Private-weight" : "Public-weight";
     lines.push(
-      `| ${row.evidenceClass} | ${row.executionStatus} | ${formatInteger(row.nominalVariants)} | ` +
-        `${formatInteger(row.encodedPositions)} | ${row.modelVisibility} | ` +
+      `| ${setting} | ${method} | ${model} | ${formatInteger(row.variantCount)} | ` +
         `${formatInteger(row.transactionCount)} | ${availability} |`
     );
   }
   lines.push(
     "",
-    scale.measuredRangeConclusion,
-    "",
-    "Machine-readable source: `scale_evidence.json`."
+    "The private-weight calculation was evaluated only in local simulation, not on Sepolia. The",
+    "table above reports the values used in the manuscript and response."
   );
   return lines.join("\n") + "\n";
 }
@@ -626,55 +546,52 @@ export function renderScaleMarkdown(scale: ReturnType<typeof buildScaleEvidence>
 export function renderTransactionUseMarkdown(
   transactionUse: ReturnType<typeof buildTransactionUse>
 ): string {
-  const pub = transactionUse.jobs.public;
-  const priv = transactionUse.jobs.private;
-  const live = transactionUse.livePublicJob;
+  const pub = transactionUse.localCalculations.public;
+  const priv = transactionUse.localCalculations.private;
+  const sepolia = transactionUse.sepoliaPublicCalculation;
   const lines = [
-    "# Phase 8 measured transaction use",
+    "# Transaction use",
     "",
-    "- Action: `R1.8-E1`",
-    "- Evidence classes: **Live fhEVM** and **Hardhat mock**",
-    "- Live scope: four-contract Sepolia deployment plus one public 100-SNP classic-path job.",
-    "- Private-weight live behavior, production fees, and USD cost: **unavailable**.",
+    "The tables separate **public Sepolia** measurements from a **local contract simulation**. The",
+    "local results do not measure live network time or production cost. The private-weight",
+    "calculation was evaluated only in local simulation, not on Sepolia.",
     "",
-    "## Live Sepolia observations",
+    "## Public Sepolia",
     "",
-    "| Operation | Visibility / path | Transactions | Gas | Sepolia test-ETH fee | Timing / result |",
+    "| Operation | Model | Transactions | Gas | Sepolia ETH fee | Time or result |",
     "|---|---|---:|---:|---:|---|",
-    `| Four-contract deployment | shared | ${transactionUse.liveDeployment.transactionCount} | ${formatInteger(transactionUse.liveDeployment.gas)} | ${transactionUse.liveDeployment.testnetFeePaid.eth} ETH | blocks 11388858–11388861 |`,
-    `| Full 100-SNP job | public classic | ${live.transactionCount} | ${formatInteger(live.gas.total)} | ${live.testnetFeePaid.eth} ETH | ${(live.timing.endToEndValidationMs / 1000).toFixed(1)} s; decoded ${live.decodedEncodedScore} |`,
-    `| User decryption | public Gateway/KMS | 0 on-chain | n/a | included above | ${live.timing.decryptMs} ms |`,
+    `| Four-contract deployment | Shared | ${transactionUse.sepoliaDeployment.transactionCount} | ${formatInteger(transactionUse.sepoliaDeployment.gas)} | ${transactionUse.sepoliaDeployment.feePaidEth} ETH | completed |`,
+    `| Classic method (stored inputs), full 100-SNP calculation | Public-weight | ${sepolia.transactionCount} | ${formatInteger(sepolia.gas.total)} | ${sepolia.feePaidEth} ETH | ${(sepolia.timing.submissionToResultMs / 1000).toFixed(1)} s from submission to result; ${(sepolia.timing.decryptionMs / 1000).toFixed(1)} s decryption; decoded ${formatInteger(sepolia.decodedEncodedScore)} |`,
+    `| User decryption | Public-weight | 0 on-chain | n/a | included above | ${(sepolia.timing.decryptionMs / 1000).toFixed(1)} s |`,
     "",
-    "Sepolia test ETH has no production-price interpretation. The successful live run is one",
-    "100-SNP point, not evidence of genome-wide scale or private-weight live execution.",
-    `The geometry-matched public mock also used 25 transactions and ${formatInteger(transactionUse.geometryMatchedPublicMock.gas.total)} gas; the live total was ${transactionUse.liveVsMatchedMock.liveOverMockPercent}% higher. This single pair does not support a general live/mock conversion factor.`,
+    "Sepolia ETH has no production-price interpretation. The same public-weight calculation, using",
+    `the Classic method and the same ${sepolia.transactionCount}-transaction arrangement in local simulation, used ${formatInteger(transactionUse.matchedLocalPublicCalculation.gas.total)}`,
+    `gas. The Sepolia total was ${transactionUse.sepoliaAndMatchedLocalComparison.sepoliaOverLocalPercent}% higher in this comparison, which does not provide a general`,
+    "conversion between local and Sepolia gas.",
     "",
-    "## Hardhat-mock observations",
+    "## Local simulation",
     "",
-    "| Operation | Visibility / path | Transactions | Observed host gas | Reporting note |",
+    "The local calculations below used the **Streaming method**.",
+    "",
+    "| Operation | Model | Transactions | Local gas | Note |",
     "|---|---|---:|---:|---|",
-    `| Four-contract deployment | shared | ${transactionUse.deployment.transactionCount} | ${formatInteger(transactionUse.deployment.gas)} | exact mock observation |`,
-    `| Model publication | public | ${pub.transactionBreakdown.modelPublication} | ${formatInteger(pub.gas.modelPublication)} | includes real provenance hashes |`,
-    `| Model publication | private | ${priv.transactionBreakdown.modelPublication} | ${formatInteger(priv.gas.modelPublication)} | includes two reader-authorisation transactions |`,
-    `| Sample registration | public / private | 1 | ~${formatInteger(Math.round(Number(pub.gas.sampleRegistration) / 1000) * 1000)} | encrypted/calldata totals are rounded |`,
-    `| Job creation | public | 1 | ${formatInteger(pub.gas.jobCreation)} | mock observation |`,
-    `| Job creation | private | 1 | ${formatInteger(priv.gas.jobCreation)} | mock observation |`,
-    `| Streaming upload + compute | public | ${pub.transactionBreakdown.uploadAndCompute} | ${(Number(pub.gas.streamingUploadCompute) / 1e6).toFixed(3)} M | encrypted calldata; rounded |`,
-    `| Streaming upload + compute | private | ${priv.transactionBreakdown.uploadAndCompute} | ${(Number(priv.gas.streamingUploadCompute) / 1e6).toFixed(3)} M | encrypted calldata; rounded |`,
-    `| Raw-score finalization | raw result | 1 | ${formatInteger(pub.gas.finalize)} | Phase 7 workflow |`,
-    `| Randomized-category finalization | categorical result | 1 | ${formatInteger(transactionUse.releasePolicyAndResultPaths.randomizedCategoryFinalization.gas)} | separate Phase 2 measurement; replaces raw finalization |`,
-    `| User decryption | mock debugger | 0 on-chain | n/a | public live Gateway/KMS latency is reported separately above |`,
-    `| **Full 100-SNP job** | **public** | **${pub.transactionCount}** | **${(Number(pub.gas.totalExcludingDeployment) / 1e6).toFixed(3)} M** | deployment excluded |`,
-    `| **Full 100-SNP job** | **private** | **${priv.transactionCount}** | **${(Number(priv.gas.totalExcludingDeployment) / 1e6).toFixed(3)} M** | deployment excluded |`,
+    `| Four-contract deployment | Shared | ${transactionUse.localDeployment.transactionCount} | ${formatInteger(transactionUse.localDeployment.gas)} | local measurement |`,
+    `| Model publication | Public-weight | ${pub.transactionBreakdown.modelPublication} | ${formatInteger(pub.gas.modelPublication)} | includes the model record |`,
+    `| Model publication | Private-weight | ${priv.transactionBreakdown.modelPublication} | ${formatInteger(priv.gas.modelPublication)} | includes records stating who may calculate and receive the result |`,
+    `| Sample registration | Public-weight / private-weight | 1 | ~${formatInteger(Math.round(Number(pub.gas.sampleRegistration) / 1000) * 1000)} | encrypted-data total rounded |`,
+    `| Calculation creation | Public-weight | 1 | ${formatInteger(pub.gas.calculationCreation)} | local measurement |`,
+    `| Calculation creation | Private-weight | 1 | ${formatInteger(priv.gas.calculationCreation)} | local measurement |`,
+    `| Streaming method: upload and calculation | Public-weight | ${pub.transactionBreakdown.inputUploadAndCalculation} | ${(Number(pub.gas.inputUploadAndCalculation) / 1e6).toFixed(3)} M | encrypted-data total rounded |`,
+    `| Streaming method: upload and calculation | Private-weight | ${priv.transactionBreakdown.inputUploadAndCalculation} | ${(Number(priv.gas.inputUploadAndCalculation) / 1e6).toFixed(3)} M | encrypted-data total rounded |`,
+    `| Return raw score | Raw result | 1 | ${formatInteger(pub.gas.resultFinalization)} | local measurement |`,
+    `| Return category with random addition | Category | 1 | ${formatInteger(transactionUse.resultOptions.categoryWithRandomAddition.gas)} | used instead of returning a raw score |`,
+    `| **Streaming method, full 100-SNP calculation** | **Public-weight** | **${pub.transactionCount}** | **${(Number(pub.gas.totalExcludingDeployment) / 1e6).toFixed(3)} M** | deployment excluded |`,
+    `| **Streaming method, full 100-SNP calculation** | **Private-weight** | **${priv.transactionCount}** | **${(Number(priv.gas.totalExcludingDeployment) / 1e6).toFixed(3)} M** | deployment excluded |`,
     "",
-    `A release-policy configuration adds one transaction and ${formatInteger(transactionUse.releasePolicyAndResultPaths.setReleasePolicy.gas)} mock gas per model. It is not included in the Phase 7 raw-score totals above.`,
+    `Storing the result categories uses one transaction and ${formatInteger(transactionUse.resultOptions.categorySetup.gas)} gas in local simulation. It is not`,
+    "included in the raw-score totals above.",
     "",
-    "The Phase 7 prose totals differ from the authoritative JSON component sums by 12 gas for",
-    "each visibility. The discrepancy vanishes at the required precision and is recorded as",
-    "`CD-025`; no exact total-gas claim should be copied from prose.",
-    "",
-    "Machine-readable source: `measured_transaction_use.json`. Fee arithmetic is deliberately",
-    "separate in `fee_sensitivity.json` / `fee_sensitivity.md`."
+    "The [calculated fee examples](fee_sensitivity.md) use the local gas values reported above."
   ];
   return lines.join("\n") + "\n";
 }
@@ -683,29 +600,33 @@ export function renderFeeSensitivityMarkdown(
   fee: ReturnType<typeof buildFeeSensitivity>
 ): string {
   const prices = fee.quantities[0].scenarios.map(
-    (scenario: any) => scenario.hypotheticalGasPriceGwei
+    (scenario: any) => scenario.exampleGasPriceGwei
   );
   const lines = [
-    "# Phase 8 fee sensitivity",
+    "# Calculated fee examples",
     "",
-    "- Action: `R1.8-E1`",
-    "- Evidence class: **Analytic projection**",
-    "- Status: **unexecuted arithmetic**",
-    "- USD conversion: **not provided** — no current production fee schedule was documented.",
+    "Each **calculated fee example** multiplies measured gas from local simulation by a stated gas",
+    "price. It is not an observed network cost. No USD conversion is provided because there is no",
+    "documented production fee schedule.",
     "",
     `| Quantity | Source gas | ${prices.map((price: string) => `${price} gwei`).join(" | ")} |`,
     `|---|---:|${prices.map(() => "---:").join("|")}|`,
   ];
-  for (const quantity of fee.quantities) {
+  for (const [index, quantity] of fee.quantities.entries()) {
+    const displayLabel = index === 0
+      ? "Four-contract deployment"
+      : index === 1
+      ? "Streaming method, public-weight 100-SNP calculation, excluding deployment"
+      : "Streaming method, private-weight 100-SNP calculation, excluding deployment";
     lines.push(
-      `| ${quantity.label} | ${formatInteger(quantity.sourceGas)} | ` +
+      `| ${displayLabel} | ${formatInteger(quantity.sourceGas)} | ` +
         `${quantity.scenarios.map((scenario: any) => scenario.feeEth).join(" | ")} |`
     );
   }
   lines.push(
     "",
-    "All scenario cells are ETH and use `fee = gas × hypothetical gas price`. They are sensitivity",
-    "calculations from Hardhat-mock gas, not production prices or evidence of affordability."
+    "All table values are ETH and use `fee = measured gas × stated gas price`. They are not observed",
+    "network costs, production prices, or evidence of affordability."
   );
   return lines.join("\n") + "\n";
 }
@@ -728,13 +649,7 @@ function main() {
   const livePublicPath = path.join(liveDir, "public_success.json");
   const matchedPublicMockPath = path.join(liveDir, "public_matched_mock.json");
   const liveVerificationPath = path.join(liveDir, "onchain_verification.json");
-  const producerPaths = [
-    path.join(REPO_ROOT, "scripts", "phase8_evidence_synthesis.ts"),
-    path.join(REPO_ROOT, "scripts", "heprs_fixture_profile.ts"),
-    path.join(REPO_ROOT, "scripts", "live_preflight.ts"),
-    path.join(REPO_ROOT, "scripts", "release_policy_gas.ts"),
-  ];
-  for (const sourcePath of [
+  const sourcePaths = [
     profilePath,
     preflightPath,
     policyPath,
@@ -742,9 +657,10 @@ function main() {
     livePublicPath,
     matchedPublicMockPath,
     liveVerificationPath,
-    ...producerPaths,
-  ]) {
+  ];
+  for (const sourcePath of sourcePaths) {
     requireCondition(fs.existsSync(sourcePath), `missing source artifact ${sourcePath}`);
+    assertProvenanceHash(hashFile(sourcePath).hash, path.basename(sourcePath));
   }
 
   const profiles = JSON.parse(fs.readFileSync(profilePath, "utf8")) as FixtureProfile[];
@@ -754,31 +670,16 @@ function main() {
   const livePublic = JSON.parse(fs.readFileSync(livePublicPath, "utf8"));
   const matchedPublicMock = JSON.parse(fs.readFileSync(matchedPublicMockPath, "utf8"));
   const liveVerification = JSON.parse(fs.readFileSync(liveVerificationPath, "utf8"));
-  // Hash both the evidence inputs and the code that produced or synthesised them.
-  // The runs are captured before their commit exists, so a dirty-file name alone is
-  // insufficient to identify exact code; source hashes close that provenance gap.
-  const provenance = sourceProvenance([
-    profilePath,
-    preflightPath,
-    policyPath,
-    liveDeploymentPath,
-    livePublicPath,
-    matchedPublicMockPath,
-    liveVerificationPath,
-    ...producerPaths,
-  ]);
-
-  const scale = buildScaleEvidence(profiles, preflight, livePublic, provenance);
+  const scale = buildScaleEvidence(profiles, preflight, livePublic);
   const transactionUse = buildTransactionUse(
     preflight,
     policyGas,
     liveDeployment,
     livePublic,
     matchedPublicMock,
-    liveVerification,
-    provenance
+    liveVerification
   );
-  const fee = buildFeeSensitivity(transactionUse, provenance);
+  const fee = buildFeeSensitivity(transactionUse);
 
   writeJson(path.join(outDir, "scale_evidence.json"), scale);
   fs.writeFileSync(path.join(outDir, "scale_evidence.md"), renderScaleMarkdown(scale));
@@ -790,10 +691,10 @@ function main() {
   writeJson(path.join(outDir, "fee_sensitivity.json"), fee);
   fs.writeFileSync(path.join(outDir, "fee_sensitivity.md"), renderFeeSensitivityMarkdown(fee));
 
-  console.log("Phase 8 evidence synthesis complete");
-  console.log(`  scale rows            : ${scale.rows.length}, including one live row`);
-  console.log(`  live public 100-SNP   : ${transactionUse.livePublicJob.transactionCount} tx`);
-  console.log(`  mock public/private   : ${transactionUse.jobs.public.transactionCount}/${transactionUse.jobs.private.transactionCount} tx`);
+  console.log("Evidence summary complete");
+  console.log(`  scale rows            : ${scale.results.length}, including one Sepolia row`);
+  console.log(`  Sepolia public 100-SNP: ${transactionUse.sepoliaPublicCalculation.transactionCount} tx`);
+  console.log(`  local public/private  : ${transactionUse.localCalculations.public.transactionCount}/${transactionUse.localCalculations.private.transactionCount} tx`);
   console.log(`  output directory      : ${outDir}`);
 }
 

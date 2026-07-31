@@ -8,23 +8,20 @@ import {
   buildTransactionUse,
   ceilDiv,
   parseReleasePolicyGas,
+  renderScaleMarkdown,
+  renderTransactionUseMarkdown,
   streamingTransactionGeometry,
 } from "../scripts/phase8_evidence_synthesis";
 
 const REPO_ROOT = path.join(__dirname, "..");
 
-function provenanceFixture() {
-  return {
-    schema: "bioeth-prs/evidence-synthesis/1",
-    repository: {
-      commit: "test",
-      shortCommit: "test",
-      branch: "test",
-      dirty: false,
-    },
-    runtime: { node: process.version, platform: process.platform },
-    sourceArtifacts: [],
-  };
+function keysAtAllLevels(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(keysAtAllLevels);
+  if (!value || typeof value !== "object") return [];
+  return Object.entries(value as Record<string, unknown>).flatMap(([key, child]) => [
+    key,
+    ...keysAtAllLevels(child),
+  ]);
 }
 
 function preflightFixture() {
@@ -52,7 +49,7 @@ function preflightFixture() {
       visibility,
       encodedPositions: 101,
       transactionCount: geometry.total,
-      computeTransactions: geometry.uploadAndCompute,
+      computeTransactions: geometry.inputUploadAndCalculation,
       gas,
     };
   };
@@ -81,7 +78,7 @@ function profileFixture(nominalVariants: number) {
       sampleRegistration: 1,
       streaming: {
         jobCreation: 1,
-        uploadAndCompute: geometry.uploadAndCompute,
+        uploadAndCompute: geometry.inputUploadAndCalculation,
         resultFinalization: 1,
         totalIncludingModelAndSample: geometry.total,
       },
@@ -179,7 +176,7 @@ function liveVerificationFixture() {
   };
 }
 
-describe("Phase 8 evidence synthesis", function () {
+describe("Evidence summary", function () {
   it("uses ceiling division at chunk boundaries", function () {
     expect(ceilDiv(32, 32)).to.equal(1);
     expect(ceilDiv(33, 32)).to.equal(2);
@@ -199,28 +196,45 @@ describe("Phase 8 evidence synthesis", function () {
     ).to.deep.equal([15, 47, 88, 413]);
   });
 
-  it("keeps projections unexecuted and adds only the verified public live row", function () {
+  it("contains only measured rows up to 5,000 variants and one Sepolia row", function () {
     const scale = buildScaleEvidence(
       [100, 500, 1000, 5000].map(profileFixture) as any,
       preflightFixture(),
-      livePublicFixture(),
-      provenanceFixture()
+      livePublicFixture()
     );
-    const projections = scale.rows.filter(
-      (row: any) => row.evidenceClass === "Analytic projection"
-    );
-    expect(projections).to.have.lengthOf(6);
-    expect(projections.every((row: any) => row.executionStatus === "unexecuted")).to.equal(true);
-    expect(scale.liveFhevm.successfulRows).to.have.lengthOf(1);
-    expect(scale.liveFhevm.successfulRows[0]).to.include({
-      nominalVariants: 100,
-      modelVisibility: "public",
+    expect(scale.results.every((row: any) => row.variantCount <= 5000)).to.equal(true);
+    expect(scale.results).to.have.lengthOf(6);
+    expect([...new Set(scale.results.map((row: any) => row.setting))]).to.deep.equal([
+      "Sepolia",
+      "local simulation",
+    ]);
+    expect(scale.setup.publicSepoliaCalculation).to.include({
+      variantCount: 100,
+      leadingConstantIncluded: true,
+      weightVisibility: "public",
       transactionCount: 25,
       decodedEncodedScore: "758685",
     });
     expect(
-      scale.rows.filter((row: any) => row.evidenceClass === "Live fhEVM")
+      scale.results.filter((row: any) => row.setting === "Sepolia")
     ).to.have.lengthOf(1);
+    const markdown = renderScaleMarkdown(scale);
+    expect(markdown).to.include("| Setting | Method | Model | Variants |");
+    expect(markdown).to.include("local simulation");
+    expect(markdown).not.to.include("Evidence class");
+    expect(keysAtAllLevels(scale)).not.to.include.members([
+      "action",
+      "evidenceClass",
+      "executionStatus",
+      "workflow",
+      "jobs",
+      "provenance",
+      "commit",
+      "dirtyFiles",
+      "producer",
+      "runner",
+      "gate",
+    ]);
   });
 
   it("parses the saved release-policy measurements", function () {
@@ -244,29 +258,53 @@ describe("Phase 8 evidence synthesis", function () {
         liveDeploymentFixture(),
         livePublicFixture(),
         matchedPublicMockFixture(),
-        liveVerificationFixture(),
-        provenanceFixture()
+        liveVerificationFixture()
       )
     ).to.throw(/components do not sum/);
   });
 
-  it("keeps fee conversion analytic and omits USD", function () {
+  it("calculates fee examples and omits USD", function () {
     const transactionUse = buildTransactionUse(
       preflightFixture(),
       { setReleasePolicy: "77314", finalizeAndClassify: "432230" },
       liveDeploymentFixture(),
       livePublicFixture(),
       matchedPublicMockFixture(),
-      liveVerificationFixture(),
-      provenanceFixture()
+      liveVerificationFixture()
     );
-    const fee = buildFeeSensitivity(transactionUse, provenanceFixture());
-    expect(fee.evidenceClass).to.equal("Analytic projection");
-    expect(fee.executionStatus).to.equal("unexecuted");
-    expect(fee.usdConversion).to.equal(null);
+    const fee = buildFeeSensitivity(transactionUse);
+    const transactionMarkdown = renderTransactionUseMarkdown(transactionUse);
+    expect(transactionMarkdown).to.include(
+      "Classic method (stored inputs), full 100-SNP calculation"
+    );
+    expect(transactionMarkdown).to.include(
+      "Streaming method, full 100-SNP calculation"
+    );
+    expect(transactionMarkdown).to.include("Calculation creation");
+    expect(transactionMarkdown).not.to.include("Full 100-SNP job");
+    expect(fee.setting).to.equal("calculated estimate");
+    expect(fee.usdConversion).to.include("not provided");
     const oneGwei = fee.quantities[0].scenarios.find(
-      (scenario) => scenario.hypotheticalGasPriceGwei === "1"
+      (scenario) => scenario.exampleGasPriceGwei === "1"
     );
     expect(oneGwei?.feeEth).to.equal("0.005892613");
+    expect(keysAtAllLevels(transactionUse)).not.to.include.members([
+      "action",
+      "evidenceClass",
+      "executionStatus",
+      "workflow",
+      "jobs",
+      "provenance",
+      "commit",
+      "dirtyFiles",
+    ]);
+    expect(keysAtAllLevels(fee)).not.to.include.members([
+      "action",
+      "evidenceClass",
+      "executionStatus",
+      "provenance",
+      "commit",
+      "dirtyFiles",
+    ]);
   });
 });

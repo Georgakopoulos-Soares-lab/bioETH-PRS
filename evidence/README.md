@@ -1,56 +1,45 @@
-# `evidence/` — revision evidence store
+# Scientific evidence summary
 
-Every number, table, and figure in the revised manuscript must originate from a file in this
-directory. Nothing in the manuscript may cite a number that does not exist here first.
+## What was evaluated
 
-See [`../bioETH-PRS_RTR_acceptance_plan.md`](../bioETH-PRS_RTR_acceptance_plan.md) for the
-35-action plan. Stage A (phases 1–8) filled this directory; Stage B (phases 9–13) wrote the
-manuscript from it. Phase 14 finalized the response letter and consistency gates.
+The evidence covers how PRS is calculated, how genotypes and alleles are handled, how score
+categories are reported, attempts to recover private weights, transaction use, and one
+public-weight 100-SNP calculation on Sepolia.
 
-## Rules
+Results use three clear labels:
 
-1. **Every artifact declares its evidence class.** One of exactly three values:
-   - `Live fhEVM` — produced by a transaction on a real fhEVM network.
-   - `Hardhat mock` — produced by the `@fhevm/hardhat-plugin` mock coprocessor. Validates
-     protocol and contract logic; does **not** measure real FHE latency, HCU availability,
-     or production fees.
-   - `Analytic projection` — derived by calculation, not executed. Must be labelled
-     unexecuted wherever it appears.
-2. **Every artifact carries provenance** (action `R2.4-E1`): repository commit, model and
-   fixture hashes, manifest hash, contract bytecode/address for live runs, transaction IDs,
-   and the independent reference output hash. No `ethers.ZeroHash` manifests.
-3. **Machine-readable first.** JSON or CSV is the artifact; any Markdown report is a
-   rendering of it, never the sole record.
-4. **Append-only in spirit.** Do not overwrite a run to "fix" it. Write a new file and note
-   the supersession in `claim_deltas.md`.
+- **Public Sepolia**: measured on the Sepolia network with live FHE services.
+- **Local simulation**: measured in a local contract simulation. This checks contract
+  behavior but does not measure live FHE speed, live network time, or production cost.
+- **Calculated fee example**: measured local gas multiplied by a stated gas price. It is not an
+  observed network cost.
 
-## Layout
+## Results
 
-| Path | Produced by | Contents |
-|---|---|---|
-| `baseline/` | Phase 0 | Pre-revision compile, test, and environment capture |
-| `phase1/`–`phase6/` | Phases 1–6 | Code conformity, provenance, correctness, and adversarial evidence |
-| `phase7/` | Phase 7 | Live readiness, one verified public Sepolia run, a preserved failed attempt, private mock-only fallback, and receipt-level provenance |
-| `phase8/` | Phase 8 | Three-class scale table, live and mock transaction use, and separate fee sensitivity |
-| `claim_deltas.md` | Phases 1–8 | Every submitted claim the new evidence contradicts or fails to support |
+- A public-weight 100-SNP calculation completed on Sepolia and decoded to **758,685**, matching
+  the independent reference exactly.
+- The private-weight calculation was evaluated only in the local simulation, not on Sepolia.
+- Public-weight calculations with 100, 500, 1,000, and a maximum of 5,000 variants completed in
+  the local simulation.
+- All 200 individual scores matched Equation 1 exactly across the four evaluated data sizes.
+- With thresholds fixed by the model provider, none of 20 private weights was recovered within
+  the noise range after 320 queries chosen after earlier results (`r = 0.9388`). When the requester
+  changed the threshold after each result, 19 of 20 weights were recovered after 200 queries and
+  all 20 were first recovered after 260. The local analysis used a fixed sequence of random
+  additions so it can be repeated; another sequence may give different exact counts.
 
-Stage A is complete. Its live boundary is deliberately asymmetric: the public 100-SNP path is
-verified on Sepolia, while private-weight execution is implemented and Hardhat-mock validated
-but was not executed live. Larger rows remain mock observations or unexecuted projections as
-labelled in `phase8/scale_evidence.json`.
+## What the results mean
 
-Stage B is also complete. Final revision artifacts are:
+The public Sepolia result supports the public-weight 100-SNP calculation. Local-simulation results
+support the contract logic and score calculations, but they are not live performance or cost
+measurements. The private-weight calculation is supported only by local simulation.
 
-- `../output/pdf/bioeth_prs (4).pdf` — line-numbered revised manuscript;
-- `../output/docx/bioETH-PRS_RTR_response.docx` — point-by-point response letter;
-- `manuscript_and_rtr_responses.md` — manuscript specification, response history, and stable
-  evidence identifiers.
+## Supporting data
 
-## Stage A → Stage B gate — satisfied
-
-The manuscript edit began only after:
-
-- all 16 Stage A actions are complete;
-- `npm run build` and the full test suite pass;
-- every number destined for the manuscript exists here with a declared evidence class;
-- `claim_deltas.md` is complete.
+- [Independent score calculations](phase3/README.md)
+- [Individual comparisons and category results](phase5/README.md)
+- [Adversarial analysis](phase6/README.md)
+- [Public Sepolia result](phase7/live_2026-07-31/README.md)
+- [Scale, transaction, and fee results](phase8/README.md)
+- [Concise scientific conclusions](claim_deltas.md)
+- [Common scientific summary](manuscript_and_rtr_responses.md)

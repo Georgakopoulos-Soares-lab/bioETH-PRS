@@ -1,11 +1,8 @@
 {
-  "action": "R1.8-E1",
   "title": "Measured transaction use",
-  "evidenceClass": "Mixed: Live fhEVM and Hardhat mock",
-  "liveNetworkQuantitiesAvailable": true,
-  "liveNetworkScope": "Sepolia deployment plus one public 100-SNP classic-path workflow. Private weights remain mock-only; no production or USD cost is inferred.",
-  "deployment": {
-    "evidenceClass": "Hardhat mock",
+  "summary": "Sepolia deployment plus one public 100-SNP calculation. The calculation with private weights was evaluated only in a local contract simulation. No production or USD cost is inferred.",
+  "localDeployment": {
+    "setting": "local simulation",
     "transactionCount": 4,
     "gas": "5892613",
     "contracts": [
@@ -35,379 +32,154 @@
       }
     ]
   },
-  "liveDeployment": {
-    "evidenceClass": "Live fhEVM",
-    "network": "sepolia",
-    "chainId": "11155111",
+  "sepoliaDeployment": {
+    "setting": "Sepolia",
     "transactionCount": 4,
     "gas": "5892559",
-    "testnetFeePaid": {
-      "wei": "6278171412391863",
-      "eth": "0.006278171412391863",
-      "classification": "actual Sepolia test-ETH fee; not a production or USD cost"
-    },
-    "transactions": [
-      {
-        "contract": "GenomicRegistry",
-        "hash": "0xa17055ed7cd7e9b6600ce36810bc2dfae8fe44b200fc62b9b5662aa454dfeb56",
-        "blockNumber": 11388858,
-        "gasUsed": "660271",
-        "status": 1
-      },
-      {
-        "contract": "ModelMarketplace",
-        "hash": "0x67137435098c64d3620046264b4f8f912339126b35b0449b7def0d5fe998db07",
-        "blockNumber": 11388859,
-        "gasUsed": "1891768",
-        "status": 1
-      },
-      {
-        "contract": "PRSComputeEngine",
-        "hash": "0x3f3b2b8b41dd51f826f49facf72c9e44ef520c5b3fad1b588ba365b8910d3bf1",
-        "blockNumber": 11388860,
-        "gasUsed": "2430691",
-        "status": 1
-      },
-      {
-        "contract": "ResultOracle",
-        "hash": "0x75eaacf4221db3bfd8edafc3c836ccf9f43db06a78861245c9f9f13d732911a7",
-        "blockNumber": 11388861,
-        "gasUsed": "909829",
-        "status": 1
-      }
-    ],
-    "contracts": {
-      "GenomicRegistry": "0xCb4ac006Eda926fb7AF947239641D51881A53689",
-      "ModelMarketplace": "0xf8bF680D643df6288ECA5156158bF25B36Cf2642",
-      "PRSComputeEngine": "0x76E3bE29F5e799Bbb6E5De660E702C42E2B9bB70",
-      "ResultOracle": "0x50B708609D894F63309daFD4fd596F5547EDe5B3"
-    }
+    "feePaidEth": "0.006278171412391863",
+    "blockRange": "11388858-11388861"
   },
-  "livePublicJob": {
-    "evidenceClass": "Live fhEVM",
-    "network": "sepolia",
-    "chainId": "11155111",
-    "modelVisibility": "public",
-    "workflow": "classic separate upload and compute path",
+  "sepoliaPublicCalculation": {
+    "setting": "Sepolia",
+    "weightVisibility": "public",
+    "method": "Classic method (stored inputs)",
+    "calculation": "separate input-upload and calculation transactions",
     "transactionCount": 25,
     "transactionBreakdown": {
       "modelPublication": 6,
       "sampleRegistration": 1,
-      "jobCreation": 1,
-      "snpUploads": 4,
-      "uploadFinalization": 1,
-      "compute": 11,
+      "calculationCreation": 1,
+      "inputUploads": 4,
+      "inputUploadFinalization": 1,
+      "calculation": 11,
       "resultFinalization": 1,
       "total": 25
     },
     "gas": {
       "sampleRegistration": "98203",
-      "publishModel": "1152558",
-      "createJob": "367222",
-      "uploadSnps": "10623150",
-      "finalizeSnpUpload": "37209",
-      "compute": "8224581",
-      "finalize": "207348",
-      "total": "20710271",
-      "chunkGasPerCall": [
-        "827331",
-        "795127",
-        "795131",
-        "795131",
-        "795131",
-        "795131",
-        "795127",
-        "795131",
-        "795131",
-        "795131",
-        "241079"
-      ]
+      "modelPublication": "1152558",
+      "calculationCreation": "367222",
+      "inputUploads": "10623150",
+      "inputUploadFinalization": "37209",
+      "calculation": "8224581",
+      "resultFinalization": "207348",
+      "total": "20710271"
     },
     "timing": {
-      "inputProofPreparationMs": 66101,
+      "inputPreparationMs": 66101,
       "submissionToResultMs": 269320,
-      "endToEndValidationMs": 464253,
-      "chunkTimesMs": [
-        12416,
-        11653,
-        23427,
-        17244,
-        19382,
-        10626,
-        14938,
-        9592,
-        11511,
-        14895,
-        11414
-      ],
-      "avgChunkMs": 14281.636363636364,
-      "minChunkMs": 9592,
-      "maxChunkMs": 23427,
-      "decryptMs": 8081
+      "inputPreparationThroughValidationMs": 464253,
+      "decryptionMs": 8081
     },
     "decodedEncodedScore": "758685",
     "expectedEncodedScore": "758685",
-    "scoreHandle": "0x436c958507716fb4f986e0c1f728068832e55faaa2ff0000000000aa36a70500",
-    "testnetFeePaid": {
-      "wei": "25274764801306197",
-      "eth": "0.025274764801306197",
-      "classification": "actual Sepolia test-ETH fee; not a production or USD cost"
-    }
+    "feePaidEth": "0.025274764801306197"
   },
-  "geometryMatchedPublicMock": {
-    "evidenceClass": "Hardhat mock",
+  "matchedLocalPublicCalculation": {
+    "setting": "local simulation",
+    "method": "Classic method (stored inputs)",
     "computeChunkSize": 10,
     "uploadChunkSize": 32,
     "transactionCount": 25,
     "gas": {
       "sampleRegistration": "115303",
-      "publishModel": "1169598",
-      "createJob": "321170",
-      "uploadSnps": "10335951",
-      "finalizeSnpUpload": "37197",
-      "compute": "6606747",
-      "finalize": "169898",
-      "total": "18755864",
-      "chunkGasPerCall": [
-        "669029",
-        "636829",
-        "636829",
-        "636829",
-        "636829",
-        "636829",
-        "636829",
-        "636829",
-        "636829",
-        "636829",
-        "206257"
-      ]
+      "modelPublication": "1169598",
+      "calculationCreation": "321170",
+      "inputUploads": "10335951",
+      "inputUploadFinalization": "37197",
+      "calculation": "6606747",
+      "resultFinalization": "169898",
+      "total": "18755864"
     },
     "timing": {
-      "inputProofPreparationMs": 38,
+      "inputPreparationMs": 38,
       "submissionToResultMs": 147,
-      "endToEndValidationMs": 362,
-      "chunkTimesMs": [
-        5,
-        4,
-        4,
-        5,
-        6,
-        5,
-        26,
-        7,
-        13,
-        8,
-        3
-      ],
-      "avgChunkMs": 7.818181818181818,
-      "minChunkMs": 3,
-      "maxChunkMs": 26,
-      "decryptMs": 125
+      "inputPreparationThroughValidationMs": 362,
+      "decryptionMs": 125
     },
     "decodedEncodedScore": "758685"
   },
-  "liveVsMatchedMock": {
-    "comparisonScope": "same public 100-SNP fixture, classic path, upload chunk 32, compute chunk 10, and 25 transactions",
+  "sepoliaAndMatchedLocalComparison": {
+    "comparisonScope": "same public 100-SNP data, upload groups of 32, calculation groups of 10, and 25 transactions",
     "gasDelta": "1954407",
-    "liveOverMockPercent": "10.42",
-    "interpretation": "The live total is 10.42% above this one geometry-matched mock observation. This single point does not justify a general 10-20% expectation."
+    "sepoliaOverLocalPercent": "10.42",
+    "interpretation": "The Sepolia total was 10.42% above the matched local observation. This one comparison does not establish a general conversion between local and Sepolia gas."
   },
-  "jobs": {
+  "localCalculations": {
+    "method": "Streaming method",
     "public": {
-      "evidenceClass": "Hardhat mock",
-      "modelVisibility": "public",
+      "setting": "local simulation",
+      "weightVisibility": "public",
       "transactionCount": 15,
       "gas": {
         "modelPublication": "1169682",
         "sampleRegistration": "115291",
-        "jobCreation": "321170",
-        "streamingUploadCompute": "9913980",
-        "finalize": "169898",
+        "calculationCreation": "321170",
+        "inputUploadAndCalculation": "9913980",
+        "resultFinalization": "169898",
         "totalExcludingDeployment": "11690021"
       },
       "transactionBreakdown": {
         "modelPublication": 6,
         "modelUploadChunks": 4,
-        "readerAuthorizations": 0,
         "sampleRegistration": 1,
-        "jobCreation": 1,
-        "uploadAndCompute": 6,
+        "calculationCreation": 1,
+        "inputUploadAndCalculation": 6,
         "resultFinalization": 1,
         "total": 15
       }
     },
     "private": {
-      "evidenceClass": "Hardhat mock",
-      "modelVisibility": "private",
+      "setting": "local simulation",
+      "weightVisibility": "private",
       "transactionCount": 17,
       "gas": {
         "modelPublication": "10687063",
         "sampleRegistration": "115291",
-        "jobCreation": "326695",
-        "streamingUploadCompute": "12208933",
-        "finalize": "169898",
+        "calculationCreation": "326695",
+        "inputUploadAndCalculation": "12208933",
+        "resultFinalization": "169898",
         "totalExcludingDeployment": "23507880"
       },
       "transactionBreakdown": {
         "modelPublication": 8,
         "modelUploadChunks": 4,
-        "readerAuthorizations": 2,
+        "transactionsToAllowPrivateWeightUse": 2,
         "sampleRegistration": 1,
-        "jobCreation": 1,
-        "uploadAndCompute": 6,
+        "calculationCreation": 1,
+        "inputUploadAndCalculation": 6,
         "resultFinalization": 1,
         "total": 17
       }
     }
   },
-  "releasePolicyAndResultPaths": {
-    "setReleasePolicy": {
-      "evidenceClass": "Hardhat mock",
+  "resultOptions": {
+    "categorySetup": {
+      "setting": "local simulation",
       "transactionCount": 1,
       "gas": "77314",
-      "scope": "one-time per model; additional to Phase 7 model-publication figures"
+      "scope": "one transaction when a model is configured"
     },
-    "rawScoreFinalization": {
-      "evidenceClass": "Hardhat mock",
+    "rawScore": {
+      "setting": "local simulation",
       "transactionCount": 1,
       "gas": "169898",
-      "scope": "Phase 7 100-SNP workflow"
+      "scope": "100-SNP local calculation"
     },
-    "randomizedCategoryFinalization": {
-      "evidenceClass": "Hardhat mock",
+    "categoryWithRandomAddition": {
+      "setting": "local simulation",
       "transactionCount": 1,
       "gas": "432230",
-      "scope": "separate Phase 2 synthetic measurement; an alternative to raw-score finalization, not an additive transaction"
+      "scope": "separate local measurement; this is used instead of raw-score finalization"
     },
     "decryption": {
       "onChainTransactionCount": 0,
-      "hostGas": null,
-      "liveLatency": {
-        "publicGatewayKmsMs": 8081,
-        "privateWeightPath": null
-      },
-      "note": "The mock debugger and live Gateway/KMS user-decryption calls are off-chain from Ethereum's perspective. Public live latency is measured; private live execution remains unmeasured."
-    }
-  },
-  "reportingPrecision": {
-    "rule": "Preserve raw observations in JSON, but round SNP-upload and total-gas values in manuscript tables because encrypted calldata changes zero/non-zero byte counts.",
-    "phase7ProseVsJson": {
-      "public": {
-        "proseGas": "11690033",
-        "machineGas": "11690021",
-        "proseMinusMachineGas": "12"
-      },
-      "private": {
-        "proseGas": "23507892",
-        "machineGas": "23507880",
-        "proseMinusMachineGas": "12"
-      },
-      "interpretation": "Both differences are 12 gas and disappear at the required reporting precision. Machine-readable component sums are authoritative."
+      "publicSepoliaTimeMs": 8081,
+      "note": "User decryption does not add an Ethereum transaction. The public Sepolia decryption time was measured; the calculation with private weights was evaluated only by local simulation."
     }
   },
   "productionUsdCost": {
     "available": false,
     "reason": "No documented current production fee schedule or production deployment measurement exists."
-  },
-  "provenance": {
-    "schema": "bioeth-prs/evidence-synthesis/1",
-    "repository": {
-      "commit": "4fa7c9fae4866253fc210a01b83c3b56c3b874c0",
-      "shortCommit": "4fa7c9f",
-      "branch": "rtr-revision",
-      "dirty": true,
-      "dirtyFiles": [
-        "M bioETH-PRS_RTR_acceptance_plan.md",
-        "M evidence/phase7/README.md",
-        "M evidence/phase7/live_2026-07-31/README.md",
-        "M evidence/phase8/README.md",
-        "M evidence/phase8/fee_sensitivity.json",
-        "M evidence/phase8/measured_transaction_use.json",
-        "M evidence/phase8/measured_transaction_use.md",
-        "M evidence/phase8/scale_evidence.json",
-        "M evidence/phase8/scale_evidence.md",
-        "M scripts/phase8_evidence_synthesis.ts",
-        "M test/phase8_evidence_synthesis_test.ts",
-        "?? evidence/phase7/live_2026-07-31/ZamaConfig.sepolia.sol",
-        "?? evidence/phase7/live_2026-07-31/onchain_verification.json",
-        "?? evidence/phase7/live_2026-07-31/public_matched_mock.json",
-        "?? evidence/phase7/live_2026-07-31/public_matched_mock_checkpoint.json",
-        "?? evidence/phase7/live_2026-07-31/public_success.json",
-        "?? evidence/phase7/live_2026-07-31/public_success.txt",
-        "?? evidence/phase7/live_2026-07-31/public_success_checkpoint.json"
-      ]
-    },
-    "runtime": {
-      "node": "v22.23.1",
-      "platform": "darwin"
-    },
-    "sourceArtifacts": [
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase8/heprs_profile.json",
-        "hash": "0xf6d5b9f7a36613967152f816ca13311743b389c52ac2e15178fd15221ff5bb8d",
-        "bytes": 25996
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase7/live_preflight.json",
-        "hash": "0x7e95c6bdd4c04bb5842d9a10a3f0ce6b6cf6664c495c400b18f58dec5a4b9a01",
-        "bytes": 5989
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase2/release_policy_gas.txt",
-        "hash": "0x1108cf3110ae614078f62a865c955fb42e9650c035b5349b69a45c070f26c37b",
-        "bytes": 308
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase7/live_2026-07-31/deployment.json",
-        "hash": "0x0ebbb1f55cd3dac9c5ef0ca12f949fe575f29014290d20e10908883456a5de48",
-        "bytes": 3484
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase7/live_2026-07-31/public_success.json",
-        "hash": "0x39c0de48555252913c90f7b2ebf125d14de433645c5abf23db688af6d1381668",
-        "bytes": 10181
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase7/live_2026-07-31/public_matched_mock.json",
-        "hash": "0x4eaea38753c0b9cbfa8317e36c783d9b0b8c1647fe24810837ec194609d5a71f",
-        "bytes": 11243
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase7/live_2026-07-31/onchain_verification.json",
-        "hash": "0x490d449a491e67414d05565e4f152c838d4f5851d5be150722bd80cf69192b2b",
-        "bytes": 2243
-      },
-      {
-        "role": "source_evidence",
-        "path": "scripts/phase8_evidence_synthesis.ts",
-        "hash": "0x29b9fb8ad68e46f88a50111997948eb74c7c31f5a75df92e65879f81957ce654",
-        "bytes": 34063
-      },
-      {
-        "role": "source_evidence",
-        "path": "scripts/heprs_fixture_profile.ts",
-        "hash": "0x18eeaea48141a5e01f704e4e6540bdbad76c2ade8b535fa6cbf3b148c4ad1b45",
-        "bytes": 21729
-      },
-      {
-        "role": "source_evidence",
-        "path": "scripts/live_preflight.ts",
-        "hash": "0x4dbc01cdadd06ccd150fefb431e54e6f14b9c90814cea3a505d1668b6042a01f",
-        "bytes": 14148
-      },
-      {
-        "role": "source_evidence",
-        "path": "scripts/release_policy_gas.ts",
-        "hash": "0x0b793341533e53b7eb90876c9cca04e3d24a21660d6a753b0bf6117bfd699c7b",
-        "bytes": 4039
-      }
-    ]
   }
 }

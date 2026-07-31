@@ -1,288 +1,252 @@
 {
-  "report": "anti_probing_evaluation",
-  "action": "R1.4-E1",
-  "evidenceClass": "Hardhat mock",
-  "note": "Every query is a real job against real contracts on the mock coprocessor; nothing is simulated. Extraction arms run with rate limiting disabled so they measure the INFORMATION cost in queries; arm 6 measures the permitted query rate. Wall-clock cost is the product, stated with assumptions, replacing the unexplained 2,800-hour figure.",
-  "configuration": {
+  "title": "Analysis of attempts to recover private weights",
+  "setting": "local simulation",
+  "interpretation": "We evaluated six ways a requester might try to recover private weights in a local contract simulation. We report how many queries were used and how closely the recovered weights matched the private weights. The time examples are calculated from those query counts and the stated assumptions about block time.",
+  "setup": {
     "weightCount": 20,
     "scale": 1000000,
     "noiseUpperBound": 128,
     "weightZeroPoint": 9534,
     "scoreOffset": 46088,
-    "maxAbsQuantisedWeight": 9534,
+    "largestAbsIntegerWeight": 9534,
     "noiseAsPercentOfLargestWeight": 1.343,
-    "modelVisibility": "private (encrypted weights) — extraction is meaningless for a public model",
-    "attackerIsAuthorisedPrivateModelReader": true,
-    "budgetPerWeight": 16,
-    "baselineContractsFrom": "2d6f21d (frozen submitted design, CD-005)"
+    "weights": "private and encrypted",
+    "requester": "a requester chosen by the model provider",
+    "maximumQueriesPerWeight": 16,
+    "randomAdditionSequence": {
+      "label": "bioeth-prs-anti-probing-v1",
+      "description": "The local analysis used a fixed sequence of random additions from 0 through 127 so the results can be repeated exactly."
+    }
   },
-  "arms": [
+  "results": [
     {
-      "arm": "unprotected_raw_score",
-      "variation": "threshold design (no oracle)",
+      "attack": "raw score output",
+      "variation": "one-position queries",
       "adaptive": false,
       "queries": 20,
       "pearsonR": 1,
       "signAccuracy": 1,
       "meanRelativeError": 0,
       "withinNoiseBound": 1,
-      "note": "Each query is one linear equation and the attacker sees it exactly. N queries suffice for complete, exact recovery. This is the reference point the oracle path exists to avoid."
+      "note": "The raw score revealed one weight per query. All 20 weights were recovered exactly in 20 queries."
     },
     {
-      "arm": "baseline_caller_selected_thresholds",
-      "variation": "threshold design + adaptive",
+      "attack": "requester-selected thresholds",
+      "variation": "queries chosen after earlier results",
       "adaptive": true,
       "queries": 320,
       "queriesPerWeight": 16,
-      "pearsonR": 0.999982,
+      "pearsonR": 0.999963,
       "signAccuracy": 1,
-      "meanRelativeError": 0.005727,
+      "meanRelativeError": 0.007473,
       "withinNoiseBound": 1,
-      "extractionCostCurve": [
+      "recoveryByQueryCount": [
         {
           "queriesPerWeight": 1,
           "totalQueries": 20,
-          "pearsonR": 0.667136,
-          "signAccuracy": 0.8,
-          "meanRelativeError": 2.246077,
+          "pearsonR": 0.72976,
+          "signAccuracy": 0.9,
+          "meanRelativeError": 2.247168,
           "withinNoiseBound": 0
         },
         {
           "queriesPerWeight": 2,
           "totalQueries": 40,
-          "pearsonR": 0.667136,
-          "signAccuracy": 0.8,
-          "meanRelativeError": 1.003682,
+          "pearsonR": 0.72976,
+          "signAccuracy": 0.9,
+          "meanRelativeError": 1.004772,
           "withinNoiseBound": 0
         },
         {
           "queriesPerWeight": 3,
           "totalQueries": 60,
-          "pearsonR": 0.667136,
-          "signAccuracy": 0.8,
-          "meanRelativeError": 0.435095,
+          "pearsonR": 0.72976,
+          "signAccuracy": 0.9,
+          "meanRelativeError": 0.436186,
           "withinNoiseBound": 0.05
         },
         {
           "queriesPerWeight": 4,
           "totalQueries": 80,
-          "pearsonR": 0.852105,
-          "signAccuracy": 0.8,
-          "meanRelativeError": 0.183071,
+          "pearsonR": 0.879423,
+          "signAccuracy": 0.9,
+          "meanRelativeError": 0.184162,
           "withinNoiseBound": 0.1
         },
         {
           "queriesPerWeight": 5,
           "totalQueries": 100,
-          "pearsonR": 0.94806,
-          "signAccuracy": 0.8,
-          "meanRelativeError": 0.10622,
+          "pearsonR": 0.954028,
+          "signAccuracy": 0.9,
+          "meanRelativeError": 0.107111,
           "withinNoiseBound": 0
         },
         {
           "queriesPerWeight": 6,
           "totalQueries": 120,
-          "pearsonR": 0.990649,
+          "pearsonR": 0.991284,
           "signAccuracy": 1,
-          "meanRelativeError": 0.041929,
+          "meanRelativeError": 0.04282,
           "withinNoiseBound": 0.25
         },
         {
           "queriesPerWeight": 7,
           "totalQueries": 140,
-          "pearsonR": 0.997344,
+          "pearsonR": 0.997997,
           "signAccuracy": 1,
-          "meanRelativeError": 0.025115,
+          "meanRelativeError": 0.026007,
           "withinNoiseBound": 0.3
         },
         {
           "queriesPerWeight": 8,
           "totalQueries": 160,
-          "pearsonR": 0.999299,
+          "pearsonR": 0.999383,
           "signAccuracy": 1,
-          "meanRelativeError": 0.012917,
-          "withinNoiseBound": 0.65
+          "meanRelativeError": 0.013808,
+          "withinNoiseBound": 0.6
         },
         {
           "queriesPerWeight": 9,
           "totalQueries": 180,
-          "pearsonR": 0.999811,
+          "pearsonR": 0.999762,
           "signAccuracy": 1,
-          "meanRelativeError": 0.006451,
+          "meanRelativeError": 0.007274,
           "withinNoiseBound": 0.85
         },
         {
           "queriesPerWeight": 10,
           "totalQueries": 200,
-          "pearsonR": 0.999933,
+          "pearsonR": 0.999905,
           "signAccuracy": 1,
-          "meanRelativeError": 0.005926,
-          "withinNoiseBound": 1
+          "meanRelativeError": 0.006319,
+          "withinNoiseBound": 0.95
         },
         {
           "queriesPerWeight": 11,
           "totalQueries": 220,
-          "pearsonR": 0.999972,
+          "pearsonR": 0.999926,
           "signAccuracy": 1,
-          "meanRelativeError": 0.00537,
-          "withinNoiseBound": 1
+          "meanRelativeError": 0.007547,
+          "withinNoiseBound": 0.95
         },
         {
           "queriesPerWeight": 12,
           "totalQueries": 240,
-          "pearsonR": 0.99998,
+          "pearsonR": 0.999949,
           "signAccuracy": 1,
-          "meanRelativeError": 0.005701,
-          "withinNoiseBound": 1
+          "meanRelativeError": 0.007646,
+          "withinNoiseBound": 0.95
         },
         {
           "queriesPerWeight": 13,
           "totalQueries": 260,
-          "pearsonR": 0.999978,
+          "pearsonR": 0.999957,
           "signAccuracy": 1,
-          "meanRelativeError": 0.005575,
+          "meanRelativeError": 0.007646,
           "withinNoiseBound": 1
         },
         {
           "queriesPerWeight": 14,
           "totalQueries": 280,
-          "pearsonR": 0.999981,
+          "pearsonR": 0.999959,
           "signAccuracy": 1,
-          "meanRelativeError": 0.005701,
+          "meanRelativeError": 0.007583,
           "withinNoiseBound": 1
         },
         {
           "queriesPerWeight": 15,
           "totalQueries": 300,
-          "pearsonR": 0.999982,
+          "pearsonR": 0.999961,
           "signAccuracy": 1,
-          "meanRelativeError": 0.005685,
+          "meanRelativeError": 0.00751,
           "withinNoiseBound": 1
         },
         {
           "queriesPerWeight": 16,
           "totalQueries": 320,
-          "pearsonR": 0.999982,
+          "pearsonR": 0.999963,
           "signAccuracy": 1,
-          "meanRelativeError": 0.005727,
+          "meanRelativeError": 0.007473,
           "withinNoiseBound": 1
         }
       ],
-      "note": "The requester chooses both thresholds per call, so a binary search on the encrypted score is directly expressible. Cost is N * log2(range/B) queries. The curve gives recovery quality as a function of query count, measured."
+      "note": "When the requester selected the thresholds for every query, choosing each query after seeing earlier results recovered all 20 weights within the noise range after 260 queries."
     },
     {
-      "arm": "baseline_caller_selected_thresholds",
-      "variation": "threshold design, non-adaptive",
+      "attack": "requester-selected thresholds",
+      "variation": "queries chosen in advance",
       "adaptive": false,
       "queries": 320,
       "pearsonR": 0.668898,
       "signAccuracy": 0.65,
       "meanRelativeError": 0.937268,
       "withinNoiseBound": 0,
-      "note": "Same interface and same budget as arm 2, but the query set is fixed in advance. Isolates the value of adaptivity from the value of threshold control."
+      "note": "With all 320 queries chosen in advance, 0 of 20 weights were recovered within the noise range."
     },
     {
-      "arm": "hardened_fixed_thresholds",
-      "variation": "threshold design + adaptive",
+      "attack": "thresholds fixed by model provider",
+      "variation": "queries chosen after earlier results",
       "adaptive": true,
       "queries": 320,
-      "pearsonR": 0.939135,
+      "pearsonR": 0.938803,
       "signAccuracy": 0.7,
-      "meanRelativeError": 1.02437,
+      "meanRelativeError": 1.024117,
       "withinNoiseBound": 0,
-      "note": "Thresholds are model-defined and immutable, so the attacker can only move the score, never the decision boundary. Adaptivity is reduced to probe steering, which is far weaker than bisection."
+      "note": "With thresholds fixed by the model provider, 0 of 20 weights were recovered within the noise range after 320 queries chosen after earlier results."
     },
     {
-      "arm": "hardened_fixed_thresholds",
-      "variation": "correlated SNP structure",
+      "attack": "thresholds fixed by model provider",
+      "variation": "correlated inputs",
       "adaptive": false,
       "queries": 320,
       "blockSize": 5,
-      "pearsonR": -0.00367,
+      "pearsonR": 0.022329,
       "signAccuracy": 0.65,
-      "meanRelativeError": 0.813575,
+      "meanRelativeError": 0.863914,
       "withinNoiseBound": 0,
-      "note": "Probes constrained to LD-like blocks of 5 identical dosages. The design matrix is rank-deficient, so only block sums are identifiable and per-weight recovery collapses. CRITICAL CAVEAT: nothing forces an attacker to use correlated probes. The contracts do not validate inputs (R1.5), so this constraint is self-imposed and provides no defence — arm 4 is the honest measure of what an attacker can do."
+      "note": "When probes used the same dosage within 5-variant blocks, only block totals could be estimated and 0 of 20 weights were recovered within the noise range. Requesters are not required to submit correlated values, so this result does not protect against freely chosen inputs."
     },
     {
-      "arm": "rate_limiting",
-      "variation": "multiple wallets and multiple samples",
-      "maxJobsPerWindow": 3,
+      "attack": "query limits",
+      "variation": "multiple requesters and multiple samples",
+      "maxCalculationsPerWindow": 3,
       "windowBlocks": 1000,
-      "oneWalletOneSample": 3,
-      "otherWalletsSameSample": 0,
-      "otherWalletsOtherSamples": 3,
-      "privateModelReaderRequired": true,
-      "note": "Per-sample windows mean a registered sample stays throttled across wallets, so the same-sample multi-wallet bypass is closed. Distinct wallets holding distinct registered samples do receive independent quotas — the remaining Sybil boundary. For a PRIVATE model each additional wallet must also be authorised by the model owner via setPrivateModelReader, so Sybil expansion is gated by an explicit allowlist and not merely by rate limits."
+      "oneRequesterOneSample": 3,
+      "additionalRequestersSameSample": 0,
+      "additionalRequestersOtherSamples": 3,
+      "privateWeights": "The model provider decides who may use the private weights.",
+      "note": "The three-calculation limit applied to the same registered sample across different requesters. Each different registered sample had its own limit. The model provider decides who may use the private weights."
     }
   ],
-  "wallClockDerivation": {
-    "measuredQueriesPerWeightForFullRecovery": 10,
-    "measuredTotalQueriesForFullRecovery": 200,
+  "elapsedTimeExamples": {
+    "measuredQueriesPerWeightForFullRecovery": 13,
+    "measuredTotalQueriesForFullRecovery": 260,
     "weightCount": 20,
-    "rateLimitAssumed": {
-      "maxJobsPerWindow": 3,
+    "queryLimitAssumed": {
+      "maximumCalculationsPerWindow": 3,
       "windowBlocks": 1000
     },
     "scenarios": [
       {
-        "label": "Ethereum mainnet-like",
+        "label": "12-second blocks",
         "secondsPerBlock": 12,
         "windowSeconds": 12000,
         "secondsPerQuery": 4000,
-        "hoursForFullRecoveryOneSample": 222.2
+        "hoursForFullRecoveryOneSample": 288.9
       },
       {
-        "label": "L2 / app-chain-like",
+        "label": "2-second blocks",
         "secondsPerBlock": 2,
         "windowSeconds": 2000,
         "secondsPerQuery": 666.6666666666666,
-        "hoursForFullRecoveryOneSample": 37
+        "hoursForFullRecoveryOneSample": 48.1
       }
     ],
     "caveats": [
-      "Applies to the BASELINE caller-selected-threshold design, i.e. the submitted system. The hardened design did not reach full recovery within the budget evaluated here.",
-      "Scales with a single registered sample. An attacker holding S registered samples divides the wall clock by roughly S; for a private model each additional wallet must also be authorised via setPrivateModelReader.",
+      "With requester-selected thresholds, all 20 weights were recovered within the noise range after 260 queries. With thresholds fixed by the model provider, 0 of 20 weights were recovered within that range after 320 queries.",
+      "The time examples assume one registered sample. Different registered samples have separate query limits. The model provider decides who may use private weights.",
       "Block time is an assumption, not a measurement. No live-network timing was used.",
-      "This is a lower bound on attacker effort under the strategies evaluated. A better attack may exist; absence of one here is not a security proof."
+      "These results describe only the six strategies studied and do not show what would happen for every possible strategy."
     ]
-  },
-  "provenance": {
-    "schema": "bioeth-prs/provenance/1",
-    "repository": {
-      "commit": "dcb00a4bbb46eb4947de290b2b19a1c1e2fce57f",
-      "shortCommit": "dcb00a4",
-      "branch": "rtr-revision",
-      "dirty": true,
-      "dirtyFiles": [
-        "M package.json",
-        "?? contracts/attack-baseline/",
-        "?? evidence/phase6/",
-        "?? scripts/anti_probing_evaluation.ts",
-        "?? test/attack_baseline_isolation_test.ts"
-      ]
-    },
-    "runtime": {
-      "node": "v22.23.1",
-      "platform": "darwin"
-    },
-    "network": {
-      "name": "hardhat",
-      "chainId": "31337"
-    },
-    "inputs": [],
-    "model": {
-      "manifestHash": "0xf5e2f42c4c7cb5763541d767870558bce9ca7c2f5fde8afd0c60a039aa445752",
-      "sourceModelHash": "0xdff6caad458521bebe9906cef4b66b696dc6ba042a6ce38e48c99bddc2feb6d5",
-      "genotypeManifestHash": "0x26371274ad4e583be8b3a45b20ba29324f959af53d623d5200ee7055c627aa3f",
-      "descriptor": {
-        "kind": "synthetic",
-        "purpose": "anti_probing_evaluation",
-        "weightCount": 20,
-        "scale": 1000000,
-        "noiseUpperBound": 128
-      }
-    },
-    "contracts": []
   }
 }

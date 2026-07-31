@@ -1,190 +1,87 @@
 {
-  "action": "R1.8-E1",
-  "title": "Fee sensitivity, separate from measured transaction use",
-  "evidenceClass": "Analytic projection",
-  "executionStatus": "unexecuted",
-  "formula": "fee_ETH = mock_observed_gas * hypothetical_gas_price_wei / 1e18",
-  "caveat": "This is arithmetic sensitivity only. It is not a production price, affordability result, or claim that mock gas equals live-network gas.",
-  "usdConversion": null,
+  "title": "Calculated fee examples",
+  "setting": "calculated estimate",
+  "formula": "fee_ETH = local_gas * example_gas_price_wei / 1e18",
+  "interpretation": "These values are calculated examples using gas from a local contract simulation. They are not production prices or live-network measurements.",
+  "usdConversion": "not provided because no production fee schedule was documented",
   "quantities": [
     {
       "label": "four-contract deployment",
       "sourceGas": "5892613",
       "scenarios": [
         {
-          "hypotheticalGasPriceGwei": "0.01",
+          "exampleGasPriceGwei": "0.01",
           "feeEth": "0.00005892613"
         },
         {
-          "hypotheticalGasPriceGwei": "0.1",
+          "exampleGasPriceGwei": "0.1",
           "feeEth": "0.0005892613"
         },
         {
-          "hypotheticalGasPriceGwei": "1",
+          "exampleGasPriceGwei": "1",
           "feeEth": "0.005892613"
         },
         {
-          "hypotheticalGasPriceGwei": "10",
+          "exampleGasPriceGwei": "10",
           "feeEth": "0.05892613"
         },
         {
-          "hypotheticalGasPriceGwei": "30",
+          "exampleGasPriceGwei": "30",
           "feeEth": "0.17677839"
         }
       ]
     },
     {
-      "label": "public 100-SNP job, excluding deployment",
+      "label": "public 100-SNP calculation, excluding deployment",
       "sourceGas": "11690021",
       "scenarios": [
         {
-          "hypotheticalGasPriceGwei": "0.01",
+          "exampleGasPriceGwei": "0.01",
           "feeEth": "0.00011690021"
         },
         {
-          "hypotheticalGasPriceGwei": "0.1",
+          "exampleGasPriceGwei": "0.1",
           "feeEth": "0.0011690021"
         },
         {
-          "hypotheticalGasPriceGwei": "1",
+          "exampleGasPriceGwei": "1",
           "feeEth": "0.011690021"
         },
         {
-          "hypotheticalGasPriceGwei": "10",
+          "exampleGasPriceGwei": "10",
           "feeEth": "0.11690021"
         },
         {
-          "hypotheticalGasPriceGwei": "30",
+          "exampleGasPriceGwei": "30",
           "feeEth": "0.35070063"
         }
       ]
     },
     {
-      "label": "private 100-SNP job, excluding deployment",
+      "label": "private 100-SNP calculation, excluding deployment",
       "sourceGas": "23507880",
       "scenarios": [
         {
-          "hypotheticalGasPriceGwei": "0.01",
+          "exampleGasPriceGwei": "0.01",
           "feeEth": "0.0002350788"
         },
         {
-          "hypotheticalGasPriceGwei": "0.1",
+          "exampleGasPriceGwei": "0.1",
           "feeEth": "0.002350788"
         },
         {
-          "hypotheticalGasPriceGwei": "1",
+          "exampleGasPriceGwei": "1",
           "feeEth": "0.02350788"
         },
         {
-          "hypotheticalGasPriceGwei": "10",
+          "exampleGasPriceGwei": "10",
           "feeEth": "0.2350788"
         },
         {
-          "hypotheticalGasPriceGwei": "30",
+          "exampleGasPriceGwei": "30",
           "feeEth": "0.7052364"
         }
       ]
     }
-  ],
-  "provenance": {
-    "schema": "bioeth-prs/evidence-synthesis/1",
-    "repository": {
-      "commit": "4fa7c9fae4866253fc210a01b83c3b56c3b874c0",
-      "shortCommit": "4fa7c9f",
-      "branch": "rtr-revision",
-      "dirty": true,
-      "dirtyFiles": [
-        "M bioETH-PRS_RTR_acceptance_plan.md",
-        "M evidence/phase7/README.md",
-        "M evidence/phase7/live_2026-07-31/README.md",
-        "M evidence/phase8/README.md",
-        "M evidence/phase8/fee_sensitivity.json",
-        "M evidence/phase8/measured_transaction_use.json",
-        "M evidence/phase8/measured_transaction_use.md",
-        "M evidence/phase8/scale_evidence.json",
-        "M evidence/phase8/scale_evidence.md",
-        "M scripts/phase8_evidence_synthesis.ts",
-        "M test/phase8_evidence_synthesis_test.ts",
-        "?? evidence/phase7/live_2026-07-31/ZamaConfig.sepolia.sol",
-        "?? evidence/phase7/live_2026-07-31/onchain_verification.json",
-        "?? evidence/phase7/live_2026-07-31/public_matched_mock.json",
-        "?? evidence/phase7/live_2026-07-31/public_matched_mock_checkpoint.json",
-        "?? evidence/phase7/live_2026-07-31/public_success.json",
-        "?? evidence/phase7/live_2026-07-31/public_success.txt",
-        "?? evidence/phase7/live_2026-07-31/public_success_checkpoint.json"
-      ]
-    },
-    "runtime": {
-      "node": "v22.23.1",
-      "platform": "darwin"
-    },
-    "sourceArtifacts": [
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase8/heprs_profile.json",
-        "hash": "0xf6d5b9f7a36613967152f816ca13311743b389c52ac2e15178fd15221ff5bb8d",
-        "bytes": 25996
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase7/live_preflight.json",
-        "hash": "0x7e95c6bdd4c04bb5842d9a10a3f0ce6b6cf6664c495c400b18f58dec5a4b9a01",
-        "bytes": 5989
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase2/release_policy_gas.txt",
-        "hash": "0x1108cf3110ae614078f62a865c955fb42e9650c035b5349b69a45c070f26c37b",
-        "bytes": 308
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase7/live_2026-07-31/deployment.json",
-        "hash": "0x0ebbb1f55cd3dac9c5ef0ca12f949fe575f29014290d20e10908883456a5de48",
-        "bytes": 3484
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase7/live_2026-07-31/public_success.json",
-        "hash": "0x39c0de48555252913c90f7b2ebf125d14de433645c5abf23db688af6d1381668",
-        "bytes": 10181
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase7/live_2026-07-31/public_matched_mock.json",
-        "hash": "0x4eaea38753c0b9cbfa8317e36c783d9b0b8c1647fe24810837ec194609d5a71f",
-        "bytes": 11243
-      },
-      {
-        "role": "source_evidence",
-        "path": "evidence/phase7/live_2026-07-31/onchain_verification.json",
-        "hash": "0x490d449a491e67414d05565e4f152c838d4f5851d5be150722bd80cf69192b2b",
-        "bytes": 2243
-      },
-      {
-        "role": "source_evidence",
-        "path": "scripts/phase8_evidence_synthesis.ts",
-        "hash": "0x29b9fb8ad68e46f88a50111997948eb74c7c31f5a75df92e65879f81957ce654",
-        "bytes": 34063
-      },
-      {
-        "role": "source_evidence",
-        "path": "scripts/heprs_fixture_profile.ts",
-        "hash": "0x18eeaea48141a5e01f704e4e6540bdbad76c2ade8b535fa6cbf3b148c4ad1b45",
-        "bytes": 21729
-      },
-      {
-        "role": "source_evidence",
-        "path": "scripts/live_preflight.ts",
-        "hash": "0x4dbc01cdadd06ccd150fefb431e54e6f14b9c90814cea3a505d1668b6042a01f",
-        "bytes": 14148
-      },
-      {
-        "role": "source_evidence",
-        "path": "scripts/release_policy_gas.ts",
-        "hash": "0x0b793341533e53b7eb90876c9cca04e3d24a21660d6a753b0bf6117bfd699c7b",
-        "bytes": 4039
-      }
-    ]
-  }
+  ]
 }

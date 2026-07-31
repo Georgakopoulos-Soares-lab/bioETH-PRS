@@ -1,32 +1,27 @@
 import { ethers, fhevm } from "hardhat";
+import { createHash } from "crypto";
+import { ethers as ethersLibrary } from "ethers";
 import * as fs from "fs";
 import * as path from "path";
 import { debugDecryptUint64, debugDecryptUint8 } from "../test/utils/fhevm-helpers";
 import { loadHeprsFixture } from "../test/utils/heprs";
-import {
-  syntheticModelProvenance,
-  buildProvenance,
-  contractIdentity,
-} from "./utils/provenance";
+import { syntheticModelProvenance } from "./utils/provenance";
 
 /**
- * Adversarial model-extraction evaluation (RTR action R1.4-E1).
+ * Adversarial model-extraction analysis.
  *
  * Reviewer 1, comment 4: the 2,800-hour extraction estimate "appears heuristic and does
  * not fully address adaptive querying, multiple-wallet attacks, threshold manipulation,
  * correlated SNP structure, or cross-sample probing."
  *
- * All five variations are evaluated here against REAL contracts on the mock coprocessor.
- * Nothing is simulated: every query below is an actual job — createPRSJob, one streaming
- * chunk, finalize or finalizeAndClassify — and every observation is a real decryption.
+ * Six settings are evaluated in a local contract simulation. This checks contract behavior but
+ * does not measure live network time or cost.
  *
  * THREAT MODEL. Extraction only threatens PRIVATE models. A public model's weights are
- * stored as plaintext `uint64` by design, so there is nothing to extract. Every arm here
- * therefore uses a private model with encrypted weights, and the attacker is an
- * authorised private-model reader: the model owner has called
- * `setPrivateModelReader(modelId, attacker, true)`. That is the realistic adversary — a
- * collaborator granted legitimate access — and it is also the strongest one, since an
- * unauthorised wallet cannot create a job against a private model at all.
+ * stored as plaintext `uint64` by design, so there is nothing to extract. Every setting here
+ * therefore uses a private model with encrypted weights, and the attacker is a collaborator
+ * whom the model owner has permitted to use the private model. A requester without that
+ * permission cannot request a calculation for the model.
  *
  * WHAT THE ATTACKER KNOWS. Everything in the public model header: N, the scale, the
  * weight zero-point z_w, and the score offset z_s. Each query therefore yields a linear
@@ -34,15 +29,11 @@ import {
  *
  *     e(g) = sum_i g_i u_i + z_s - z_w * G,     G = sum_i g_i
  *
- * WHAT THE ATTACKER MAY SUBMIT. Arbitrary dosage vectors, including values outside
- * {0,1,2}. The contracts do not validate inputs — that is the trust boundary recorded by
- * R1.5-T1 — and this matters more than it first appears: see the correlated-SNP arm.
+ * WHAT THE ATTACKER MAY SUBMIT. The contracts accept encrypted input values without proving
+ * that they are valid dosages from the registered sample.
  *
- * SEPARATION OF CONCERNS. The extraction arms run with rate limiting DISABLED, so they
- * measure the INFORMATION cost of extraction in queries. The rate-limit arm then measures
- * how many queries a wallet or sample is permitted per window. Wall-clock cost is the
- * product of the two, stated with its assumptions, rather than a single unexplained
- * headline number. That is what replaces the 2,800-hour figure.
+ * Weight recovery is reported as a query count. Separate examples show how the tested query
+ * limit and stated block-time assumptions would affect elapsed time.
  *
  * Usage:
  *   npm run evaluate:anti-probing
@@ -52,13 +43,58 @@ import {
 const N = process.env.ATTACK_N ? Number(process.env.ATTACK_N) : 20;
 const SCALE = 1_000_000;
 const NOISE_BOUND = 128n;
+const RANDOM_ADDITION_SEQUENCE = "bioeth-prs-anti-probing-v1";
 // Per-weight query budget for the estimator-based arms.
 const BUDGET_PER_WEIGHT = process.env.ATTACK_BUDGET
   ? Number(process.env.ATTACK_BUDGET) / N
-  : 12;
+  : 16;
 
 const OUT_DIR = process.env.ATTACK_OUT_DIR
   ?? path.join(__dirname, "..", "evidence", "phase6");
+
+/**
+ * Use a fixed sequence for the local mock's random category additions so that the
+ * adversarial analysis can be repeated exactly. This affects only local mock randomness.
+ */
+function useFixedRandomAdditionSequence(sequence: string): () => void {
+  const original = Object.getOwnPropertyDescriptor(
+    ethersLibrary,
+    "randomBytes"
+  );
+  if (!original) throw new Error("ethers random byte generator is unavailable");
+  let counter = 0;
+
+  const deterministicRandomBytes = (length: number): Uint8Array => {
+    if (!Number.isSafeInteger(length) || length < 0) {
+      throw new Error("random byte length must be a non-negative safe integer");
+    }
+    const output = Buffer.alloc(length);
+    let offset = 0;
+    while (offset < length) {
+      const block = createHash("sha256")
+        .update(sequence)
+        .update(":")
+        .update(String(counter++))
+        .digest();
+      offset += block.copy(
+        output,
+        offset,
+        0,
+        Math.min(block.length, length - offset)
+      );
+    }
+    return new Uint8Array(output);
+  };
+
+  Object.defineProperty(ethersLibrary, "randomBytes", {
+    configurable: true,
+    value: deterministicRandomBytes,
+  });
+
+  return () => {
+    Object.defineProperty(ethersLibrary, "randomBytes", original);
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Model construction
@@ -151,8 +187,8 @@ function independentProbe(n: number, rng: () => number): bigint[] {
 }
 
 /**
- * Correlated probes: positions in linkage blocks share a dosage, mimicking LD.
- * The resulting design matrix is rank-deficient — only block sums are identifiable.
+ * Correlated probes: positions in linkage blocks share a dosage, mimicking LD. These probes
+ * reveal block totals rather than individual weights.
  */
 function correlatedProbe(n: number, blockSize: number, rng: () => number): bigint[] {
   const g = new Array<bigint>(n).fill(0n);
@@ -172,7 +208,7 @@ function correlatedProbe(n: number, blockSize: number, rng: () => number): bigin
  *
  * Solved by Kaczmarz iteration (successive projection onto each constraint), which needs
  * no matrix library and degrades gracefully when the system is rank-deficient — exactly
- * the regime the correlated-probe arm produces.
+ * the regime produced by correlated probes.
  */
 function solveLeastSquares(
   A: bigint[][],
@@ -215,18 +251,17 @@ async function encryptDosages(engineAddr: string, who: string, g: bigint[]) {
 }
 
 /**
- * Deploy a private model, either on the live contracts (`variant: "hardened"`) or on the
- * frozen submitted design (`variant: "baseline"`).
+ * Deploy a private model with either fixed or requester-selected thresholds.
  */
 async function deployStack(opts: {
-  variant: "hardened" | "baseline";
+  variant: "fixed_thresholds" | "requester_selected_thresholds";
   quantised: ReturnType<typeof quantise>;
   oracleRequired: boolean;
   low?: bigint;
   high?: bigint;
   attackers: string[];
   sampleCount?: number;
-  rateLimit?: { maxJobs: bigint; windowBlocks: bigint };
+  rateLimit?: { maximumCalculations: bigint; windowBlocks: bigint };
 }): Promise<Stack> {
   const { variant, quantised, oracleRequired, attackers } = opts;
   const sampleCount = opts.sampleCount ?? 1;
@@ -252,7 +287,7 @@ async function deployStack(opts: {
   const oracleAddr = await oracle.getAddress();
 
   const Mkt = await ethers.getContractFactory(
-    variant === "hardened" ? "ModelMarketplace" : "BaselineModelMarketplace"
+    variant === "fixed_thresholds" ? "ModelMarketplace" : "BaselineModelMarketplace"
   );
   const marketplace = await Mkt.deploy();
 
@@ -281,18 +316,18 @@ async function deployStack(opts: {
   const Registry = await ethers.getContractFactory("GenomicRegistry");
   const registry = await Registry.deploy();
   const Eng = await ethers.getContractFactory(
-    variant === "hardened" ? "PRSComputeEngine" : "BaselinePRSComputeEngine"
+    variant === "fixed_thresholds" ? "PRSComputeEngine" : "BaselinePRSComputeEngine"
   );
   const engine = await Eng.deploy(mktAddr, await registry.getAddress());
   const engineAddr = await engine.getAddress();
 
-  // The engine and every attacker wallet need explicit private-model reader access.
+  // The model owner permits the compute contract and each requester to use the private model.
   await marketplace.setPrivateModelReader(modelId, engineAddr, true);
   for (const a of attackers) {
     await marketplace.setPrivateModelReader(modelId, a, true);
   }
 
-  if (variant === "hardened") {
+  if (variant === "fixed_thresholds") {
     if (oracleRequired) {
       await marketplace.setReleasePolicy(
         modelId, oracleAddr, opts.low!, opts.high!, true
@@ -309,7 +344,7 @@ async function deployStack(opts: {
 
   if (opts.rateLimit) {
     await marketplace.setRateLimit(
-      modelId, opts.rateLimit.maxJobs, opts.rateLimit.windowBlocks
+      modelId, opts.rateLimit.maximumCalculations, opts.rateLimit.windowBlocks
     );
   }
 
@@ -331,7 +366,7 @@ async function deployStack(opts: {
 }
 
 // ---------------------------------------------------------------------------
-// Query primitives — each is one real job
+// Score-request helpers
 // ---------------------------------------------------------------------------
 
 /** Unprotected: finalize and read the raw encoded score. */
@@ -387,7 +422,7 @@ async function queryCategory(
 // The evaluation
 // ---------------------------------------------------------------------------
 
-describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
+describe("Adversarial model-extraction analysis", function () {
   this.timeout(3_600_000);
 
   const betas = realWeights(N);
@@ -395,8 +430,12 @@ describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
   const zs = Number(quantised.scoreOffset);
   const zw = Number(quantised.weightZeroPoint);
   const results: any[] = [];
+  let restoreRandomAdditionSequence: (() => void) | undefined;
 
   before(function () {
+    restoreRandomAdditionSequence = useFixedRandomAdditionSequence(
+      RANDOM_ADDITION_SEQUENCE
+    );
     fs.mkdirSync(OUT_DIR, { recursive: true });
     console.log(`\n  N=${N} private weights, scale=${SCALE}, B=${NOISE_BOUND}`);
     console.log(`  z_w=${zw}  z_s=${zs}`);
@@ -408,10 +447,10 @@ describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
   });
 
   // ── Variation 3, part 1: no output protection at all ─────────────────────
-  it("arm 1 — unprotected raw score release: exact extraction in N queries", async function () {
+  it("raw score release allows exact extraction in N queries", async function () {
     const [owner, attacker] = await ethers.getSigners();
     const stack = await deployStack({
-      variant: "hardened", quantised, oracleRequired: false,
+      variant: "fixed_thresholds", quantised, oracleRequired: false,
       attackers: [attacker.address],
     });
 
@@ -424,34 +463,32 @@ describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
       estimate.push(Number(e) - zs + zw);
     }
     const m = score(quantised.q, estimate, quantised.weightZeroPoint);
-    console.log(`  arm 1 (raw score):        queries=${queries}  ${JSON.stringify(m)}`);
+    console.log(`  raw score: queries=${queries}  ${JSON.stringify(m)}`);
     results.push({
-      arm: "unprotected_raw_score", variation: "threshold design (no oracle)",
+      attack: "raw score output", variation: "one-position queries",
       adaptive: false, queries, ...m,
-      note: "Each query is one linear equation and the attacker sees it exactly. " +
-        "N queries suffice for complete, exact recovery. This is the reference point " +
-        "the oracle path exists to avoid.",
+      note: `The raw score revealed one weight per query. All ${N} weights were recovered ` +
+        `exactly in ${queries} queries.`,
     });
     if (m.pearsonR !== 1 || m.signAccuracy !== 1) {
-      throw new Error("arm 1 should recover weights exactly; got " + JSON.stringify(m));
+      throw new Error("raw-score queries should recover weights exactly; got " + JSON.stringify(m));
     }
     void owner;
   });
 
   // ── Variation 3, part 2 + variation 1: caller-selected thresholds ─────────
-  it("arm 2 — BASELINE caller-selected thresholds, adaptive binary search", async function () {
+  it("evaluates requester-selected thresholds with adaptive queries", async function () {
     const [, attacker] = await ethers.getSigners();
     const stack = await deployStack({
-      variant: "baseline", quantised, oracleRequired: true,
+      variant: "requester_selected_thresholds", quantised, oracleRequired: true,
       low: 0n, high: 0n, attackers: [attacker.address],
     });
 
     // Adaptive: for each weight, bisect the attacker-chosen low threshold until the
-    // category flips. Each step is one job. The noise blurs the crossing by at most B.
+    // category flips. Each step is one calculation request. The noise blurs the crossing by at most B.
     // Run the bisection to the full budget while recording the estimate after every
     // step, so one pass yields the whole extraction-cost curve rather than one point.
-    // That curve is what replaces the 2,800-hour headline: cost as a function of
-    // queries, measured rather than asserted.
+    // The curve reports recovery quality at each query count.
     const steps = Math.ceil(BUDGET_PER_WEIGHT);
     const perStepEstimates: number[][] = Array.from({ length: steps }, () => []);
     let queries = 0;
@@ -477,10 +514,11 @@ describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
       ...score(quantised.q, est, quantised.weightZeroPoint),
     }));
     const m = curve[curve.length - 1];
-    console.log(`  arm 2 (baseline, adaptive): queries=${queries}  ${JSON.stringify({
+    const fullRecovery = curve.find((point) => point.withinNoiseBound >= 1);
+    console.log(`  requester-selected thresholds, adaptive: queries=${queries}  ${JSON.stringify({
       pearsonR: m.pearsonR, signAccuracy: m.signAccuracy,
       meanRelativeError: m.meanRelativeError, withinNoiseBound: m.withinNoiseBound })}`);
-    console.log("  arm 2 extraction-cost curve (queries -> recovery):");
+    console.log("  recovery by query count:");
     for (const c of curve) {
       console.log(
         `    ${String(c.totalQueries).padStart(5)} queries  r=${c.pearsonR.toFixed(4)}` +
@@ -490,21 +528,25 @@ describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
       );
     }
     results.push({
-      arm: "baseline_caller_selected_thresholds", variation: "threshold design + adaptive",
+      attack: "requester-selected thresholds", variation: "queries chosen after earlier results",
       adaptive: true, queries, queriesPerWeight: steps,
       pearsonR: m.pearsonR, signAccuracy: m.signAccuracy,
       meanRelativeError: m.meanRelativeError, withinNoiseBound: m.withinNoiseBound,
-      extractionCostCurve: curve,
-      note: "The requester chooses both thresholds per call, so a binary search on the " +
-        "encrypted score is directly expressible. Cost is N * log2(range/B) queries. " +
-        "The curve gives recovery quality as a function of query count, measured.",
+      recoveryByQueryCount: curve,
+      note: fullRecovery
+        ? `When the requester selected the thresholds for every query, choosing each query ` +
+          `after seeing earlier results ` +
+          `recovered all ${N} weights within the noise range after ` +
+          `${fullRecovery.totalQueries} queries.`
+        : `When the requester selected the thresholds for every query, full recovery was ` +
+          `not observed within ${queries} queries.`,
     });
   });
 
-  it("arm 3 — BASELINE caller-selected thresholds, NON-adaptive at equal budget", async function () {
+  it("evaluates requester-selected thresholds with fixed queries", async function () {
     const [, attacker] = await ethers.getSigners();
     const stack = await deployStack({
-      variant: "baseline", quantised, oracleRequired: true,
+      variant: "requester_selected_thresholds", quantised, oracleRequired: true,
       low: 0n, high: 0n, attackers: [attacker.address],
     });
 
@@ -530,23 +572,24 @@ describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
     }
     const est = solveLeastSquares(A, targets, N);
     const m = score(quantised.q, est.map((v) => v + zw), quantised.weightZeroPoint);
-    console.log(`  arm 3 (baseline, non-adapt): queries=${queries}  ${JSON.stringify(m)}`);
+    console.log(`  requester-selected thresholds, fixed: queries=${queries}  ${JSON.stringify(m)}`);
     results.push({
-      arm: "baseline_caller_selected_thresholds", variation: "threshold design, non-adaptive",
+      attack: "requester-selected thresholds", variation: "queries chosen in advance",
       adaptive: false, queries, ...m,
-      note: "Same interface and same budget as arm 2, but the query set is fixed in " +
-        "advance. Isolates the value of adaptivity from the value of threshold control.",
+      note: `With all ${queries} queries chosen in advance, ` +
+        `${Math.round(m.withinNoiseBound * N)} of ${N} weights were recovered within the ` +
+        `noise range.`,
     });
   });
 
-  // ── Variation 3, part 3 + variation 1: fixed model-defined thresholds ─────
-  it("arm 4 — HARDENED fixed thresholds, adaptive, equal budget", async function () {
+  // ── Variation 3, part 3 + variation 1: thresholds fixed by model provider ─
+  it("evaluates thresholds fixed by the model provider with adaptive queries", async function () {
     const [, attacker] = await ethers.getSigners();
     // Thresholds placed inside the reachable score range so the channel is informative;
     // a policy that never fires would flatter the defence.
     const mid = BigInt(zs + zw);
     const stack = await deployStack({
-      variant: "hardened", quantised, oracleRequired: true,
+      variant: "fixed_thresholds", quantised, oracleRequired: true,
       low: mid, high: mid + NOISE_BOUND * 8n, attackers: [attacker.address],
     });
 
@@ -578,22 +621,22 @@ describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
     }
     const est = solveLeastSquares(A, targets, N);
     const m = score(quantised.q, est.map((v) => v + zw), quantised.weightZeroPoint);
-    console.log(`  arm 4 (hardened, adaptive): queries=${queries}  ${JSON.stringify(m)}`);
+    console.log(`  thresholds fixed by model provider, adaptive: queries=${queries}  ${JSON.stringify(m)}`);
     results.push({
-      arm: "hardened_fixed_thresholds", variation: "threshold design + adaptive",
+      attack: "thresholds fixed by model provider", variation: "queries chosen after earlier results",
       adaptive: true, queries, ...m,
-      note: "Thresholds are model-defined and immutable, so the attacker can only move " +
-        "the score, never the decision boundary. Adaptivity is reduced to probe " +
-        "steering, which is far weaker than bisection.",
+      note: `With thresholds fixed by the model provider, ${Math.round(m.withinNoiseBound * N)} of ` +
+        `${N} weights were recovered within the noise range after ${queries} queries chosen ` +
+        `after earlier results.`,
     });
   });
 
   // ── Variation 4: independent vs correlated SNP structure ─────────────────
-  it("arm 5 — HARDENED fixed thresholds with CORRELATED probes (LD blocks)", async function () {
+  it("evaluates thresholds fixed by the model provider with correlated inputs", async function () {
     const [, attacker] = await ethers.getSigners();
     const mid = BigInt(zs + zw);
     const stack = await deployStack({
-      variant: "hardened", quantised, oracleRequired: true,
+      variant: "fixed_thresholds", quantised, oracleRequired: true,
       low: mid, high: mid + NOISE_BOUND * 8n, attackers: [attacker.address],
     });
 
@@ -615,31 +658,29 @@ describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
     }
     const est = solveLeastSquares(A, targets, N);
     const m = score(quantised.q, est.map((v) => v + zw), quantised.weightZeroPoint);
-    console.log(`  arm 5 (hardened, correlated): queries=${queries}  ${JSON.stringify(m)}`);
+    console.log(`  thresholds fixed by model provider, correlated: queries=${queries}  ${JSON.stringify(m)}`);
     results.push({
-      arm: "hardened_fixed_thresholds", variation: "correlated SNP structure",
+      attack: "thresholds fixed by model provider", variation: "correlated inputs",
       adaptive: false, queries, blockSize, ...m,
-      note: `Probes constrained to LD-like blocks of ${blockSize} identical dosages. The ` +
-        "design matrix is rank-deficient, so only block sums are identifiable and " +
-        "per-weight recovery collapses. CRITICAL CAVEAT: nothing forces an attacker to " +
-        "use correlated probes. The contracts do not validate inputs (R1.5), so this " +
-        "constraint is self-imposed and provides no defence — arm 4 is the honest " +
-        "measure of what an attacker can do.",
+      note: `When probes used the same dosage within ${blockSize}-variant blocks, only block ` +
+        `totals could be estimated and ${Math.round(m.withinNoiseBound * N)} of ${N} weights ` +
+        "were recovered within the noise range. Requesters are not required to submit " +
+        "correlated values, so this result does not protect against freely chosen inputs.",
     });
   });
 
   // ── Variations 2 and 5: wallets and samples under rate limiting ───────────
-  it("arm 6 — rate limiting across wallets and samples (variations 2 and 5)", async function () {
+  it("evaluates query limits across requesters and samples", async function () {
     const signers = await ethers.getSigners();
     const attackers = signers.slice(1, 4); // three wallets
-    const maxJobs = 3n;
+    const maximumCalculations = 3n;
     const windowBlocks = 1000n;
 
     const stack = await deployStack({
-      variant: "hardened", quantised, oracleRequired: false,
+      variant: "fixed_thresholds", quantised, oracleRequired: false,
       attackers: attackers.map((a) => a.address),
       sampleCount: 3,
-      rateLimit: { maxJobs, windowBlocks },
+      rateLimit: { maximumCalculations, windowBlocks },
     });
 
     // (a) one wallet, one sample — the quota
@@ -672,78 +713,88 @@ describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
     } catch { /* each pair has its own quota */ }
 
     console.log(
-      `  arm 6 (rate limits): quota=${maxJobs}/window; ` +
+      `  query limits: maximum=${maximumCalculations}/window; ` +
         `1 wallet+1 sample=${oneWalletOneSample}, ` +
         `other wallets on the SAME sample=${otherWalletsSameSample}, ` +
         `other wallets on OTHER samples=${otherWalletsOtherSamples}`
     );
     results.push({
-      arm: "rate_limiting", variation: "multiple wallets and multiple samples",
-      maxJobsPerWindow: Number(maxJobs), windowBlocks: Number(windowBlocks),
-      oneWalletOneSample, otherWalletsSameSample, otherWalletsOtherSamples,
-      privateModelReaderRequired: true,
-      note: "Per-sample windows mean a registered sample stays throttled across wallets, " +
-        "so the same-sample multi-wallet bypass is closed. Distinct wallets holding " +
-        "distinct registered samples do receive independent quotas — the remaining Sybil " +
-        "boundary. For a PRIVATE model each additional wallet must also be authorised by " +
-        "the model owner via setPrivateModelReader, so Sybil expansion is gated by an " +
-        "explicit allowlist and not merely by rate limits.",
+      attack: "query limits", variation: "multiple requesters and multiple samples",
+      maxCalculationsPerWindow: Number(maximumCalculations), windowBlocks: Number(windowBlocks),
+      oneRequesterOneSample: oneWalletOneSample,
+      additionalRequestersSameSample: otherWalletsSameSample,
+      additionalRequestersOtherSamples: otherWalletsOtherSamples,
+      privateWeights: "The model provider decides who may use the private weights.",
+      note: "The three-calculation limit applied to the same registered sample across different " +
+        "requesters. Each different registered sample had its own limit. The model provider " +
+        "decides who may use the private weights.",
     });
   });
 
-  after(async function () {
-    if (results.length === 0) return;
-    const maxAbsQ = Math.max(...quantised.q.map(Math.abs));
-    const doc = {
-      report: "anti_probing_evaluation",
-      action: "R1.4-E1",
-      evidenceClass: "Hardhat mock",
-      note:
-        "Every query is a real job against real contracts on the mock coprocessor; " +
-        "nothing is simulated. Extraction arms run with rate limiting disabled so they " +
-        "measure the INFORMATION cost in queries; arm 6 measures the permitted query " +
-        "rate. Wall-clock cost is the product, stated with assumptions, replacing the " +
-        "unexplained 2,800-hour figure.",
-      configuration: {
-        weightCount: N,
-        scale: SCALE,
-        noiseUpperBound: Number(NOISE_BOUND),
-        weightZeroPoint: zw,
-        scoreOffset: zs,
-        maxAbsQuantisedWeight: maxAbsQ,
-        noiseAsPercentOfLargestWeight: Number(
-          ((100 * Number(NOISE_BOUND)) / maxAbsQ).toFixed(3)
-        ),
-        modelVisibility: "private (encrypted weights) — extraction is meaningless for a public model",
-        attackerIsAuthorisedPrivateModelReader: true,
-        budgetPerWeight: Math.ceil(BUDGET_PER_WEIGHT),
-        baselineContractsFrom: "2d6f21d (frozen submitted design, CD-005)",
-      },
-      arms: results,
-      // Wall-clock derivation replacing the 2,800-hour headline (R1.4-M1).
+  after(function () {
+    try {
+      if (results.length === 0) return;
+      if (results.length !== 6) {
+        console.log("\n  partial analysis completed; the saved result was not changed");
+        return;
+      }
+      const maxAbsQ = Math.max(...quantised.q.map(Math.abs));
+      const doc = {
+        title: "Analysis of attempts to recover private weights",
+        setting: "local simulation",
+        interpretation:
+          "We evaluated six ways a requester might try to recover private weights in a local " +
+          "contract simulation. We report how many queries were used and how closely the " +
+          "recovered weights matched the private weights. The time examples are calculated " +
+          "from those query counts and the stated assumptions about block time.",
+        setup: {
+          weightCount: N,
+          scale: SCALE,
+          noiseUpperBound: Number(NOISE_BOUND),
+          weightZeroPoint: zw,
+          scoreOffset: zs,
+          largestAbsIntegerWeight: maxAbsQ,
+          noiseAsPercentOfLargestWeight: Number(
+            ((100 * Number(NOISE_BOUND)) / maxAbsQ).toFixed(3)
+          ),
+          weights: "private and encrypted",
+          requester: "a requester chosen by the model provider",
+          maximumQueriesPerWeight: Math.ceil(BUDGET_PER_WEIGHT),
+          randomAdditionSequence: {
+            label: RANDOM_ADDITION_SEQUENCE,
+            description:
+              "The local analysis used a fixed sequence of random additions from 0 through 127 " +
+              "so the results can be repeated exactly.",
+          },
+        },
+        results,
+      // Elapsed-time examples derived from the observed query count and stated assumptions.
       //
-      // Queries and time are deliberately separated. The extraction arms measure the
-      // INFORMATION cost in queries with rate limiting off; the rate-limit arm measures
+      // Queries and time are deliberately separated. The extraction settings measure the
+      // information available from queries with limits disabled; the query-limit setting measures
       // the permitted rate. Multiplying them, with the block time stated as an
       // assumption rather than buried, is what makes the resulting figure checkable.
-      wallClockDerivation: (() => {
-        const rl = results.find((r) => r.arm === "rate_limiting");
-        const baseline = results.find(
-          (r) => r.arm === "baseline_caller_selected_thresholds" && r.adaptive
+        elapsedTimeExamples: (() => {
+        const queryLimits = results.find((r) => r.attack === "query limits");
+        const requesterSelected = results.find(
+          (r) => r.attack === "requester-selected thresholds" && r.adaptive
         );
-        if (!rl || !baseline?.extractionCostCurve) return null;
+        const fixedThresholds = results.find(
+          (r) => r.attack === "thresholds fixed by model provider" && r.adaptive
+        );
+        if (!queryLimits || !requesterSelected?.recoveryByQueryCount) return null;
         // Cheapest point on the measured curve at which every weight is recovered to
         // within the noise bound.
-        const full = baseline.extractionCostCurve.find(
+        const full = requesterSelected.recoveryByQueryCount.find(
           (c: any) => c.withinNoiseBound >= 1
         );
         const perWeight = full ? full.queriesPerWeight : null;
         const scenarios = [
-          { label: "Ethereum mainnet-like", secondsPerBlock: 12 },
-          { label: "L2 / app-chain-like", secondsPerBlock: 2 },
+          { label: "12-second blocks", secondsPerBlock: 12 },
+          { label: "2-second blocks", secondsPerBlock: 2 },
         ].map((sc) => {
-          const windowSeconds = rl.windowBlocks * sc.secondsPerBlock;
-          const secondsPerQuery = windowSeconds / rl.maxJobsPerWindow;
+          const windowSeconds = queryLimits.windowBlocks * sc.secondsPerBlock;
+          const secondsPerQuery = windowSeconds / queryLimits.maxCalculationsPerWindow;
           return {
             ...sc,
             windowSeconds,
@@ -756,34 +807,34 @@ describe("Anti-probing adversarial evaluation (R1.4-E1)", function () {
           measuredQueriesPerWeightForFullRecovery: perWeight,
           measuredTotalQueriesForFullRecovery: full ? full.totalQueries : null,
           weightCount: N,
-          rateLimitAssumed: {
-            maxJobsPerWindow: rl.maxJobsPerWindow,
-            windowBlocks: rl.windowBlocks,
+          queryLimitAssumed: {
+            maximumCalculationsPerWindow: queryLimits.maxCalculationsPerWindow,
+            windowBlocks: queryLimits.windowBlocks,
           },
           scenarios,
           caveats: [
-            "Applies to the BASELINE caller-selected-threshold design, i.e. the submitted " +
-              "system. The hardened design did not reach full recovery within the budget " +
-              "evaluated here.",
-            "Scales with a single registered sample. An attacker holding S registered " +
-              "samples divides the wall clock by roughly S; for a private model each " +
-              "additional wallet must also be authorised via setPrivateModelReader.",
+            full
+              ? `With requester-selected thresholds, all ${N} weights were recovered within ` +
+                `the noise range after ${full.totalQueries} queries. With thresholds fixed by ` +
+                `the model provider, ` +
+                `${Math.round((fixedThresholds?.withinNoiseBound ?? 0) * N)} of ${N} weights ` +
+                `were recovered within that range after ${fixedThresholds?.queries ?? 0} queries.`
+              : `Full recovery with requester-selected thresholds was not observed within ` +
+                `${requesterSelected.queries} queries.`,
+            "The time examples assume one registered sample. Different registered samples " +
+              "have separate query limits. The model provider decides who may use private weights.",
             "Block time is an assumption, not a measurement. No live-network timing was used.",
-            "This is a lower bound on attacker effort under the strategies evaluated. A " +
-              "better attack may exist; absence of one here is not a security proof.",
+            "These results describe only the six strategies studied and do not show what would happen for every possible strategy.",
           ],
         };
-      })(),
-      provenance: await buildProvenance({
-        model: syntheticModelProvenance({
-          purpose: "anti_probing_evaluation",
-          spec: { weightCount: N, scale: SCALE, noiseUpperBound: Number(NOISE_BOUND) },
-        }),
-        contracts: [],
-      }),
-    };
-    const out = path.join(OUT_DIR, "anti_probing_results.json");
-    fs.writeFileSync(out, JSON.stringify(doc, null, 2) + "\n");
-    console.log(`\n  results written to ${path.relative(process.cwd(), out)}`);
+        })(),
+      };
+      const out = path.join(OUT_DIR, "anti_probing_results.json");
+      fs.writeFileSync(out, JSON.stringify(doc, null, 2) + "\n");
+      console.log(`\n  results written to ${path.relative(process.cwd(), out)}`);
+    } finally {
+      restoreRandomAdditionSequence?.();
+      restoreRandomAdditionSequence = undefined;
+    }
   });
 });

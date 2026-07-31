@@ -7,18 +7,9 @@ import * as path from "path";
 /**
  * Isolation and fidelity guarantees for `contracts/attack-baseline/` (CD-005).
  *
- * RTR action R1.4-E1 requires comparing the hardened release policy against "the old
- * caller-selected threshold design". R1.4-C1's completion criterion forbids retaining a
- * threshold-taking classification entry point in the live contracts, so the baseline arm
- * deploys a frozen copy of the submitted design instead of a legacy shim.
- *
- * That creates two obligations, both enforced here rather than documented and hoped for:
- *
- *   1. ISOLATION. The baseline must never reach a deployment. It reintroduces exactly the
- *      vulnerability the revision removes, so a stray import would silently undo Phase 2.
- *   2. FIDELITY. The baseline must remain a faithful copy. If someone "fixes" it, the
- *      adversarial comparison stops measuring the submitted design and the reported
- *      attack cost becomes meaningless.
+ * The adversarial analysis needs a contract with requester-selected thresholds. The copy in
+ * this directory is used only for that analysis and must match commit 2d6f21d. These checks
+ * keep it out of deployment code and confirm that only documented names and paths differ.
  */
 
 const REPO_ROOT = path.join(__dirname, "..");
@@ -44,18 +35,17 @@ function walk(dir: string, exts: string[]): string[] {
   return out;
 }
 
-describe("Attack-baseline isolation and fidelity (CD-005)", function () {
-  it("no deployment path references the baseline contracts", function () {
+describe("Requester-selected-threshold contract isolation (CD-005)", function () {
+  it("no deployment path references the contract copy", function () {
     const deployScript = path.join(REPO_ROOT, "scripts", "deploy.ts");
     const src = fs.readFileSync(deployScript, "utf8");
     expect(
       /Baseline(ModelMarketplace|PRSComputeEngine)/.test(src),
-      "scripts/deploy.ts must never deploy the attack baseline — it reintroduces the " +
-        "caller-selected threshold vulnerability that Phase 2 removed"
+      "scripts/deploy.ts must not deploy the requester-selected-threshold contract copy"
     ).to.equal(false);
   });
 
-  it("only explicitly allowed files name the baseline contracts", function () {
+  it("only explicitly allowed files name the contract copy", function () {
     const offenders: string[] = [];
     for (const dir of ["contracts", "scripts", "test", "validation"]) {
       for (const full of walk(path.join(REPO_ROOT, dir), [".sol", ".ts"])) {
@@ -71,7 +61,7 @@ describe("Attack-baseline isolation and fidelity (CD-005)", function () {
     ).to.deep.equal([]);
   });
 
-  it("live contracts do not import the baseline", function () {
+  it("current contracts do not import the contract copy", function () {
     for (const full of walk(path.join(REPO_ROOT, "contracts"), [".sol"])) {
       if (full.startsWith(BASELINE_DIR)) continue;
       const src = fs.readFileSync(full, "utf8");
@@ -82,10 +72,8 @@ describe("Attack-baseline isolation and fidelity (CD-005)", function () {
     }
   });
 
-  it("the baseline is a faithful copy: un-renaming reproduces the frozen source exactly", function () {
-    // Fidelity check. Reversing only the documented renames must recover the frozen
-    // bytes. If this fails, someone edited the baseline and the adversarial comparison
-    // no longer measures the design that was submitted for review.
+  it("reversing the recorded renames reproduces the source at commit 2d6f21d", function () {
+    // Reversing only the documented renames must recover the source at the recorded commit.
     const cases: Array<[string, string]> = [
       ["ModelMarketplace", "BaselineModelMarketplace"],
       ["PRSComputeEngine", "BaselinePRSComputeEngine"],
@@ -115,8 +103,7 @@ describe("Attack-baseline isolation and fidelity (CD-005)", function () {
     }
   });
 
-  it("the baseline exposes the vulnerability and the live contract does not", function () {
-    // Documents the delta being measured, and fails if either side drifts.
+  it("the contract copy accepts requester thresholds and the current contract does not", function () {
     const baseline = fs.readFileSync(
       path.join(BASELINE_DIR, "BaselinePRSComputeEngine.sol"), "utf8"
     );
@@ -138,8 +125,7 @@ describe("Attack-baseline isolation and fidelity (CD-005)", function () {
     expect(liveArgs[0]).to.equal("uint256 jobId");
   });
 
-  it("the baseline deploys and still accepts requester-chosen thresholds", async function () {
-    // Confirms the measured channel is real rather than assumed from source reading.
+  it("the contract copy deploys and accepts requester-chosen thresholds", async function () {
     const [owner] = await ethers.getSigners();
 
     const Oracle = await ethers.getContractFactory("ResultOracle");
@@ -157,7 +143,7 @@ describe("Attack-baseline isolation and fidelity (CD-005)", function () {
     await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
     await marketplace.finalizeModel(modelId);
 
-    // The removed setters still exist on the frozen copy — that is the point.
+    // These setters configure the requester-selected-threshold contract copy.
     await marketplace.setOracleRequired(modelId, true);
     await marketplace.setApprovedOracle(modelId, await oracle.getAddress());
     expect(await marketplace.isOracleRequired(modelId)).to.equal(true);

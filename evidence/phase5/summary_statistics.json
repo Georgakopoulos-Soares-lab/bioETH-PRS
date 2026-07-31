@@ -9,7 +9,7 @@
       "exactMatchFraction": "1",
       "pearsonR": "1",
       "pearsonRNote": "exact: |r| = 1, established in integer/decimal arithmetic",
-      "caveat": "On these fixtures MAE, RMSE, and max error are zero by construction (CD-006): the quantisation is lossless because the source weights carry six decimal places. These statistics validate the pipeline, not arithmetic precision.",
+      "caveat": "The source weights have no more than six decimal places, so quantization is exact at the chosen scale. These results show agreement across preprocessing, encoding, local contract calculation, and decoding; they do not establish precision for weights with more decimal places.",
       "nominalSnpCount": 100,
       "encodedPositions": 101,
       "scale": 3000000
@@ -23,7 +23,7 @@
       "exactMatchFraction": "1",
       "pearsonR": "1",
       "pearsonRNote": "exact: |r| = 1, established in integer/decimal arithmetic",
-      "caveat": "On these fixtures MAE, RMSE, and max error are zero by construction (CD-006): the quantisation is lossless because the source weights carry six decimal places. These statistics validate the pipeline, not arithmetic precision.",
+      "caveat": "The source weights have no more than six decimal places, so quantization is exact at the chosen scale. These results show agreement across preprocessing, encoding, local contract calculation, and decoding; they do not establish precision for weights with more decimal places.",
       "nominalSnpCount": 500,
       "encodedPositions": 501,
       "scale": 3000000
@@ -37,7 +37,7 @@
       "exactMatchFraction": "1",
       "pearsonR": "1",
       "pearsonRNote": "exact: |r| = 1, established in integer/decimal arithmetic",
-      "caveat": "On these fixtures MAE, RMSE, and max error are zero by construction (CD-006): the quantisation is lossless because the source weights carry six decimal places. These statistics validate the pipeline, not arithmetic precision.",
+      "caveat": "The source weights have no more than six decimal places, so quantization is exact at the chosen scale. These results show agreement across preprocessing, encoding, local contract calculation, and decoding; they do not establish precision for weights with more decimal places.",
       "nominalSnpCount": 1000,
       "encodedPositions": 1001,
       "scale": 1000000
@@ -51,7 +51,7 @@
       "exactMatchFraction": "1",
       "pearsonR": "1",
       "pearsonRNote": "exact: |r| = 1, established in integer/decimal arithmetic",
-      "caveat": "On these fixtures MAE, RMSE, and max error are zero by construction (CD-006): the quantisation is lossless because the source weights carry six decimal places. These statistics validate the pipeline, not arithmetic precision.",
+      "caveat": "The source weights have no more than six decimal places, so quantization is exact at the chosen scale. These results show agreement across preprocessing, encoding, local contract calculation, and decoding; they do not establish precision for weights with more decimal places.",
       "nominalSnpCount": 5000,
       "encodedPositions": 5001,
       "scale": 1000000
@@ -66,7 +66,7 @@
     "exactMatchFraction": "1",
     "pearsonR": "1",
     "pearsonRNote": "exact: |r| = 1, established in integer/decimal arithmetic",
-    "caveat": "On these fixtures MAE, RMSE, and max error are zero by construction (CD-006): the quantisation is lossless because the source weights carry six decimal places. These statistics validate the pipeline, not arithmetic precision."
+    "caveat": "The source weights have no more than six decimal places, so quantization is exact at the chosen scale. These results show agreement across preprocessing, encoding, local contract calculation, and decoding; they do not establish precision for weights with more decimal places."
   },
   "categoryAgreement": {
     "nominalSnpCount": 100,
@@ -75,6 +75,6 @@
     "outsideBand": 48,
     "outsideBandAgreeing": 48,
     "withinBand": 2,
-    "note": "Category agreement cannot be exact by construction: the bounded randomized release adds one-sided noise on [0, B), so a score within B below a threshold may legitimately classify either side of it. Agreement is therefore reported only for individuals outside that band, alongside the band's population. Classification consumes a single encoded score and is independent of variant count, so one fixture size is representative."
+    "note": "A random integer is chosen with equal probability from 0 through B-1 and added before the score is compared with the category thresholds. A score within B below a threshold can therefore move into the next category. We report agreement for scores outside this range and count the scores inside it separately. Category assignment uses one final score, so it was evaluated with the 100-SNP data. The exact mean random addition is (B-1)/2, or 63.5 when B=128. The integer threshold correction uses B/2, or 64 when B=128."
   }
 }
