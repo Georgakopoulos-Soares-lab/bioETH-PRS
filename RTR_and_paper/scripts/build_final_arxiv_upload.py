@@ -83,7 +83,7 @@ def edit_graphical_abstract(source: Path, destination: Path) -> None:
         draw,
         (1005, 649, 1361, 724),
         "TFHE/Lattice Security\nAssumption",
-        size=24,
+        size=30,
         bold=False,
     )
     image.save(destination, format="PNG", optimize=True)
@@ -138,20 +138,21 @@ def edit_security(source: Path, destination: Path) -> None:
 
     # Keep the original threat-model artwork and correct the two release/privacy claims.
     draw.rectangle((1127, 389, 1408, 478), fill=WHITE)
-    centered_text(
-        draw,
-        (1132, 390, 1400, 430),
+    draw.text(
+        (1138, 400),
         "Raw score or category",
-        size=22,
-        bold=False,
+        font=font(25),
+        fill=BLACK,
+        anchor="lm",
     )
-    centered_text(
-        draw,
-        (1132, 434, 1400, 477),
+    draw.multiline_text(
+        (1138, 447),
         "Randomized category\n(not differential privacy)",
-        size=19,
-        bold=False,
-        spacing=1,
+        font=font(25),
+        fill=BLACK,
+        anchor="lm",
+        align="left",
+        spacing=0,
     )
     image.save(destination, format="PNG", optimize=True)
 

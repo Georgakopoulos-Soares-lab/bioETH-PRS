@@ -85,9 +85,9 @@ M.~Inouye, G.~Abraham, C.~P. Nelson, et~al.
 \bibitem[Kim and Lauter(2015)]{kim2015}
 M.~Kim and K.~Lauter.
 \newblock Private genome analysis through homomorphic encryption.
-\newblock In \emph{Financial Cryptography and Data Security}, pages 239--256,
-  2015.
-\newblock \doi{10.1007/978-3-662-48185-7_14}.
+\newblock \emph{BMC Medical Informatics and Decision Making}, 15\penalty0
+  (Suppl 5):\penalty0 S3, 2015.
+\newblock \doi{10.1186/1472-6947-15-S5-S3}.
 
 \bibitem[Knight et~al.(2026)Knight, Li, Jensen, Yolou, Kockan, and
   Gerstein]{knight2026heprs}
@@ -97,20 +97,29 @@ E.~Knight, J.~Li, M.~Jensen, I.~Yolou, C.~Kockan, and M.~Gerstein.
 \newblock \emph{Cell Reports Methods}, 6:\penalty0 101271, 2026.
 \newblock \doi{10.1016/j.crmeth.2025.101271}.
 
-\bibitem[Lambert et~al.(2019)Lambert, Abraham, and
+\bibitem[Lambert et~al.(2021)Lambert, Gil, Jupp, Ritchie, Xu, Buniello,
+  McMahon, Abraham, Chapman, Parkinson, Danesh, MacArthur, and
   Inouye]{lambert2019polygenic}
-S.~A. Lambert, G.~Abraham, and M.~Inouye.
-\newblock Towards clinical utility of polygenic risk scores.
-\newblock \emph{Human Molecular Genetics}, 28\penalty0 (R2):\penalty0
-  R133--R142, 2019.
-\newblock \doi{10.1093/hmg/ddz187}.
+S.~A. Lambert, L.~Gil, S.~Jupp, S.~C. Ritchie, Y.~Xu, A.~Buniello, A.~McMahon,
+  G.~Abraham, M.~Chapman, H.~Parkinson, J.~Danesh, J.~A.~C. MacArthur, and
+  M.~Inouye.
+\newblock The polygenic score catalog as an open database for reproducibility
+  and systematic evaluation.
+\newblock \emph{Nature Genetics}, 53:\penalty0 420--425, 2021.
+\newblock \doi{10.1038/s41588-021-00783-5}.
 
-\bibitem[McLaren et~al.(2016)McLaren, Raisaro, Aouri, et~al.]{mclaren2016}
-P.~J. McLaren, J.~L. Raisaro, M.~Aouri, et~al.
-\newblock Privacy-preserving genomic analysis for personalized {HIV} treatment.
-\newblock In \emph{Proceedings of the 7th International Workshop on Data
-  Privacy in Healthcare}, pages 1--10, 2016.
-\newblock \doi{10.1145/2983655.2983659}.
+\bibitem[McLaren et~al.(2016)McLaren, Raisaro, Aouri, Rotger, Ayday, Bartha,
+  Delgado, Vallet, G{\"u}nthard, Cavassini, Furrer, Doco-Lecompte, Marzolini,
+  Schmid, Di~Benedetto, Decosterd, Fellay, Hubaux, and Telenti]{mclaren2016}
+P.~J. McLaren, J.~L. Raisaro, M.~Aouri, M.~Rotger, E.~Ayday, I.~Bartha, M.~B.
+  Delgado, Y.~Vallet, H.~F. G{\"u}nthard, M.~Cavassini, H.~Furrer,
+  T.~Doco-Lecompte, C.~Marzolini, P.~Schmid, C.~Di~Benedetto, L.~A. Decosterd,
+  J.~Fellay, J.-P. Hubaux, and A.~Telenti.
+\newblock Privacy-preserving genomic testing in the clinic: A model using {HIV}
+  treatment.
+\newblock \emph{Genetics in Medicine}, 18\penalty0 (8):\penalty0 814--822,
+  2016.
+\newblock \doi{10.1038/gim.2015.167}.
 
 \bibitem[Pertsev et~al.(2019)Pertsev, Semenov, and Storm]{pertsev2019tornado}
 A.~Pertsev, R.~Semenov, and R.~Storm.
@@ -127,19 +136,23 @@ F.~Priv{\'e}, J.~Arbel, and B.~J. Vilhj{\'a}lmsson.
   2021.
 \newblock \doi{10.1093/bioinformatics/btaa1029}.
 
-\bibitem[Raisaro et~al.(2018)Raisaro, Choi, Pradervand, et~al.]{raisaro2019}
-J.~L. Raisaro, G.~Choi, S.~Pradervand, et~al.
-\newblock Protecting privacy and security of genomic data in {i2b2} with
-  homomorphic encryption and differential privacy.
+\bibitem[Raisaro et~al.(2019)Raisaro, Troncoso-Pastoriza, Misbach, Sousa,
+  Pradervand, Missiaglia, Michielin, Ford, and Hubaux]{raisaro2019}
+J.~L. Raisaro, J.~R. Troncoso-Pastoriza, M.~Misbach, J.~S. Sousa,
+  S.~Pradervand, E.~Missiaglia, O.~Michielin, B.~Ford, and J.-P. Hubaux.
+\newblock {MedCo}: Enabling secure and privacy-preserving exploration of
+  distributed clinical and genomic data.
 \newblock \emph{IEEE/ACM Transactions on Computational Biology and
-  Bioinformatics}, 15\penalty0 (5):\penalty0 1413--1426, 2018.
-\newblock \doi{10.1109/TCBB.2018.2854782}.
+  Bioinformatics}, 16\penalty0 (4):\penalty0 1328--1341, 2019.
+\newblock \doi{10.1109/TCBB.2018.2854776}.
 
-\bibitem[{Tune Insight}(2023)]{lattigo}
-{Tune Insight}.
-\newblock Lattigo v5.
-\newblock Open-source Go library, 2023.
-\newblock URL \url{https://github.com/tuneinsight/lattigo}.
+\bibitem[{Tune Insight SA}(2022)]{lattigo}
+{Tune Insight SA}.
+\newblock Lattigo: Lattice-based multiparty homomorphic encryption library in
+  go.
+\newblock GitHub, 2022.
+\newblock URL \url{https://github.com/tuneinsight/lattigo/releases/tag/v4.1.0}.
+\newblock Version 4.1.0.
 
 \bibitem[Wray et~al.(2021)Wray, Lin, Austin, McGrath, Hickie, Murray, and
   Visscher]{wray2021polygenic}

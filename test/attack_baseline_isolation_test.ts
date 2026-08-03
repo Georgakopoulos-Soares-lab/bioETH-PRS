@@ -165,11 +165,11 @@ describe("Requester-selected-threshold contract isolation (CD-005)", function ()
     );
 
     // Four arguments accepted: the requester chooses both thresholds per call.
-    const frag = engine.interface.getFunction(
+    const frag = (engine.interface as any).getFunction(
       "finalizeAndClassify(uint256,address,uint64,uint64)"
     );
     expect(frag, "baseline must expose the 4-argument entry point").to.not.equal(null);
-    expect(frag!.inputs.map((i) => i.name)).to.deep.equal([
+    expect(frag!.inputs.map((i: any) => i.name)).to.deep.equal([
       "jobId", "oracle", "lowThreshold", "highThreshold",
     ]);
     expect(await engine.jobCount()).to.equal(0n);

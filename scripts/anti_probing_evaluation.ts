@@ -6,6 +6,7 @@ import * as path from "path";
 import { debugDecryptUint64, debugDecryptUint8 } from "../test/utils/fhevm-helpers";
 import { loadHeprsFixture } from "../test/utils/heprs";
 import { syntheticModelProvenance } from "./utils/provenance";
+import { roundHalfAwayFromZero } from "./utils/exact";
 
 /**
  * Adversarial model-extraction analysis.
@@ -107,7 +108,7 @@ function realWeights(n: number): number[] {
 }
 
 function quantise(betas: number[], scale: number) {
-  const q = betas.map((b) => Math.round(b * scale));
+  const q = betas.map((b) => roundHalfAwayFromZero(b * scale));
   const minQ = Math.min(...q);
   const weightZeroPoint = minQ < 0 ? BigInt(-minQ) : 0n;
   const rawMin = q.reduce((s, v) => s + 2 * Math.min(v, 0), 0);
@@ -289,7 +290,10 @@ async function deployStack(opts: {
   const Mkt = await ethers.getContractFactory(
     variant === "fixed_thresholds" ? "ModelMarketplace" : "BaselineModelMarketplace"
   );
-  const marketplace = await Mkt.deploy();
+  // The conditional factory selects between the current and preserved baseline ABI.
+  // Hardhat cannot infer one contract type for that runtime choice, so keep the union
+  // dynamic here while the exercised calls remain covered by the isolation tests.
+  const marketplace: any = await Mkt.deploy();
 
   const shell = [
     true, // isPrivate

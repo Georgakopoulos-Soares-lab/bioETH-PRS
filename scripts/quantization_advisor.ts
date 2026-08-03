@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { roundHalfAwayFromZero } from "./utils/exact";
 
 export type TargetMode = "public" | "private";
 export type RecommendationTier = "baseline" | "balanced" | "max_precision";
@@ -254,7 +255,7 @@ function buildCandidate(
 ): QuantizationCandidate {
   const quantizedWeights = weights.map((weight) => {
     assertFiniteNumber(weight, "Weight");
-    return BigInt(Math.round(weight * scale));
+    return BigInt(roundHalfAwayFromZero(weight * scale));
   });
 
   let minWeight = quantizedWeights[0];

@@ -12,6 +12,20 @@
  */
 
 /**
+ * Round a finite JavaScript number to the nearest integer, resolving exact half ties
+ * away from zero. JavaScript's `Math.round` resolves negative half ties toward positive
+ * infinity, so using it directly would disagree with the manuscript and independent
+ * Decimal reference for values such as -0.5 and -2.5.
+ */
+export function roundHalfAwayFromZero(value: number): number {
+  if (!Number.isFinite(value)) {
+    throw new Error(`roundHalfAwayFromZero requires a finite number, got ${value}`);
+  }
+  if (value === 0) return 0;
+  return value < 0 ? -Math.round(-value) : Math.round(value);
+}
+
+/**
  * Exact decimal string for `numerator / scale`, where `scale` is a positive power of
  * ten. Handles negative numerators, which occur whenever a patient carries more
  * risk-decreasing than risk-increasing alleles.

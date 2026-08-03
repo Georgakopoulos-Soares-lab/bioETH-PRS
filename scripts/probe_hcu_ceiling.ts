@@ -56,6 +56,7 @@ interface ProbeResult {
   computeGasPerChunk: string[];
   totalComputeGas: string;
   timingsMs: number[];
+  provenance: unknown;
 }
 
 async function probeChunkSize(chunkSize: number): Promise<ProbeResult> {
