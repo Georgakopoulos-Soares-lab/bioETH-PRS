@@ -4,6 +4,10 @@ The tables separate **public Sepolia** measurements from a **local contract simu
 local results do not measure live network time or production cost. The private-weight
 calculation was evaluated only in local simulation, not on Sepolia.
 
+The contracts can process a larger model through repeated groups, but the Streaming calculations
+at all four sizes were evaluated only in the local simulation. This document therefore contains
+no Sepolia Streaming gas, time, or score row.
+
 ## Public Sepolia
 
 | Operation | Model | Transactions | Gas | Sepolia ETH fee | Time or result |
@@ -39,4 +43,6 @@ The local calculations below used the **Streaming method**.
 Storing the result categories uses one transaction and 77,314 gas in local simulation. It is not
 included in the raw-score totals above.
 
-The [calculated fee examples](fee_sensitivity.md) use the local gas values reported above.
+The [calculated fee examples](fee_sensitivity.md) use the local gas values reported above. The
+[Sepolia Streaming calculation status](../sepolia_streaming_2026-08-01/README.md) records why no
+new live result is included.

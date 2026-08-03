@@ -86,6 +86,17 @@ describe("Reader-facing evidence", function () {
     expect(fee.usdConversion).to.include("not provided");
   });
 
+  it("does not present the planned Sepolia Streaming calculations as completed", function () {
+    const status = fs.readFileSync(
+      path.join(REPO_ROOT, "evidence", "sepolia_streaming_2026-08-01", "README.md"),
+      "utf8"
+    );
+    expect(status).to.include("do not impose a fixed 100-variant model limit");
+    expect(status).to.include("No new Streaming transaction was submitted");
+    expect(status).to.include("There are no new Sepolia Streaming gas, time, or score measurements");
+    expect(status).not.to.include("insufficient");
+  });
+
   it("preserves the reported adversarial and category results", function () {
     const antiProbing = readJson(paths[3]);
     const adaptive = antiProbing.results.find(

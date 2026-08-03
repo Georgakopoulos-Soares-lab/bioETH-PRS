@@ -23,6 +23,9 @@ Built on top of [Zama's fhEVM](https://github.com/zama-ai/fhevm) TFHE stack.
 11. [Contributing](#contributing)
 12. [License](#license)
 
+Revision materials and the submission-ready manuscript/RTR package are collected in
+[`RTR_and_paper/`](RTR_and_paper/README.md).
+
 ---
 
 ## Architecture

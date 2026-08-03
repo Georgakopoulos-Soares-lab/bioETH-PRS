@@ -21,6 +21,7 @@
     "synthesize:phase8": "ts-node scripts/phase8_evidence_synthesis.ts",
     "validate:local": "npm run build && npm test && npm run validate:mock && npm run profile:gas && npm run profile:heprs && npm run probe:hcu:mock && npm run advisor:scale-ceilings && npm run advisor:quantization -- test/fixtures/heprs/beta_100SNP_phenotype0.csv test/fixtures/heprs/genotype_100SNP_50individual.csv && npm run advisor:quantization -- test/fixtures/heprs/beta_500SNP_phenotype0.csv test/fixtures/heprs/genotype_500SNP_50individual.csv && npm run advisor:quantization -- test/fixtures/heprs/beta_1000SNP_phenotype0.csv test/fixtures/heprs/genotype_1000SNP_50individual.csv && npm run advisor:quantization -- test/fixtures/heprs/beta_5000SNP_phenotype0.csv test/fixtures/heprs/genotype_5000SNP_50individual.csv && npm run validate:cross-language",
     "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
+    "sweep:sepolia": "hardhat run scripts/sepolia_snp_sweep.ts --network sepolia",
     "validate:sepolia": "hardhat test scripts/sepolia_validation.ts --network sepolia",
     "validate:mock": "hardhat test scripts/sepolia_validation.ts",
     "probe:hcu": "hardhat test scripts/probe_hcu_ceiling.ts --network sepolia",

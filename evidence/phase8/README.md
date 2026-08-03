@@ -31,8 +31,13 @@ The public-weight 100-SNP row is a Sepolia measurement. The other scale rows des
 local calculations only. Each calculated fee example multiplies measured local gas by a stated
 gas price; it is not an observed network cost, a production price, or an affordability result.
 
+The contracts process larger models in repeated groups and do not impose a fixed 100-variant
+model limit. The Streaming calculations at all four sizes were evaluated only in the local
+simulation. No new Sepolia Streaming gas, time, or score measurement is included.
+
 ## Supporting data
 
 - [Scale results](scale_evidence.md)
 - [Sepolia and local transaction values](measured_transaction_use.md)
 - [Calculated fee examples](fee_sensitivity.md)
+- [Sepolia Streaming calculation status](../sepolia_streaming_2026-08-01/README.md)

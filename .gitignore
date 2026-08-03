@@ -45,6 +45,24 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# === Paper and LaTeX build artifacts ===
+*.aux
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.nav
+*.snm
+*.synctex
+*.synctex.gz
+*.toc
+*.xdv
+RTR_and_paper/archive/generated_figure_drafts/
+RTR_and_paper/archive/new_arxiv_upload/
+RTR_and_paper/original_arxiv_upload/bioeth_prs_review.*
+tmp/
+
 # === Docker (local fhEVM node) ===
 docker-compose.override.yml
 

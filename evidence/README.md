@@ -21,6 +21,9 @@ Results use three clear labels:
 - The private-weight calculation was evaluated only in the local simulation, not on Sepolia.
 - Public-weight calculations with 100, 500, 1,000, and a maximum of 5,000 variants completed in
   the local simulation.
+- The contracts process larger models in repeated groups and do not impose a fixed 100-variant
+  model limit. The Streaming calculations at all four sizes were evaluated only in the local
+  simulation; no new Sepolia Streaming transaction or result is reported.
 - All 200 individual scores matched Equation 1 exactly across the four evaluated data sizes.
 - With thresholds fixed by the model provider, none of 20 private weights was recovered within
   the noise range after 320 queries chosen after earlier results (`r = 0.9388`). When the requester
@@ -41,5 +44,6 @@ measurements. The private-weight calculation is supported only by local simulati
 - [Adversarial analysis](phase6/README.md)
 - [Public Sepolia result](phase7/live_2026-07-31/README.md)
 - [Scale, transaction, and fee results](phase8/README.md)
-- [Concise scientific conclusions](claim_deltas.md)
-- [Common scientific summary](manuscript_and_rtr_responses.md)
+- [Sepolia Streaming calculation status](sepolia_streaming_2026-08-01/README.md)
+- [Concise scientific conclusions](../RTR_and_paper/plans/claim_deltas.md)
+- [Common scientific summary](../RTR_and_paper/plans/manuscript_and_rtr_responses.md)

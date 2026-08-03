@@ -15,7 +15,7 @@
     },
     "privateWeights": "evaluated only by local simulation; it was not evaluated on Sepolia"
   },
-  "interpretation": "The public 100-SNP calculation completed successfully on Sepolia. Calculations with public weights for 100, 500, 1,000, and 5,000 variants and a 100-SNP calculation with private weights completed in a local contract simulation. The local results do not measure live network time or production cost.",
+  "interpretation": "The public 100-SNP Classic calculation completed successfully on Sepolia. Streaming calculations with public weights for 100, 500, 1,000, and 5,000 variants and a 100-SNP Streaming calculation with private weights completed in a local contract simulation. The contracts process larger models in repeated groups, but no Sepolia Streaming calculation is reported. The local results do not measure live network time or production cost.",
   "results": [
     {
       "setting": "Sepolia",

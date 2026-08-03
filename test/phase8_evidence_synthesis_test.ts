@@ -221,6 +221,7 @@ describe("Evidence summary", function () {
     const markdown = renderScaleMarkdown(scale);
     expect(markdown).to.include("| Setting | Method | Model | Variants |");
     expect(markdown).to.include("local simulation");
+    expect(markdown).to.include("no Sepolia Streaming row");
     expect(markdown).not.to.include("Evidence class");
     expect(keysAtAllLevels(scale)).not.to.include.members([
       "action",

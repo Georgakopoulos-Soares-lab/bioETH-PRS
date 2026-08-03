@@ -30,7 +30,13 @@ in local simulation; it does not show private-weight speed, gas, or behavior on 
 The largest group processed in one local calculation step contained 21 positions for both
 public-weight and private-weight models. This local limit is not a Sepolia measurement.
 
+The contracts process larger models in repeated groups and do not impose a fixed 100-variant
+model limit. Streaming calculations at 100, 500, 1,000, and 5,000 variants were evaluated only
+in the local simulation. No new Sepolia Streaming transaction or result is reported, so the
+completed Sepolia result remains the 100-variant Classic calculation above.
+
 ## Supporting data
 
 - [Public Sepolia calculation](live_2026-07-31/README.md)
 - [Local public-weight and private-weight calculations](readiness_2026-07-31_final/README.md)
+- [Sepolia Streaming calculation status](../sepolia_streaming_2026-08-01/README.md)

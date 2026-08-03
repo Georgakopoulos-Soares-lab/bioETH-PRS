@@ -1,0 +1,226 @@
+{
+  "schema": "bioeth-prs/sepolia-streaming-sweep-checkpoint/1",
+  "status": "complete",
+  "startedAt": "2026-08-01T14:10:00.746Z",
+  "updatedAt": "2026-08-01T14:18:27.783Z",
+  "configuration": {
+    "chainId": "11155111",
+    "signer": "0xB5c0E173d018dbFCc8763997F51cDf88203dB9e3",
+    "snpCount": 100,
+    "vectorLength": 101,
+    "leadingConstantIncluded": true,
+    "modelUploadGroupSize": 32,
+    "calculationGroupSize": 20,
+    "expectedCalculationGroups": 6,
+    "manifestHash": "0xe65c8ede46617c44a017bf3561150dd074b37217491eb06d12f2bad97d4a0a75",
+    "sourceModelHash": "0x9365b87f00aefe9e495639289717cd1d1b86550344d6f14e21db3d06b07debb5",
+    "genotypeManifestHash": "0x991b79072beff846c9dd98db39dd36f3a7a5ae09885e575da5c23d817ea1715a",
+    "expectedEncodedScore": "758685",
+    "independentReferenceEncodedScore": "758685",
+    "contracts": {
+      "GenomicRegistry": "0xCb4ac006Eda926fb7AF947239641D51881A53689",
+      "ModelMarketplace": "0xf8bF680D643df6288ECA5156158bF25B36Cf2642",
+      "PRSComputeEngine": "0x76E3bE29F5e799Bbb6E5De660E702C42E2B9bB70",
+      "ResultOracle": "0x50B708609D894F63309daFD4fd596F5547EDe5B3"
+    }
+  },
+  "runtimeCode": [
+    {
+      "name": "GenomicRegistry",
+      "address": "0xCb4ac006Eda926fb7AF947239641D51881A53689",
+      "bytecodeHash": "0x1b2e38bee44ca3a96c813fc05e41fd0b59e8e08b09320503cdfade32aa1400da",
+      "bytecodeBytes": 2808
+    },
+    {
+      "name": "ModelMarketplace",
+      "address": "0xf8bF680D643df6288ECA5156158bF25B36Cf2642",
+      "bytecodeHash": "0xd9eb7e9e78e3ab7c87df4b748acd36eeb7ab19d199bef96e57dfcf844a3abbbb",
+      "bytecodeBytes": 8151
+    },
+    {
+      "name": "PRSComputeEngine",
+      "address": "0x76E3bE29F5e799Bbb6E5De660E702C42E2B9bB70",
+      "bytecodeHash": "0x60707904f55753a54dd1bf4c587be5ece5fb4bf7c8c4d039e3ed235034e9c0e6",
+      "bytecodeBytes": 10426
+    },
+    {
+      "name": "ResultOracle",
+      "address": "0x50B708609D894F63309daFD4fd596F5547EDe5B3",
+      "bytecodeHash": "0x9c562affce2db7ed2fab05fb7abb314e49d13fe25fd0e1e0ef42faffe4b54e40",
+      "bytecodeBytes": 3594
+    }
+  ],
+  "progress": {
+    "modelId": "2",
+    "sampleId": "2",
+    "jobId": "2",
+    "scoreHandle": "0x3531dd30df45ad287bf657cfe98d5ddc75d24b2abcff0000000000aa36a70500"
+  },
+  "transactions": [
+    {
+      "label": "model.createShell",
+      "hash": "0x4846f4c399f7f5689b23eee9575e9f53ea2cb98a07b8c3984f2ff84b3953fc59",
+      "nonce": 38,
+      "blockNumber": 11396882,
+      "blockTimestamp": 1785593412,
+      "gasUsed": "235038",
+      "effectiveGasPrice": "1118548423",
+      "feePaidWei": "262901384245074",
+      "status": 1
+    },
+    {
+      "label": "model.appendPublicGroup.0",
+      "hash": "0x5247ea02f5779ace8c107dea0f653eaea1035678c3ac2decc9eb5268317d5c14",
+      "nonce": 39,
+      "blockNumber": 11396883,
+      "blockTimestamp": 1785593424,
+      "gasUsed": "286207",
+      "effectiveGasPrice": "1120122926",
+      "feePaidWei": "320587022281682",
+      "status": 1
+    },
+    {
+      "label": "model.appendPublicGroup.1",
+      "hash": "0x02bb28b6963126e3effb0f59bbc8778f9d57e7f602a3b7baaf1d48f35ca4f456",
+      "nonce": 40,
+      "blockNumber": 11396884,
+      "blockTimestamp": 1785593436,
+      "gasUsed": "252043",
+      "effectiveGasPrice": "1088074300",
+      "feePaidWei": "274241510794900",
+      "status": 1
+    },
+    {
+      "label": "model.appendPublicGroup.2",
+      "hash": "0x7251b4bf8d9d4e6a892ba91a651870c91608261bd42aa6dd3ce28d4f8d38f82e",
+      "nonce": 41,
+      "blockNumber": 11396885,
+      "blockTimestamp": 1785593448,
+      "gasUsed": "252055",
+      "effectiveGasPrice": "1057518161",
+      "feePaidWei": "266552740070855",
+      "status": 1
+    },
+    {
+      "label": "model.appendPublicGroup.3",
+      "hash": "0x79e804e4a23f09942efbe0000fc1e28359ef60987e96c3060bee184648fab687",
+      "nonce": 42,
+      "blockNumber": 11396886,
+      "blockTimestamp": 1785593460,
+      "gasUsed": "92579",
+      "effectiveGasPrice": "1067730754",
+      "feePaidWei": "98849445474566",
+      "status": 1
+    },
+    {
+      "label": "model.finalize",
+      "hash": "0x810550db7dc3a890137a89a0e4ead3ed3129f0e343ad9266bf717769a609f13c",
+      "nonce": 43,
+      "blockNumber": 11396887,
+      "blockTimestamp": 1785593472,
+      "gasUsed": "34636",
+      "effectiveGasPrice": "1016649025",
+      "feePaidWei": "35212655629900",
+      "status": 1
+    },
+    {
+      "label": "sample.register",
+      "hash": "0x3de9e3ed32db005ab0b50f28fc62e0a6ad582762be2124d6d22f865a8122bf5e",
+      "nonce": 44,
+      "blockNumber": 11396889,
+      "blockTimestamp": 1785593496,
+      "gasUsed": "98263",
+      "effectiveGasPrice": "1112927678",
+      "feePaidWei": "109359612423314",
+      "status": 1
+    },
+    {
+      "label": "job.create",
+      "hash": "0xbeb1dea3c7b58f8c46d9fa240228d89ef85d1e46b769e8480fa7e02ffabb7375",
+      "nonce": 45,
+      "blockNumber": 11396890,
+      "blockTimestamp": 1785593508,
+      "gasUsed": "367226",
+      "effectiveGasPrice": "1127447716",
+      "feePaidWei": "414028114955816",
+      "status": 1
+    },
+    {
+      "label": "job.appendAndComputeGroup.0",
+      "hash": "0xa64c618c9cf04952808512ccff611ee7633bbc2b5d990cec7625a516ece64604",
+      "nonce": 46,
+      "blockNumber": 11396892,
+      "blockTimestamp": 1785593532,
+      "gasUsed": "2287725",
+      "effectiveGasPrice": "1058901752",
+      "feePaidWei": "2422476010594200",
+      "status": 1
+    },
+    {
+      "label": "job.appendAndComputeGroup.1",
+      "hash": "0x8ac5e90308fd3d1ff25edfe6ce1ffc84301269cdc4a5754f68f3a0cf700e40cb",
+      "nonce": 47,
+      "blockNumber": 11396895,
+      "blockTimestamp": 1785593568,
+      "gasUsed": "2255553",
+      "effectiveGasPrice": "1104192519",
+      "feePaidWei": "2490564748808007",
+      "status": 1
+    },
+    {
+      "label": "job.appendAndComputeGroup.2",
+      "hash": "0x908e0ee83fc5e7c27a2455bde87936d5c60e7fe4ab0102d930d538a0c2ff7117",
+      "nonce": 48,
+      "blockNumber": 11396901,
+      "blockTimestamp": 1785593640,
+      "gasUsed": "2255481",
+      "effectiveGasPrice": "1084070864",
+      "feePaidWei": "2445101236405584",
+      "status": 1
+    },
+    {
+      "label": "job.appendAndComputeGroup.3",
+      "hash": "0x6aaef3cca2127d62d0f9698598896052db0f2fa2adc9073c527d5d772bd7762a",
+      "nonce": 49,
+      "blockNumber": 11396906,
+      "blockTimestamp": 1785593700,
+      "gasUsed": "2255477",
+      "effectiveGasPrice": "1120479242",
+      "feePaidWei": "2527215159308434",
+      "status": 1
+    },
+    {
+      "label": "job.appendAndComputeGroup.4",
+      "hash": "0xc63267a40004abdedfc2c584b6ea69d74f13d44c3958c19160e807fbf274a0ef",
+      "nonce": 50,
+      "blockNumber": 11396914,
+      "blockTimestamp": 1785593796,
+      "gasUsed": "2255525",
+      "effectiveGasPrice": "1062073858",
+      "feePaidWei": "2395534138565450",
+      "status": 1
+    },
+    {
+      "label": "job.appendAndComputeGroup.5",
+      "hash": "0xd9bd5985cd267edd613a108b828c66d8a664d8e719b61a62a96f6d2239c4ac5a",
+      "nonce": 51,
+      "blockNumber": 11396918,
+      "blockTimestamp": 1785593844,
+      "gasUsed": "323589",
+      "effectiveGasPrice": "1050128519",
+      "feePaidWei": "339810037334691",
+      "status": 1
+    },
+    {
+      "label": "job.finalize",
+      "hash": "0x28cf343a96da10794e1da4c969e9edde37f98a09965b50f354ea768df8b0a441",
+      "nonce": 52,
+      "blockNumber": 11396922,
+      "blockTimestamp": 1785593892,
+      "gasUsed": "207352",
+      "effectiveGasPrice": "1124667172",
+      "feePaidWei": "233201987448544",
+      "status": 1
+    }
+  ]
+}

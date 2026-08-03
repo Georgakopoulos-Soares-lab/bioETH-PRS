@@ -227,7 +227,7 @@ export function buildScaleEvidence(
         "evaluated only by local simulation; it was not evaluated on Sepolia",
     },
     interpretation:
-      "The public 100-SNP calculation completed successfully on Sepolia. Calculations with public weights for 100, 500, 1,000, and 5,000 variants and a 100-SNP calculation with private weights completed in a local contract simulation. The local results do not measure live network time or production cost.",
+      "The public 100-SNP Classic calculation completed successfully on Sepolia. Streaming calculations with public weights for 100, 500, 1,000, and 5,000 variants and a 100-SNP Streaming calculation with private weights completed in a local contract simulation. The contracts process larger models in repeated groups, but no Sepolia Streaming calculation is reported. The local results do not measure live network time or production cost.",
     results: rows,
   };
 }
@@ -509,6 +509,10 @@ export function renderScaleMarkdown(scale: ReturnType<typeof buildScaleEvidence>
     "inputs)**. The remaining rows used the **Streaming method** in a **local contract simulation**.",
     "These local results do not measure live network time or production cost.",
     "",
+    "The contracts process larger models in repeated groups and do not impose a fixed 100-variant",
+    "model limit. The Streaming calculations at all four sizes were evaluated only in the local",
+    "simulation. The table therefore contains no Sepolia Streaming row.",
+    "",
     "The transaction count includes model publication, sample registration, and one score calculation;",
     "contract deployment is excluded. The Sepolia row stores inputs before calculation, while the",
     "local rows combine input upload and calculation. Each data set also contains one leading constant",
@@ -538,7 +542,8 @@ export function renderScaleMarkdown(scale: ReturnType<typeof buildScaleEvidence>
   lines.push(
     "",
     "The private-weight calculation was evaluated only in local simulation, not on Sepolia. The",
-    "table above reports the values used in the manuscript and response."
+    "table above reports the completed measurements used in the manuscript and response. See the",
+    "[Sepolia Streaming calculation status](../sepolia_streaming_2026-08-01/README.md)."
   );
   return lines.join("\n") + "\n";
 }
@@ -555,6 +560,10 @@ export function renderTransactionUseMarkdown(
     "The tables separate **public Sepolia** measurements from a **local contract simulation**. The",
     "local results do not measure live network time or production cost. The private-weight",
     "calculation was evaluated only in local simulation, not on Sepolia.",
+    "",
+    "The contracts can process a larger model through repeated groups, but the Streaming calculations",
+    "at all four sizes were evaluated only in the local simulation. This document therefore contains",
+    "no Sepolia Streaming gas, time, or score row.",
     "",
     "## Public Sepolia",
     "",
@@ -591,7 +600,9 @@ export function renderTransactionUseMarkdown(
     `Storing the result categories uses one transaction and ${formatInteger(transactionUse.resultOptions.categorySetup.gas)} gas in local simulation. It is not`,
     "included in the raw-score totals above.",
     "",
-    "The [calculated fee examples](fee_sensitivity.md) use the local gas values reported above."
+    "The [calculated fee examples](fee_sensitivity.md) use the local gas values reported above. The",
+    "[Sepolia Streaming calculation status](../sepolia_streaming_2026-08-01/README.md) records why no",
+    "new live result is included."
   ];
   return lines.join("\n") + "\n";
 }
