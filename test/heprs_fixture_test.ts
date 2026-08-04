@@ -11,6 +11,12 @@ import {
   quantizeHeprsWeightsWithRecommendation,
   toBigIntVector
 } from "./utils/heprs";
+import {
+  fixtureModelProvenance,
+  heprsManifestPath,
+  heprsWeightsPath,
+  heprsGenotypePath,
+} from "../scripts/utils/provenance";
 
 const ONCHAIN_HEPRS_FIXTURE_SIZES = [100, 500, 1000] as const;
 
@@ -62,6 +68,15 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
       expect(snps.length).to.equal(fixtureSize + 1);
       expect(quantized.scale).to.equal(recommendation.scale);
 
+      // R2.4-E1: commit to the exact fixture bytes and to the model manifest the
+      // independent Python reference consumes.
+      const prov = fixtureModelProvenance({
+        manifestPath: heprsManifestPath(fixtureSize),
+        weightsPath: heprsWeightsPath(fixtureSize),
+        genotypePath: heprsGenotypePath(fixtureSize),
+        extra: { nominalSnpCount: fixtureSize, scale: quantized.scale },
+      });
+
       const Marketplace = await ethers.getContractFactory("ModelMarketplace");
       const marketplace = await Marketplace.deploy();
       const modelId = await marketplace.createModelShell.staticCall(
@@ -70,8 +85,8 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
         BigInt(uploadChunkSize),
         BigInt(computeChunkSize),
         `ipfs://heprs-${fixtureSize}`,
-        ethers.ZeroHash,
-        ethers.ZeroHash,
+        prov.manifestHash,
+        prov.sourceModelHash,
         quantized.weightZeroPoint,
         quantized.scoreOffset
       );
@@ -81,8 +96,8 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
         BigInt(uploadChunkSize),
         BigInt(computeChunkSize),
         `ipfs://heprs-${fixtureSize}`,
-        ethers.ZeroHash,
-        ethers.ZeroHash,
+        prov.manifestHash,
+        prov.sourceModelHash,
         quantized.weightZeroPoint,
         quantized.scoreOffset
       );
@@ -94,8 +109,14 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
 
       const Registry = await ethers.getContractFactory("GenomicRegistry");
       const registry = await Registry.deploy();
-      const sampleId = await registry.registerSample.staticCall(`ipfs://heprs-${fixtureSize}-sample`);
-      await registry.registerSample(`ipfs://heprs-${fixtureSize}-sample`);
+      const sampleId = await registry.registerSampleWithManifest.staticCall(
+        `ipfs://heprs-${fixtureSize}-sample`,
+        prov.genotypeManifestHash
+      );
+      await registry.registerSampleWithManifest(
+        `ipfs://heprs-${fixtureSize}-sample`,
+        prov.genotypeManifestHash
+      );
       const Engine = await ethers.getContractFactory("PRSComputeEngine");
       const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
       const engineAddr = await engine.getAddress();
@@ -151,6 +172,14 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
       quantized.weights.slice(0, computeChunkSize)
     );
 
+    // R2.4-E1: real provenance for the 5,000-SNP overflow-boundary run.
+    const prov = fixtureModelProvenance({
+      manifestPath: heprsManifestPath(5000),
+      weightsPath: heprsWeightsPath(5000),
+      genotypePath: heprsGenotypePath(5000),
+      extra: { nominalSnpCount: 5000, scale: quantized.scale, purpose: "overflow_boundary" },
+    });
+
     const Marketplace = await ethers.getContractFactory("ModelMarketplace");
     const marketplace = await Marketplace.deploy();
     const modelId = await marketplace.createModelShell.staticCall(
@@ -159,8 +188,8 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
       BigInt(uploadChunkSize),
       BigInt(computeChunkSize),
       "ipfs://heprs-5000",
-      ethers.ZeroHash,
-      ethers.ZeroHash,
+      prov.manifestHash,
+      prov.sourceModelHash,
       quantized.weightZeroPoint,
       quantized.scoreOffset
     );
@@ -170,8 +199,8 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
       BigInt(uploadChunkSize),
       BigInt(computeChunkSize),
       "ipfs://heprs-5000",
-      ethers.ZeroHash,
-      ethers.ZeroHash,
+      prov.manifestHash,
+      prov.sourceModelHash,
       quantized.weightZeroPoint,
       quantized.scoreOffset
     );
@@ -182,8 +211,14 @@ describe("HEPRS fixture integration — fhEVM mock coprocessor (Hardhat)", funct
 
     const Registry = await ethers.getContractFactory("GenomicRegistry");
     const registry = await Registry.deploy();
-    const sampleId = await registry.registerSample.staticCall("ipfs://heprs-5000-sample");
-    await registry.registerSample("ipfs://heprs-5000-sample");
+    const sampleId = await registry.registerSampleWithManifest.staticCall(
+      "ipfs://heprs-5000-sample",
+      prov.genotypeManifestHash
+    );
+    await registry.registerSampleWithManifest(
+      "ipfs://heprs-5000-sample",
+      prov.genotypeManifestHash
+    );
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
     const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
     const engineAddr = await engine.getAddress();

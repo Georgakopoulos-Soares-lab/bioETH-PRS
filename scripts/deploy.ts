@@ -15,9 +15,40 @@ import fs from "fs";
 import path from "path";
 
 import { ethers } from "hardhat";
+import {
+  contractIdentity,
+  gitInfo,
+  hashedInput,
+  PROVENANCE_SCHEMA,
+} from "./utils/provenance";
 
 const DEFAULT_HARDHAT_DEPLOYER =
   "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
+
+interface DeploymentTransaction {
+  contract: string;
+  hash: string;
+  blockNumber: number;
+  gasUsed: string;
+  status: number | null;
+}
+
+async function deploymentRecord(
+  contractName: string,
+  contract: any
+): Promise<DeploymentTransaction> {
+  const tx = contract.deploymentTransaction();
+  if (!tx) throw new Error(`${contractName}: deployment transaction is missing`);
+  const receipt = await tx.wait();
+  if (!receipt) throw new Error(`${contractName}: deployment receipt is missing`);
+  return {
+    contract: contractName,
+    hash: tx.hash,
+    blockNumber: receipt.blockNumber,
+    gasUsed: receipt.gasUsed.toString(),
+    status: receipt.status,
+  };
+}
 
 async function main(): Promise<void> {
   const [deployer] = await ethers.getSigners();
@@ -41,12 +72,14 @@ async function main(): Promise<void> {
     console.warn("WARNING: balance is low — consider topping up via the Sepolia faucet");
   }
   console.log("");
+  const transactions: DeploymentTransaction[] = [];
 
   // 1. GenomicRegistry — no constructor arguments
   process.stdout.write("Deploying GenomicRegistry ... ");
   const Registry = await ethers.getContractFactory("GenomicRegistry");
   const registry = await Registry.deploy();
   await registry.waitForDeployment();
+  transactions.push(await deploymentRecord("GenomicRegistry", registry));
   const registryAddress = await registry.getAddress();
   console.log(registryAddress);
 
@@ -55,6 +88,7 @@ async function main(): Promise<void> {
   const Marketplace = await ethers.getContractFactory("ModelMarketplace");
   const marketplace = await Marketplace.deploy();
   await marketplace.waitForDeployment();
+  transactions.push(await deploymentRecord("ModelMarketplace", marketplace));
   const marketplaceAddress = await marketplace.getAddress();
   console.log(marketplaceAddress);
 
@@ -63,6 +97,7 @@ async function main(): Promise<void> {
   const Engine = await ethers.getContractFactory("PRSComputeEngine");
   const engine = await Engine.deploy(marketplaceAddress, registryAddress);
   await engine.waitForDeployment();
+  transactions.push(await deploymentRecord("PRSComputeEngine", engine));
   const engineAddress = await engine.getAddress();
   console.log(engineAddress);
 
@@ -76,6 +111,7 @@ async function main(): Promise<void> {
   const Oracle = await ethers.getContractFactory("ResultOracle");
   const oracle = await Oracle.deploy(NOISE_UPPER_BOUND);
   await oracle.waitForDeployment();
+  transactions.push(await deploymentRecord("ResultOracle", oracle));
   const oracleAddress = await oracle.getAddress();
   console.log(oracleAddress);
 
@@ -89,15 +125,36 @@ async function main(): Promise<void> {
     chainId: chainId.toString(),
     deployedAt: new Date().toISOString(),
     deployer: deployer.address,
+    evidenceClass: chainId === 31337n ? "Hardhat mock" : "Live fhEVM",
+    transactionCount: transactions.length,
+    totalDeploymentGas: transactions
+      .reduce((sum, transaction) => sum + BigInt(transaction.gasUsed), 0n)
+      .toString(),
+    transactions,
     contracts: {
       GenomicRegistry: registryAddress,
       ModelMarketplace: marketplaceAddress,
       PRSComputeEngine: engineAddress,
       ResultOracle: oracleAddress
-    }
+    },
+    provenance: {
+      schema: PROVENANCE_SCHEMA,
+      repository: gitInfo(),
+      runtime: { node: process.version, platform: process.platform },
+      network: { name: network.name, chainId: chainId.toString() },
+      source: hashedInput("deployment_script", __filename),
+      contracts: [
+        await contractIdentity("GenomicRegistry", registry),
+        await contractIdentity("ModelMarketplace", marketplace),
+        await contractIdentity("PRSComputeEngine", engine),
+        await contractIdentity("ResultOracle", oracle),
+      ],
+    },
   };
 
-  const deploymentsDir = path.resolve(__dirname, "../deployments");
+  const deploymentsDir = process.env.DEPLOYMENT_OUT_DIR
+    ? path.resolve(process.env.DEPLOYMENT_OUT_DIR)
+    : path.resolve(__dirname, "../deployments");
   fs.mkdirSync(deploymentsDir, { recursive: true });
   const outPath = path.join(deploymentsDir, `${networkKey}.json`);
   fs.writeFileSync(outPath, JSON.stringify(deployment, null, 2));

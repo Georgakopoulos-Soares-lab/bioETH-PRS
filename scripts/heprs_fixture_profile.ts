@@ -15,6 +15,15 @@ import {
   quantizeHeprsWeightsWithRecommendation,
   toBigIntVector
 } from "../test/utils/heprs";
+import {
+  fixtureModelProvenance,
+  buildProvenance,
+  contractIdentity,
+  heprsManifestPath,
+  heprsWeightsPath,
+  heprsGenotypePath,
+  heprsReferencePath,
+} from "./utils/provenance";
 
 interface CliOptions {
   fixtureSizes: HeprsFixtureSize[];
@@ -52,15 +61,37 @@ interface StreamingGasSummary {
   total: bigint;
 }
 
+interface TransactionSummary {
+  modelPublication: number;
+  sampleRegistration: number;
+  classic: {
+    jobCreation: number;
+    uploadSnps: number;
+    finalizeSnpUpload: number;
+    compute: number;
+    resultFinalization: number;
+    totalIncludingModelAndSample: number;
+  };
+  streaming: {
+    jobCreation: number;
+    uploadAndCompute: number;
+    resultFinalization: number;
+    totalIncludingModelAndSample: number;
+  };
+}
+
 interface SuccessfulFixtureProfile {
   fixtureSize: HeprsFixtureSize;
   vectorLength: number;
   uploadChunkSize: number;
   computeChunkSize: number;
   recommendation: HeprsAdvisorRecommendation;
+  evidenceClass: string;
+  provenance: unknown;
   chunkTiming: ChunkTimingSummary;
   gas: GasSummary;
   streamingGas: StreamingGasSummary;
+  transactions: TransactionSummary;
   status: "full_flow";
   timingsMs: {
     total: number;
@@ -112,7 +143,10 @@ function parseCliArgs(argv: string[]): CliOptions {
   let uploadChunkSize = 32;
   let computeChunkSize = 20;
   let verbose = false;
-  let jsonOutPath: string | undefined;
+  // Hardhat consumes and rejects unknown CLI flags before Mocha can expose them to
+  // this script. The environment variable is therefore the reproducible path used
+  // by Phase 8; direct invocation can still use --json-out.
+  let jsonOutPath = process.env.HEPRS_PROFILE_JSON_OUT;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -207,6 +241,24 @@ async function profileFixture(
   const genoSum = snps.reduce((a, b) => a + b, 0n);
   const expected = naiveDotProduct + quantized.scoreOffset - quantized.weightZeroPoint * genoSum;
 
+  // R2.4-E1: commit to the exact fixture bytes and to the same model manifest the
+  // independent Python reference consumes, so a reported figure ties back to both.
+  const prov = fixtureModelProvenance({
+    manifestPath: heprsManifestPath(fixtureSize),
+    weightsPath: heprsWeightsPath(fixtureSize),
+    genotypePath: heprsGenotypePath(fixtureSize),
+    extra: {
+      nominalSnpCount: fixtureSize,
+      encodedPositions: quantized.weights.length,
+      encodedPositionsNote:
+        "nominal + 1: the fixtures carry a leading intercept column (weight 0, dosage 1)",
+      scale: quantized.scale,
+      uploadChunkSize,
+      computeChunkSize,
+      individual: 0,
+    },
+  });
+
   const deployMarketplaceResult = await timed(async () => {
     const Marketplace = await ethers.getContractFactory("ModelMarketplace");
     return Marketplace.deploy();
@@ -214,6 +266,7 @@ async function profileFixture(
   const marketplace = deployMarketplaceResult.value;
 
   let publishModelGas = 0n;
+  let publishModelTransactions = 0;
   const publishModelResult = await timed(async () => {
     const modelId = await marketplace.createModelShell.staticCall(
       false,
@@ -221,8 +274,8 @@ async function profileFixture(
       BigInt(uploadChunkSize),
       BigInt(computeChunkSize),
       `ipfs://heprs/${fixtureSize}`,
-      ethers.ZeroHash,
-      ethers.ZeroHash,
+      prov.manifestHash,
+      prov.sourceModelHash,
       quantized.weightZeroPoint,
       quantized.scoreOffset
     );
@@ -232,20 +285,23 @@ async function profileFixture(
       BigInt(uploadChunkSize),
       BigInt(computeChunkSize),
       `ipfs://heprs/${fixtureSize}`,
-      ethers.ZeroHash,
-      ethers.ZeroHash,
+      prov.manifestHash,
+      prov.sourceModelHash,
       quantized.weightZeroPoint,
       quantized.scoreOffset
     );
     publishModelGas += (await tx.wait())?.gasUsed ?? 0n;
+    publishModelTransactions++;
 
     for (const chunk of chunkBigIntVector(quantized.weights, uploadChunkSize)) {
       const appendTx = await marketplace.appendPublicModelChunk(modelId, chunk);
       publishModelGas += (await appendTx.wait())?.gasUsed ?? 0n;
+      publishModelTransactions++;
     }
 
     const finalizeTx = await marketplace.finalizeModel(modelId);
     publishModelGas += (await finalizeTx.wait())?.gasUsed ?? 0n;
+    publishModelTransactions++;
     return modelId;
   });
   const modelId = publishModelResult.value;
@@ -253,8 +309,14 @@ async function profileFixture(
   const deployEngineResult = await timed(async () => {
     const Registry = await ethers.getContractFactory("GenomicRegistry");
     const registry = await Registry.deploy();
-    const sid = await registry.registerSample.staticCall("ipfs://heprs-profile-sample");
-    await registry.registerSample("ipfs://heprs-profile-sample");
+    const sid = await registry.registerSampleWithManifest.staticCall(
+      "ipfs://heprs-profile-sample",
+      prov.genotypeManifestHash
+    );
+    await registry.registerSampleWithManifest(
+      "ipfs://heprs-profile-sample",
+      prov.genotypeManifestHash
+    );
     const Engine = await ethers.getContractFactory("PRSComputeEngine");
     const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
     return { engine, sampleId: sid };
@@ -272,6 +334,7 @@ async function profileFixture(
   const engineAddr = await engine.getAddress();
 
   let uploadSnpsGas = 0n;
+  let uploadSnpTransactions = 0;
   const uploadSnpsResult = await timed(async () => {
     for (const chunk of chunkBigIntVector(snps, uploadChunkSize)) {
       const input = fhevm.createEncryptedInput(engineAddr, signer.address);
@@ -279,6 +342,7 @@ async function profileFixture(
       const { handles, inputProof } = await input.encrypt();
       const tx = await engine.appendSnpChunk(jobId, handles, inputProof);
       uploadSnpsGas += (await tx.wait())?.gasUsed ?? 0n;
+      uploadSnpTransactions++;
     }
   });
 
@@ -345,6 +409,7 @@ async function profileFixture(
   const streamingJobId = await engine.jobCount() - 1n;
 
   let streamingUploadAndComputeGas = 0n;
+  let streamingUploadAndComputeTransactions = 0;
   // Streaming chunks must match computeChunkSize (HCU budget), NOT uploadChunkSize.
   // computeChunkSize=20 < 32 (fhEVM input-proof budget), so this is safe.
   const streamingUploadAndComputeResult = await timed(async () => {
@@ -354,6 +419,7 @@ async function profileFixture(
       const { handles, inputProof } = await input.encrypt();
       const tx = await engine.appendAndComputeChunk(streamingJobId, handles, inputProof);
       streamingUploadAndComputeGas += (await tx.wait())?.gasUsed ?? 0n;
+      streamingUploadAndComputeTransactions++;
     }
   });
 
@@ -378,12 +444,34 @@ async function profileFixture(
 
   const chunkTotal = chunkTimes.reduce((sum, value) => sum + value, 0);
   const totalGas = publishModelGas + createJobGas + uploadSnpsGas + finalizeSnpUploadGas + computeGas + finalizeGas;
+  const sampleRegistrationTransactions = 1;
+  const classicTransactions = {
+    jobCreation: 1,
+    uploadSnps: uploadSnpTransactions,
+    finalizeSnpUpload: 1,
+    compute: totalChunks,
+    resultFinalization: 1,
+  };
+  const streamingTransactions = {
+    jobCreation: 1,
+    uploadAndCompute: streamingUploadAndComputeTransactions,
+    resultFinalization: 1,
+  };
   return {
     fixtureSize,
     vectorLength: snps.length,
     uploadChunkSize,
     computeChunkSize,
     recommendation,
+    evidenceClass: "Hardhat mock",
+    provenance: await buildProvenance({
+      model: prov,
+      contracts: [
+        await contractIdentity("ModelMarketplace", marketplace),
+        await contractIdentity("PRSComputeEngine", engine),
+      ],
+      referenceOutputPath: heprsReferencePath(fixtureSize),
+    }),
     gas: {
       publishModel: publishModelGas,
       createJob: createJobGas,
@@ -399,6 +487,24 @@ async function profileFixture(
       uploadAndCompute: streamingUploadAndComputeGas,
       finalize: streamingFinalizeGas,
       total: streamingTotal
+    },
+    transactions: {
+      modelPublication: publishModelTransactions,
+      sampleRegistration: sampleRegistrationTransactions,
+      classic: {
+        ...classicTransactions,
+        totalIncludingModelAndSample:
+          publishModelTransactions +
+          sampleRegistrationTransactions +
+          Object.values(classicTransactions).reduce((sum, value) => sum + value, 0),
+      },
+      streaming: {
+        ...streamingTransactions,
+        totalIncludingModelAndSample:
+          publishModelTransactions +
+          sampleRegistrationTransactions +
+          Object.values(streamingTransactions).reduce((sum, value) => sum + value, 0),
+      },
     },
     chunkTiming: {
       chunkCount: chunkTimes.length,
@@ -447,6 +553,7 @@ function summarizeProfile(profile: FixtureProfile, verbose: boolean): string {
   lines.push(
     `timings: total=${formatMs(profile.timingsMs.total)}, load=${formatMs(profile.timingsMs.loadFixture)}, quantize=${formatMs(profile.timingsMs.quantizeWeights)}, publishModel=${formatMs(profile.timingsMs.publishModel)}, createJob=${formatMs(profile.timingsMs.createJob)}, uploadSnps=${formatMs(profile.timingsMs.uploadSnps)}, finalizeSnpUpload=${formatMs(profile.timingsMs.finalizeSnpUpload)}, chunkTotal=${formatMs(profile.chunkTiming.totalMs)}, finalize=${formatMs(profile.timingsMs.finalize)}, stream.uploadAndCompute=${formatMs(profile.timingsMs.streamingUploadAndCompute)}, stream.finalize=${formatMs(profile.timingsMs.streamingFinalize)}`,
     `chunks: count=${profile.chunkTiming.chunkCount}, avg=${formatMs(profile.chunkTiming.averageMs)}, min=${formatMs(profile.chunkTiming.minMs)}, max=${formatMs(profile.chunkTiming.maxMs)}`,
+    `transactions: classic=${profile.transactions.classic.totalIncludingModelAndSample}, streaming=${profile.transactions.streaming.totalIncludingModelAndSample} (fresh model + registered sample + one job; deployments excluded)`,
     `gas (classic):  total=${profile.gas.total}, publishModel=${profile.gas.publishModel}, createJob=${profile.gas.createJob}, uploadSnps=${profile.gas.uploadSnps}, finalizeSnpUpload=${profile.gas.finalizeSnpUpload}, compute=${profile.gas.compute}, finalize=${profile.gas.finalize}`,
     `gas (streaming): total=${profile.streamingGas.total}, publishModel=${profile.streamingGas.publishModel}, createJob=${profile.streamingGas.createJob}, uploadAndCompute=${profile.streamingGas.uploadAndCompute}, finalize=${profile.streamingGas.finalize}`,
     `gas savings (streaming vs classic): ${gasSavings} (${savingsPct}%)`
@@ -466,7 +573,9 @@ function stringifyProfiles(profiles: FixtureProfile[]): string {
 
 // Run as a Hardhat test so the @fhevm/hardhat-plugin mock coprocessor is
 // fully initialized before any FHE operations execute.
-// Usage: npm run profile:heprs [-- --fixture 100 --compute-chunk-size 20]
+// Usage:
+//   npm run profile:heprs
+//   HEPRS_PROFILE_JSON_OUT=evidence/phase8/heprs_profile.json npm run profile:heprs
 describe("HEPRS fixture profiler", function () {
   // Allow up to 30 min for all four fixtures at computeChunkSize=20
   this.timeout(1_800_000);

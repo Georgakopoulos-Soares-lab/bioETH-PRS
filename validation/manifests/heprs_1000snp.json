@@ -1,0 +1,8014 @@
+{
+  "manifest_version": 1,
+  "genome_build": "UNSPECIFIED_ASSUMED_CONSISTENT",
+  "scale": 1000000,
+  "missing_policy": "reject",
+  "note": "HEPRS fixture manifest, nominal 1000 SNPs plus one intercept column (1001 encoded positions). Alleles are placeholders: the fixtures carry no allele or build metadata, so they are assumed pre-aligned and no strand or build validation is performed.",
+  "variants": [
+    {
+      "id": "intercept",
+      "intercept": true,
+      "note": "constant column: weight 0, dosage 1"
+    },
+    {
+      "id": "fixture_snp_0001",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0002",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0003",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0004",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0005",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0006",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0007",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0008",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0009",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0010",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0011",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0012",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0013",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0014",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0015",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0016",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0017",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0018",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0019",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0020",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0021",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0022",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0023",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0024",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0025",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0026",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0027",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0028",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0029",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0030",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0031",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0032",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0033",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0034",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0035",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0036",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0037",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0038",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0039",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0040",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0041",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0042",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0043",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0044",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0045",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0046",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0047",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0048",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0049",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0050",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0051",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0052",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0053",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0054",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0055",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0056",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0057",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0058",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0059",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0060",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0061",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0062",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0063",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0064",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0065",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0066",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0067",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0068",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0069",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0070",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0071",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0072",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0073",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0074",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0075",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0076",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0077",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0078",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0079",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0080",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0081",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0082",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0083",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0084",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0085",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0086",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0087",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0088",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0089",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0090",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0091",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0092",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0093",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0094",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0095",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0096",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0097",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0098",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0099",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0100",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0101",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0102",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0103",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0104",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0105",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0106",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0107",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0108",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0109",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0110",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0111",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0112",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0113",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0114",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0115",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0116",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0117",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0118",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0119",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0120",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0121",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0122",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0123",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0124",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0125",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0126",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0127",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0128",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0129",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0130",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0131",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0132",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0133",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0134",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0135",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0136",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0137",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0138",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0139",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0140",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0141",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0142",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0143",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0144",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0145",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0146",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0147",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0148",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0149",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0150",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0151",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0152",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0153",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0154",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0155",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0156",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0157",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0158",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0159",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0160",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0161",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0162",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0163",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0164",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0165",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0166",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0167",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0168",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0169",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0170",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0171",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0172",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0173",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0174",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0175",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0176",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0177",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0178",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0179",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0180",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0181",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0182",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0183",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0184",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0185",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0186",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0187",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0188",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0189",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0190",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0191",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0192",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0193",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0194",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0195",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0196",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0197",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0198",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0199",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0200",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0201",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0202",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0203",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0204",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0205",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0206",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0207",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0208",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0209",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0210",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0211",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0212",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0213",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0214",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0215",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0216",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0217",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0218",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0219",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0220",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0221",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0222",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0223",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0224",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0225",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0226",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0227",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0228",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0229",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0230",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0231",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0232",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0233",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0234",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0235",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0236",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0237",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0238",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0239",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0240",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0241",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0242",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0243",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0244",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0245",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0246",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0247",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0248",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0249",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0250",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0251",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0252",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0253",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0254",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0255",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0256",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0257",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0258",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0259",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0260",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0261",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0262",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0263",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0264",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0265",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0266",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0267",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0268",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0269",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0270",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0271",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0272",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0273",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0274",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0275",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0276",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0277",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0278",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0279",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0280",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0281",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0282",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0283",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0284",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0285",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0286",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0287",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0288",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0289",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0290",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0291",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0292",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0293",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0294",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0295",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0296",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0297",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0298",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0299",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0300",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0301",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0302",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0303",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0304",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0305",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0306",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0307",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0308",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0309",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0310",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0311",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0312",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0313",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0314",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0315",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0316",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0317",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0318",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0319",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0320",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0321",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0322",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0323",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0324",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0325",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0326",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0327",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0328",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0329",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0330",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0331",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0332",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0333",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0334",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0335",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0336",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0337",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0338",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0339",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0340",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0341",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0342",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0343",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0344",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0345",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0346",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0347",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0348",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0349",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0350",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0351",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0352",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0353",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0354",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0355",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0356",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0357",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0358",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0359",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0360",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0361",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0362",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0363",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0364",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0365",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0366",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0367",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0368",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0369",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0370",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0371",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0372",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0373",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0374",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0375",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0376",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0377",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0378",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0379",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0380",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0381",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0382",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0383",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0384",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0385",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0386",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0387",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0388",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0389",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0390",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0391",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0392",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0393",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0394",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0395",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0396",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0397",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0398",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0399",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0400",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0401",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0402",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0403",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0404",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0405",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0406",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0407",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0408",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0409",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0410",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0411",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0412",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0413",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0414",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0415",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0416",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0417",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0418",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0419",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0420",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0421",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0422",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0423",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0424",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0425",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0426",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0427",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0428",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0429",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0430",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0431",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0432",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0433",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0434",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0435",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0436",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0437",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0438",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0439",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0440",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0441",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0442",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0443",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0444",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0445",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0446",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0447",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0448",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0449",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0450",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0451",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0452",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0453",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0454",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0455",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0456",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0457",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0458",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0459",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0460",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0461",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0462",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0463",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0464",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0465",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0466",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0467",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0468",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0469",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0470",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0471",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0472",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0473",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0474",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0475",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0476",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0477",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0478",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0479",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0480",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0481",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0482",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0483",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0484",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0485",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0486",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0487",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0488",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0489",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0490",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0491",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0492",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0493",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0494",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0495",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0496",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0497",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0498",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0499",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0500",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0501",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0502",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0503",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0504",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0505",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0506",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0507",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0508",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0509",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0510",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0511",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0512",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0513",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0514",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0515",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0516",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0517",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0518",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0519",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0520",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0521",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0522",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0523",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0524",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0525",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0526",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0527",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0528",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0529",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0530",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0531",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0532",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0533",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0534",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0535",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0536",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0537",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0538",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0539",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0540",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0541",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0542",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0543",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0544",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0545",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0546",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0547",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0548",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0549",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0550",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0551",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0552",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0553",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0554",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0555",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0556",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0557",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0558",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0559",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0560",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0561",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0562",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0563",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0564",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0565",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0566",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0567",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0568",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0569",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0570",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0571",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0572",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0573",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0574",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0575",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0576",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0577",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0578",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0579",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0580",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0581",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0582",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0583",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0584",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0585",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0586",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0587",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0588",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0589",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0590",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0591",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0592",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0593",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0594",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0595",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0596",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0597",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0598",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0599",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0600",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0601",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0602",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0603",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0604",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0605",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0606",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0607",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0608",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0609",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0610",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0611",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0612",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0613",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0614",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0615",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0616",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0617",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0618",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0619",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0620",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0621",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0622",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0623",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0624",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0625",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0626",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0627",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0628",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0629",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0630",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0631",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0632",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0633",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0634",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0635",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0636",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0637",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0638",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0639",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0640",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0641",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0642",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0643",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0644",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0645",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0646",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0647",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0648",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0649",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0650",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0651",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0652",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0653",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0654",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0655",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0656",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0657",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0658",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0659",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0660",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0661",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0662",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0663",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0664",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0665",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0666",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0667",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0668",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0669",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0670",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0671",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0672",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0673",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0674",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0675",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0676",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0677",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0678",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0679",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0680",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0681",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0682",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0683",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0684",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0685",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0686",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0687",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0688",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0689",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0690",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0691",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0692",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0693",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0694",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0695",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0696",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0697",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0698",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0699",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0700",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0701",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0702",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0703",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0704",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0705",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0706",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0707",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0708",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0709",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0710",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0711",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0712",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0713",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0714",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0715",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0716",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0717",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0718",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0719",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0720",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0721",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0722",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0723",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0724",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0725",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0726",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0727",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0728",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0729",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0730",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0731",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0732",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0733",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0734",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0735",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0736",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0737",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0738",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0739",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0740",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0741",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0742",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0743",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0744",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0745",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0746",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0747",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0748",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0749",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0750",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0751",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0752",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0753",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0754",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0755",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0756",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0757",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0758",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0759",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0760",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0761",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0762",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0763",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0764",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0765",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0766",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0767",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0768",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0769",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0770",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0771",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0772",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0773",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0774",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0775",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0776",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0777",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0778",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0779",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0780",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0781",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0782",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0783",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0784",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0785",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0786",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0787",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0788",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0789",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0790",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0791",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0792",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0793",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0794",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0795",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0796",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0797",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0798",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0799",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0800",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0801",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0802",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0803",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0804",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0805",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0806",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0807",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0808",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0809",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0810",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0811",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0812",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0813",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0814",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0815",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0816",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0817",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0818",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0819",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0820",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0821",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0822",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0823",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0824",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0825",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0826",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0827",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0828",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0829",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0830",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0831",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0832",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0833",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0834",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0835",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0836",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0837",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0838",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0839",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0840",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0841",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0842",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0843",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0844",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0845",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0846",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0847",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0848",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0849",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0850",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0851",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0852",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0853",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0854",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0855",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0856",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0857",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0858",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0859",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0860",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0861",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0862",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0863",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0864",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0865",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0866",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0867",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0868",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0869",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0870",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0871",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0872",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0873",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0874",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0875",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0876",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0877",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0878",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0879",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0880",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0881",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0882",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0883",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0884",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0885",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0886",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0887",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0888",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0889",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0890",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0891",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0892",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0893",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0894",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0895",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0896",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0897",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0898",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0899",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0900",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0901",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0902",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0903",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0904",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0905",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0906",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0907",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0908",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0909",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0910",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0911",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0912",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0913",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0914",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0915",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0916",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0917",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0918",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0919",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0920",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0921",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0922",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0923",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0924",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0925",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0926",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0927",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0928",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0929",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0930",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0931",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0932",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0933",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0934",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0935",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0936",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0937",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0938",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0939",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0940",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0941",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0942",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0943",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0944",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0945",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0946",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0947",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0948",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0949",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0950",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0951",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0952",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0953",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0954",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0955",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0956",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0957",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0958",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0959",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0960",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0961",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0962",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0963",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0964",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0965",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0966",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0967",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0968",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0969",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0970",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0971",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0972",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0973",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0974",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0975",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0976",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0977",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0978",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0979",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0980",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0981",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0982",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0983",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0984",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0985",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0986",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0987",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0988",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0989",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0990",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0991",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0992",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0993",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0994",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0995",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0996",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0997",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0998",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_0999",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    },
+    {
+      "id": "fixture_snp_1000",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G",
+      "assumed_pre_aligned": true
+    }
+  ]
+}

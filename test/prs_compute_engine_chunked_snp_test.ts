@@ -48,6 +48,37 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     return { marketplace, modelId };
   }
 
+  /**
+   * Same as deployPublicModel but stops short of finalizeModel, leaving the model a
+   * draft.  setReleasePolicy only accepts drafts, so tests asserting on policy
+   * validation need the model in this state.
+   */
+  async function deployPublicModelDraft(
+    weights: bigint[],
+    uploadChunkSize: bigint,
+    computeChunkSize: bigint
+  ) {
+    const Marketplace = await ethers.getContractFactory("ModelMarketplace");
+    const marketplace = await Marketplace.deploy();
+    const args = [
+      false,
+      BigInt(weights.length),
+      uploadChunkSize,
+      computeChunkSize,
+      "ipfs://public-model-draft",
+      ethers.ZeroHash,
+      ethers.ZeroHash,
+      0n,
+      0n,
+    ] as const;
+    const modelId = await marketplace.createModelShell.staticCall(...args);
+    await marketplace.createModelShell(...args);
+    for (const chunk of chunkArray(weights, Number(uploadChunkSize))) {
+      await marketplace.appendPublicModelChunk(modelId, chunk);
+    }
+    return { marketplace, modelId };
+  }
+
   async function deployEngine(marketplaceAddr: string, owner: string) {
     const Registry = await ethers.getContractFactory("GenomicRegistry");
     const registry = await Registry.deploy();
@@ -195,7 +226,33 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       .to.be.revertedWith("SNP upload not finalized");
   });
 
-  it("accepts arbitrary encrypted SNP values today; hardcall enforcement remains off-chain", async function () {
+  // ============================================================================
+  // TRUST-BOUNDARY RECORD — this test documents a known limitation, not a fix.
+  //
+  // The contracts guarantee computation over the ciphertexts that were submitted.
+  // They do NOT prove that those ciphertexts encode genotypes derived from the
+  // registered sample.  GenomicRegistry.hasAccess gates WHO may create a job for a
+  // sample; nothing binds WHAT is subsequently uploaded to that sample.
+  //
+  // The values below (9, 11) are deliberately invalid diploid hard calls — the only
+  // legal dosages are 0, 1, and 2.  The engine accepts them without objection and
+  // returns 9*1 + 11*2 = 31, demonstrating that an authorized-but-malicious
+  // requester can drive the encrypted dot product with arbitrary chosen inputs.
+  // This is the capability that makes model probing feasible in the first place.
+  //
+  // registerSampleWithManifest does NOT close this gap.  manifestHash is a
+  // provenance commitment over preparation metadata (genome build, input-file hash,
+  // variant order, preparation policy); it is not a cryptographic binding between a
+  // ciphertext and a sample.  Closing the gap requires signed laboratory attestation
+  // or a zero-knowledge ciphertext-to-sample proof, neither of which is implemented.
+  //
+  // IF THIS TEST EVER FAILS, on-chain input validation was added.  That is a change
+  // in the security model: update contracts/PRSComputeEngine.sol documentation, the
+  // Security Model section of the manuscript, and CLAUDE.md before relaxing it.
+  //
+  // Cited by RTR actions R1.5-T1 (this record) and R1.5-M1 / R1.5-M2 (manuscript).
+  // ============================================================================
+  it("TRUST BOUNDARY: accepts arbitrary encrypted SNP values, including invalid hard calls — ciphertext/sample binding is not enforced on-chain", async function () {
     const [jobOwner] = await ethers.getSigners();
     const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
     const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), jobOwner.address);
@@ -204,6 +261,7 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
     const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
     await engine.createPRSJob(modelId, sampleId);
 
+    // 9 and 11 are not valid dosages; only {0, 1, 2} are biologically meaningful.
     const enc = await encryptUint64Array(engineAddr, jobOwner.address, [9n, 11n]);
     await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
     await engine.finalizeSnpUpload(jobId);
@@ -215,6 +273,8 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       (log: any) => engine.interface.parseLog(log)?.name === "JobFinalized"
     );
     const scoreHandle = engine.interface.parseLog(finalEvent as any)!.args.encodedScore;
+
+    // The engine computed over out-of-range inputs and reported a score for them.
     expect(await debugDecryptUint64(scoreHandle)).to.equal(31n);
   });
 
@@ -552,10 +612,13 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
         .to.be.revertedWith("Invalid grantee");
     });
 
-    it("finalizeAndClassify rejects zero oracle address", async function () {
+    // The zero-oracle guard moved to ModelMarketplace.setReleasePolicy (R1.4-C1):
+    // the requester cannot name an oracle at all, so the engine has nothing to
+    // validate. What it does check is that the model HAS a policy.
+    it("finalizeAndClassify rejects a model with no release policy", async function () {
       const { engine, jobId } = await completePublicJob();
-      await expect(engine.finalizeAndClassify(jobId, ethers.ZeroAddress, 100n, 200n))
-        .to.be.revertedWith("Invalid oracle");
+      await expect(engine.finalizeAndClassify(jobId))
+        .to.be.revertedWith("Model has no release policy");
     });
 
     it("finalizeTo rejects call from non-requester", async function () {
@@ -566,10 +629,8 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
 
     it("finalizeAndClassify rejects call from non-requester", async function () {
       const { engine, jobId, stranger } = await completePublicJob();
-      const Oracle = await ethers.getContractFactory("ResultOracle");
-      const oracle = await Oracle.deploy(128n);
       await expect(
-        engine.connect(stranger).finalizeAndClassify(jobId, await oracle.getAddress(), 100n, 200n)
+        engine.connect(stranger).finalizeAndClassify(jobId)
       ).to.be.revertedWith("Not requester");
     });
 
@@ -593,26 +654,31 @@ describe("PRSComputeEngine — chunked SNP ingestion", function () {
       const { marketplace, modelId } = await deployPublicModel([1n, 2n], 2n, 2n);
       const { engine, sampleId } = await deployEngine(await marketplace.getAddress(), owner.address);
       const engineAddr = await engine.getAddress();
-      const Oracle = await ethers.getContractFactory("ResultOracle");
-      const oracle = await Oracle.deploy(128n);
       const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
       await engine.createPRSJob(modelId, sampleId);
       const enc = await encryptUint64Array(engineAddr, owner.address, [1n, 2n]);
       await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
       await engine.finalizeSnpUpload(jobId);
-      // SNPs uploaded but computeChunk not called — job not complete
-      await expect(engine.finalizeAndClassify(jobId, await oracle.getAddress(), 100n, 200n))
+      // SNPs uploaded but computeChunk not called — job not complete.
+      // The completeness check precedes the policy lookup.
+      await expect(engine.finalizeAndClassify(jobId))
         .to.be.revertedWith("Job not complete");
     });
 
-    it("finalizeAndClassify propagates oracle threshold guard to requester", async function () {
-      // lowThreshold >= highThreshold is caught inside _classifyScore via classifyPreauthorized,
-      // confirming the guard is exercised through the atomic engine → oracle path.
-      const { engine, jobId } = await completePublicJob();
+    // Previously an inverted threshold pair reached _classifyScore through the
+    // engine, because the requester supplied it per call. Requesters no longer
+    // supply thresholds, so the guard now fires when the model owner configures the
+    // policy — before the model can serve any job at all. Coverage for that lives in
+    // job_lifecycle_test.ts ("setReleasePolicy validates the oracle and the
+    // thresholds at configuration time"). ResultOracle still re-checks the condition
+    // internally; see the "minimum threshold gap" suite in
+    // rate_limit_randomized_release_test.ts.
+    it("a model cannot be published with an inverted threshold pair", async function () {
+      const { marketplace, modelId } = await deployPublicModelDraft([1n, 2n], 2n, 2n);
       const Oracle = await ethers.getContractFactory("ResultOracle");
       const oracle = await Oracle.deploy(128n);
       await expect(
-        engine.finalizeAndClassify(jobId, await oracle.getAddress(), 300n, 100n)
+        marketplace.setReleasePolicy(modelId, await oracle.getAddress(), 300n, 100n, false)
       ).to.be.revertedWith("lowThreshold must be less than highThreshold");
     });
   });

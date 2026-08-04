@@ -202,7 +202,7 @@ Engine:
 1. Loads model chunk 0: `[0, 40, 55, 25, 70]` (public weights)
 2. Loads SNP chunk 0: `[h0, h1, h2, h3, h4]` (encrypted)
 3. For each pair:
-   - `FHE.mul(snp_i, FHE.asEuint64(weight_i))` → product (C×P, trivially encrypted)
+   - `FHE.mul(snp_i, FHE.asEuint64(weight_i))` → product. Note: trivially encrypting the weight does **not** make this a discounted scalar multiplication; it is charged as ciphertext×ciphertext. See `CD-022`.
    - `FHE.add(partialSum, product)` → update running sum
 4. After all SNPs: marks job DONE
 
@@ -221,13 +221,17 @@ genoSum    = Enc(2+1+0+1+2)                           = Enc(6)
 // First, get the noise bias so thresholds are correctly adjusted:
 bias = ResultOracle.expectedNoiseBias()   // = noiseUpperBound / 2 (e.g., 32 if bound=64)
 
-Alice calls:
-  PRSComputeEngine.finalizeAndClassify(
-    jobId=42,
+The model owner already fixed the policy, before finalizing the model:
+  ModelMarketplace.setReleasePolicy(
+    modelId,
     oracle=ResultOracle,
     lowThreshold=intendedLow + bias,    // adjust for uniform noise upward bias
-    highThreshold=intendedHigh + bias
+    highThreshold=intendedHigh + bias,
+    requireOracle=true
   )
+
+Alice calls:
+  PRSComputeEngine.finalizeAndClassify(jobId=42)   // no release parameters
 ```
 
 Engine applies quantization correction:
@@ -416,7 +420,7 @@ It no longer stores the whole SNP vector in the job header. Instead it uses a st
 
 #### 11. `contracts/ResultOracle.sol` (~53 lines)
 
-**What it does:** Takes a final encrypted PRS score, adds DP-inspired on-chain noise, and classifies into Low / Medium / High — all without decrypting. This is a noisy categorical release, not a formal `(epsilon, delta)`-DP guarantee.
+**What it does:** Takes a final encrypted PRS score, adds bounded on-chain random noise, and classifies into Low / Medium / High — all without decrypting. This is a **bounded randomized categorical release**, not differential privacy, and provides no `(epsilon, delta)` guarantee.
 
 **What to trace in `classify`:**
 

@@ -116,7 +116,7 @@ Chunked publication of GWAS weight arrays, public or encrypted. Stores models; d
 
 **Compute paths:**
 
-- Public weights → `FHE.mul(snp, FHE.asEuint64(weight))` — trivially encrypted C×P, coprocessor-optimised (~60% cheaper than C×C)
+- Public weights → `FHE.mul(snp, FHE.asEuint64(weight))` — trivially encrypted, but charged as C×C (see §HCU note); ~28% cheaper than private in host gas, from packed storage reads rather than coprocessor optimisation
 - Private weights → `FHE.mul(encryptedWeight, snp)` — C×C, full FHE multiply
 
 **Access control:** Only `owner` may append chunks, finalize, and manage private readers. Private model compute requires `setPrivateModelReader(modelId, reader, true)` for both the engine contract address and the individual requester.
@@ -147,7 +147,7 @@ State transitions:
 - `appendAndComputeChunk(jobId, externalEuint64[], inputProof)` — streaming path; no `snpData` writes (see [§4.2](#42-streaming-path))
 - `finalize(jobId)` — requester-only; applies quantization correction, grants ACL, returns encoded score
 - `finalizeTo(jobId, grantee)` — like `finalize` but grants ACL to another address
-- `finalizeAndClassify(jobId, oracle, lowThreshold, highThreshold)` — oracle-only atomic path; never exposes raw score to requester
+- `finalizeAndClassify(jobId)` — oracle-only atomic path; never exposes raw score to requester. Oracle and both thresholds come from the model's immutable release policy, not from the caller
 - `readPartial(jobId)` — requester-only; returns running encrypted partial sum
 
 **Quantization correction in `finalize`:**
@@ -170,7 +170,7 @@ The rearrangement `(partialSum + scoreOffset) - (weightZeroPoint × genoSum)` av
 
 ### 2.4 ResultOracle
 
-DP-inspired noisy categorical classification. All operations remain encrypted. The current mechanism is bounded one-sided uniform noise plus thresholding; it is not a formal `(epsilon, delta)`-DP guarantee.
+Bounded randomized categorical release. All operations remain encrypted. The mechanism is one-sided uniform noise on `[0, B)` plus thresholding. It is **not** differential privacy and provides no `(epsilon, delta)` guarantee: the noise is one-sided rather than symmetric, is not calibrated to any sensitivity bound, and is not accounted across repeated queries. No adjacency definition, sensitivity analysis, or composition analysis exists in this codebase.
 
 **Noise mechanism:** `noiseUpperBound` set at construction (must be a positive power of 2 — fhEVM requirement for `randEuint64`). Each call generates `noise = FHE.randEuint64(noiseUpperBound)` — unknowable to caller before the transaction mines.
 
@@ -199,7 +199,7 @@ euint8  category = FHE.select(isLow, Low, FHE.select(isMedium, Medium, High));
 adjustedThreshold = intendedThreshold + oracle.expectedNoiseBias()
 ```
 
-This is a deterministic, correctable bias. Formal DP would require a calibrated two-sided mechanism, a PRS sensitivity analysis, and repeated-query composition accounting.
+This is a deterministic, correctable bias. A formal `(epsilon, delta)` guarantee would additionally require a calibrated two-sided mechanism, a PRS sensitivity analysis, and repeated-query composition accounting — none of which are implemented.
 
 ---
 
@@ -217,7 +217,11 @@ Every `euint64` is a 32-byte handle — an identifier pointing to a ciphertext m
 
 `externalEuint64` is the wire type for ciphertexts arriving from a user. The contract calls `FHE.fromExternal(handle, inputProof)` to validate the proof and receive a usable on-chain handle, then `FHE.allowThis(result)` before storing. In the streaming path, `allowThis` is intentionally skipped on intermediate SNP handles because they are consumed within the same transaction and never stored.
 
-`FHE.asEuint64(plainValue)` creates a trivially encrypted handle for a plaintext constant. The coprocessor internally optimises C×P multiplications — this is why public-weight models are ~60% cheaper to compute than private models.
+`FHE.asEuint64(plainValue)` creates a trivially encrypted handle for a plaintext constant. **It does not obtain a scalar-multiplication discount.** Because the result is a genuine `euint64` handle, `FHE.mul` resolves to the `euint64 × euint64` overload, which passes `scalar = false`; the mock's own HCU table charges 596,000 for `Uint64` non-scalar versus 365,000 scalar. Measured consequence: the compute-chunk HCU ceiling is **21 for both public and private models**, not higher for public ones.
+
+Public-weight models are nonetheless cheaper to compute — measured at 1,150,414 vs 1,604,024 gas per 20-SNP chunk, about 28% — but the saving comes from reading packed `uint64[]` weights instead of one 32-byte `euint64` handle per weight, not from any coprocessor optimisation.
+
+The scalar discount is available: `FHE.mul(euint64 a, uint64 b)` passes `scalar = true`. Adopting it would cut 231,000 HCU per multiplication (38.8%) and raise the public ceiling to roughly 34 SNPs per chunk, reducing compute transactions for a 5,000-SNP job from 239 to about 148. This is recorded as `CD-022` and deferred rather than applied, because changing `computeChunk` would invalidate the gas and adversarial measurements already taken in Phases 4-6.
 
 ### 3.2 ACL discipline
 
@@ -263,7 +267,7 @@ createPRSJob(modelId, sampleId)
 appendSnpChunk(jobId, encryptedSnps, inputProof)   ← ceil(N/32) times; SNP handles stored in snpData[]
 finalizeSnpUpload(jobId)
 computeChunk(jobId)    ← ceil(N/20) times; permissionless; reads snpData[], accumulates partialSum
-finalizeAndClassify(jobId, oracle, low, high)   ← oracle-only; no raw score exposed to patient
+finalizeAndClassify(jobId)                     ← oracle-only; thresholds from model policy
 # OR: finalize(jobId)  ← patient gets raw encrypted score handle
 ```
 
@@ -465,13 +469,15 @@ Never violate these:
 
 7. **Rate limiting enforced at job creation.** When a model owner configures a rate limit (`setRateLimit`), `createPRSJob` enforces per-model, per-wallet and per-model, per-sample block-windowed job count limits. This throttles repeated probing and closes the simple same-sample/new-wallet bypass, but it is not a full Sybil-resistant identity layer. Default is unlimited (backwards-compatible). Block-based windows (not timestamps) prevent miner manipulation.
 
-8. **Oracle-required mode.** When a model owner enables `setOracleRequired(modelId, true)`, `finalize()`, `finalizeTo()`, and `readPartial()` revert — forcing all output through `finalizeAndClassify()` and the oracle's noisy categorical release. Prevents requesters from bypassing noise by decrypting raw scores directly.
+8. **Oracle-required mode.** When a model's release policy sets `oracleRequired`, `finalize()`, `finalizeTo()`, and `readPartial()` revert — forcing all output through `finalizeAndClassify()` and the oracle's bounded randomized categorical release. Prevents requesters from bypassing noise by decrypting raw scores directly.
 
-9. **Minimum threshold gap.** `ResultOracle._classifyScore` requires `highThreshold - lowThreshold >= noiseUpperBound`. Prevents attackers from choosing thresholds so narrow that classification becomes deterministic, defeating the noisy release.
+9. **Minimum threshold gap.** Enforced at two points. `ModelMarketplace.setReleasePolicy` rejects a gap below the oracle's `noiseUpperBound` when the policy is configured, so a model cannot be published with a policy that would always revert. `ResultOracle._classifyScore` re-checks the same condition, which still guards the generic `classify()` entry point. Prevents thresholds so narrow that classification becomes deterministic, defeating the randomized release.
 
-10. **Approved oracle enforcement.** When `oracleRequired` is true, `finalizeAndClassify()` validates that the caller-supplied oracle address matches the one registered via `setApprovedOracle(modelId, oracle)`. Without this check, the oracle-required flag could be trivially bypassed by passing a no-op oracle that skips noise. Attempting `finalizeAndClassify` without an approved oracle set reverts with "No approved oracle set for model".
+10. **Model-defined release policy; no requester-chosen thresholds.** `PRSComputeEngine.finalizeAndClassify(jobId)` accepts only a job id. The oracle address and both classification thresholds are read from `ModelMarketplace.getReleasePolicy(modelId)`, fixed by the model owner before the model was finalized. A requester able to vary thresholds across calls performs a binary search on the encrypted score, extracting far more per query than a ternary classification and largely defeating the randomized release; removing the parameters removes the channel rather than mitigating it. Calling `finalizeAndClassify` on a model with no policy reverts with "Model has no release policy".
 
-11. **Single-finalize per job.** `finalize()`, `finalizeTo()`, and `finalizeAndClassify()` each set a `finalized` flag on the job and revert on any subsequent call. Prevents a requester from issuing multiple score handles for the same job, which would generate redundant FHE ops and could be exploited to probe the oracle multiple times per rate-limit slot.
+11. **Release policy immutable after model finalization.** `setReleasePolicy` is guarded by `_requireOwnedDraftModel`, so a policy can only be set while the model is a draft, and there is no update or clear function. The superseded `setOracleRequired` and `setApprovedOracle` setters have been removed, because either would have allowed an owner to publish a model under a strict policy and then swap the oracle or relax the thresholds once requesters had committed to it. `getApprovedOracle` and `isOracleRequired` survive as read-only views over the policy.
+
+12. **Single-finalize per job.** `finalize()`, `finalizeTo()`, and `finalizeAndClassify()` each set a `finalized` flag on the job and revert on any subsequent call. Prevents a requester from issuing multiple score handles for the same job, which would generate redundant FHE ops and could be exploited to probe the oracle multiple times per rate-limit slot.
 
 ---
 

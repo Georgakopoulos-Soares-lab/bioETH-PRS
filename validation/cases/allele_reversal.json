@@ -1,0 +1,103 @@
+{
+  "name": "allele_reversal",
+  "description": "Variant 0 has effect_allele == REF, so its dosage counts the other allele and must be flipped to 2 - g before scoring. Variant 1 is already aligned. Confirms [0,1,2] -> [2,1,0] on the flipped variant only, and that the flip happens off-chain before encryption.",
+  "scale": 1000,
+  "weights": [
+    "0.40",
+    "-0.20"
+  ],
+  "variants": [
+    {
+      "id": "rsFlip",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "G",
+      "other_allele": "A"
+    },
+    {
+      "id": "rsKeep",
+      "ref": "C",
+      "alt": "T",
+      "effect_allele": "T",
+      "other_allele": "C"
+    }
+  ],
+  "genotypes": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      2,
+      0
+    ]
+  ],
+  "hand_checked": {
+    "q": [
+      400,
+      -200
+    ],
+    "z_w": 200,
+    "u": [
+      600,
+      0
+    ],
+    "z_s": 400,
+    "harmonized_genotypes": [
+      [
+        2,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "individual_0": {
+      "prs": "0.60",
+      "encodedScore": 1000,
+      "note": "g_effect = [2-0, 1] = [2,1]; 2*0.40 + 1*(-0.20) = 0.60; e = (2*600 + 1*0) + 400 - 200*3 = 1000"
+    },
+    "individual_1": {
+      "prs": "0.00",
+      "encodedScore": 400,
+      "note": "g_effect = [2-1, 2] = [1,2]; 0.40 - 0.40 = 0.00; e = (600 + 0) + 400 - 200*3 = 400"
+    },
+    "individual_2": {
+      "prs": "0.00",
+      "encodedScore": 400,
+      "note": "g_effect = [2-2, 0] = [0,0]; 0.00; e = 0 + 400 - 0 = 400"
+    }
+  },
+  "manifest": {
+    "manifest_version": 1,
+    "genome_build": "GRCh37",
+    "scale": 1000,
+    "missing_policy": "reject",
+    "note": "known-answer case: allele_reversal",
+    "variants": [
+      {
+        "id": "rsFlip",
+        "ref": "G",
+        "alt": "A",
+        "effect_allele": "G",
+        "other_allele": "A"
+      },
+      {
+        "id": "rsKeep",
+        "ref": "C",
+        "alt": "T",
+        "effect_allele": "T",
+        "other_allele": "C"
+      }
+    ]
+  }
+}

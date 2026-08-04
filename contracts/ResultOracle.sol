@@ -13,11 +13,17 @@ import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 ///
 /// @dev    noiseUpperBound is set at construction and is immutable.  It defines the
 ///         exclusive upper bound for the uniform random noise: noise ∈ [0, noiseUpperBound).
-///         This is a DP-inspired noisy categorical release, not a formal
-///         (epsilon, delta)-DP mechanism.  Callers choose a bound appropriate for
-///         their model's score range to preserve clinical utility while making
-///         repeated probing less informative.
 ///         A bound of zero is rejected at construction time.
+///
+///         TERMINOLOGY: this mechanism is a BOUNDED RANDOMIZED CATEGORICAL RELEASE.
+///         It is not differential privacy and must not be described as such.  It
+///         provides no (epsilon, delta) guarantee, because the noise is one-sided
+///         (support [0, B) rather than symmetric about zero), is not calibrated to
+///         any sensitivity bound, and is not accounted across repeated queries.
+///         There is no adjacency definition, no sensitivity analysis, and no
+///         composition analysis anywhere in this codebase.  Callers choose a bound
+///         appropriate for their model's score range to coarsen output resolution
+///         while preserving clinical utility.
 contract ResultOracle is ZamaEthereumConfig {
     enum RiskCategory {
         Low,
@@ -57,7 +63,8 @@ contract ResultOracle is ZamaEthereumConfig {
     ///             adjustedThreshold = intendedThreshold + expectedNoiseBias()
     ///
     ///         This is a deterministic, correctable bias — not a source of unpredictability.
-    ///         This helper does not imply a formal differential-privacy guarantee.
+    ///         This helper corrects the bias of the randomized release; it does not
+    ///         imply any differential-privacy guarantee.
     function expectedNoiseBias() external view returns (uint64) {
         return noiseUpperBound / 2;
     }
@@ -72,9 +79,14 @@ contract ResultOracle is ZamaEthereumConfig {
     ///
     /// @dev    Noise is uniform on [0, noiseUpperBound), which introduces an upward bias
     ///         of noiseUpperBound/2 on average.  For a scientifically unbiased mechanism,
-    ///         adjust thresholds upward by noiseUpperBound/2. A formal DP mechanism
-    ///         would require a calibrated two-sided distribution and a PRS
-    ///         sensitivity/composition analysis.
+    ///         adjust thresholds upward by noiseUpperBound/2.
+    ///
+    ///         This is a bounded randomized release, not differential privacy.  A
+    ///         formal (epsilon, delta) guarantee would additionally require a
+    ///         calibrated two-sided distribution, a PRS sensitivity analysis, and
+    ///         repeated-query composition accounting.  None of those are implemented
+    ///         here, and the release must not be characterised as differentially
+    ///         private in documentation or publications.
     ///
     /// @return category  Encrypted risk category (euint8: 0=Low, 1=Medium, 2=High).
     ///                   Made publicly decryptable via FHE.makePubliclyDecryptable.

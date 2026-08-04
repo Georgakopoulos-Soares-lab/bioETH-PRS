@@ -21,7 +21,8 @@
 - Sepolia tooling ready: `deploy.ts`, `sepolia_validation.ts`, `probe_hcu_ceiling.ts`
 - Gas cost and deployment viability analysis complete (see `reports/`)
 - Per-model per-wallet and per-sample rate limiting — windowed block-based query limits (`setRateLimit`)
-- Oracle-required mode — `setOracleRequired` blocks `finalize`/`finalizeTo`/`readPartial`, forcing the noisy oracle path
+- Oracle-required mode — the release policy's `oracleRequired` flag blocks `finalize`/`finalizeTo`/`readPartial`, forcing the randomized-release oracle path
+- Model-defined release policy — thresholds and oracle fixed before model finalization and immutable thereafter; `finalizeAndClassify(jobId)` accepts no requester-chosen release parameters
 - Minimum threshold gap in `ResultOracle` — `highThreshold - lowThreshold >= noiseUpperBound`
 - Bug fix: `finalizeAndClassify` now grants oracle ACL access before handoff (`FHE.allow(score, oracle)`)
 - 116 tests passing (mock FHE)
@@ -61,7 +62,7 @@ After completion: update `reports/classic-gas.md` Sepolia table with real HCU ce
 
 **Anti-probing:**
 
-- Formal ε-δ DP calibration for a two-sided calibrated noise mechanism
+- Formal ε-δ differential privacy: adjacency definition, PRS sensitivity analysis, calibrated two-sided noise, and composition accounting (the shipped mechanism is a bounded randomized release only)
 - Staking/deposit mechanism as economic Sybil deterrent
 
 **Quantization & types:**
@@ -83,7 +84,7 @@ After completion: update `reports/classic-gas.md` Sepolia table with real HCU ce
 **Scientific validation:**
 
 - De-quantization comparison: on-chain encoded score vs PLINK/PRSice reference
-- Formal DP calibration or empirical backing for `noiseUpperBound` choice
+- Formal differential-privacy calibration, or empirical backing for the `noiseUpperBound` choice
 
 **Security analysis:**
 

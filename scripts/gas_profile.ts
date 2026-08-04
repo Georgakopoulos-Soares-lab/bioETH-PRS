@@ -1,4 +1,11 @@
 import { ethers, fhevm } from "hardhat";
+import * as fs from "fs";
+import * as path from "path";
+import {
+  syntheticModelProvenance,
+  buildProvenance,
+  contractIdentity,
+} from "./utils/provenance";
 
 const DEFAULT_SNP_COUNTS = [100, 300, 600];
 // Decoupled chunk sizes:
@@ -20,10 +27,32 @@ async function profile(n: number, uploadChunkSize: number, computeChunkSize: num
   const Marketplace = await ethers.getContractFactory("ModelMarketplace");
   const marketplace = await Marketplace.deploy();
 
+  // R2.4-E1: these inputs are generated, not read from disk, so provenance commits
+  // to the generation spec. Anyone can regenerate byte-identical inputs from it.
+  const prov = syntheticModelProvenance({
+    purpose: "gas_vs_snp_count_curve",
+    spec: {
+      snpCount: n,
+      uploadChunkSize,
+      computeChunkSize,
+      weightFormula: "BigInt((i + 1) % 11)",
+      dosageFormula: "BigInt((i + 2) % 3)",
+      weightZeroPoint: 0,
+      scoreOffset: 0,
+      deterministic: true,
+    },
+  });
+
   const Registry = await ethers.getContractFactory("GenomicRegistry");
   const registry = await Registry.deploy();
-  const sampleId = await registry.registerSample.staticCall(`ipfs://gas-profile/${n}-sample`);
-  await registry.registerSample(`ipfs://gas-profile/${n}-sample`);
+  const sampleId = await registry.registerSampleWithManifest.staticCall(
+    `ipfs://gas-profile/${n}-sample`,
+    prov.genotypeManifestHash
+  );
+  await registry.registerSampleWithManifest(
+    `ipfs://gas-profile/${n}-sample`,
+    prov.genotypeManifestHash
+  );
   const Engine = await ethers.getContractFactory("PRSComputeEngine");
   const engine = await Engine.deploy(await marketplace.getAddress(), await registry.getAddress());
 
@@ -36,8 +65,8 @@ async function profile(n: number, uploadChunkSize: number, computeChunkSize: num
     BigInt(uploadChunkSize),
     BigInt(computeChunkSize),
     `ipfs://gas-profile/${n}`,
-    ethers.ZeroHash,
-    ethers.ZeroHash,
+    prov.manifestHash,
+    prov.sourceModelHash,
     0n,
     0n
   );
@@ -47,8 +76,8 @@ async function profile(n: number, uploadChunkSize: number, computeChunkSize: num
     BigInt(uploadChunkSize),
     BigInt(computeChunkSize),
     `ipfs://gas-profile/${n}`,
-    ethers.ZeroHash,
-    ethers.ZeroHash,
+    prov.manifestHash,
+    prov.sourceModelHash,
     0n,
     0n
   );
@@ -96,6 +125,15 @@ async function profile(n: number, uploadChunkSize: number, computeChunkSize: num
   const gasPrice = ethers.parseUnits(gasPriceGwei, "gwei");
   const totalEth = ethers.formatEther(totalGas * gasPrice);
 
+  const provenance = await buildProvenance({
+    model: prov,
+    contracts: [
+      await contractIdentity("ModelMarketplace", marketplace),
+      await contractIdentity("GenomicRegistry", registry),
+      await contractIdentity("PRSComputeEngine", engine),
+    ],
+  });
+
   return {
     n,
     uploadChunkSize,
@@ -108,7 +146,8 @@ async function profile(n: number, uploadChunkSize: number, computeChunkSize: num
     finalizeGas,
     totalGas,
     totalEth,
-    gasPriceGwei
+    gasPriceGwei,
+    provenance
   };
 }
 
@@ -142,6 +181,48 @@ describe("Gas profile — synthetic SNP counts", function () {
       console.log(`Total gas: ${result.totalGas}`);
       console.log(`Gas price: ${result.gasPriceGwei} gwei`);
       console.log(`Estimated ETH: ${result.totalEth}`);
+      console.log(`Evidence class: Hardhat mock (synthetic inputs)`);
+      console.log(`Commit: ${result.provenance.repository.shortCommit}` +
+        `${result.provenance.repository.dirty ? " (DIRTY)" : ""}`);
+      console.log(`manifestHash: ${result.provenance.model.manifestHash}`);
+      console.log(`sourceModelHash: ${result.provenance.model.sourceModelHash}`);
     }
+
+    // R2.4-E1: machine-readable record, so every figure in the paper is traceable.
+    const outPath = path.join(
+      process.env.GAS_PROFILE_OUT_DIR ?? path.join(__dirname, "..", "deployments"),
+      `gas-profile-${results[0].provenance.network.chainId}.json`
+    );
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(
+      outPath,
+      JSON.stringify(
+        {
+          report: "gas_vs_snp_count",
+          evidenceClass: "Hardhat mock",
+          note: "Synthetic inputs. Validates transaction geometry and gas scaling; " +
+            "does not measure real fhEVM latency, HCU availability, or production fees.",
+          capturedAtIso: new Date().toISOString(),
+          results: results.map((r) => ({
+            snpCount: r.n,
+            uploadChunkSize: r.uploadChunkSize,
+            computeChunkSize: r.computeChunkSize,
+            chunks: r.chunks,
+            publishGas: r.publishGas.toString(),
+            createJobGas: r.createJobGas.toString(),
+            snpUploadGas: r.snpUploadGas.toString(),
+            computeGas: r.computeGas.toString(),
+            finalizeGas: r.finalizeGas.toString(),
+            totalGas: r.totalGas.toString(),
+            gasPriceGwei: r.gasPriceGwei,
+            estimatedEth: r.totalEth,
+            provenance: r.provenance,
+          })),
+        },
+        null,
+        2
+      ) + "\n"
+    );
+    console.log(`\nReport saved to ${outPath}`);
   });
 });

@@ -522,6 +522,13 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       );
       await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
       await marketplace.appendPublicModelChunk(modelId, [3n]);
+
+      // The oracle must exist before the model is finalized, because the release
+      // policy names it and is only settable on a draft model (R1.4-C1).
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      const oracle = await Oracle.deploy(128n);
+      const oracleAddr = await oracle.getAddress();
+      await marketplace.setReleasePolicy(modelId, oracleAddr, 200n, 400n, false);
       await marketplace.finalizeModel(modelId);
 
       const Registry = await ethers.getContractFactory("GenomicRegistry");
@@ -534,10 +541,6 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
         await marketplace.getAddress(), await registry.getAddress()
       );
       const engineAddr = await engine.getAddress();
-
-      const Oracle = await ethers.getContractFactory("ResultOracle");
-      const oracle = await Oracle.deploy(128n);
-      const oracleAddr = await oracle.getAddress();
 
       // --- Part 1: finalizeTo path — oracle gets the handle, but direct EOA call fails ---
       const jobId1 = await engine.createPRSJob.staticCall(modelId, sampleId);
@@ -581,7 +584,8 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       await engine.computeChunk(jobId2);
       await engine.computeChunk(jobId2);
 
-      const oracleTx = await engine.finalizeAndClassify(jobId2, oracleAddr, 200n, 400n);
+      // Thresholds 200/400 come from the model's release policy, not this call.
+      const oracleTx = await engine.finalizeAndClassify(jobId2);
       const oracleReceipt = await oracleTx.wait();
       const classifyEvent = oracleReceipt!.logs.find(
         (log: any) => oracle.interface.parseLog(log)?.name === "ResultClassified"
@@ -590,37 +594,50 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       expect(await debugDecryptUint8(categoryHandle)).to.equal(0n);
     });
 
-    it("classifyPreauthorized threshold guard is enforced via the atomic engine handoff path", async function () {
-      // Tests that _classifyScore's require(lowThreshold < highThreshold) is exercised
-      // through the classifyPreauthorized entry point, using finalizeAndClassify as the caller.
+    // The two former tests here drove an inverted and an equal threshold pair
+    // through finalizeAndClassify. Requesters no longer supply thresholds, so those
+    // cases are now unreachable from the engine and are covered where they actually
+    // fire: job_lifecycle_test.ts ("setReleasePolicy validates the oracle and the
+    // thresholds at configuration time") for the configuration-time guard, and
+    // rate_limit_randomized_release_test.ts ("minimum threshold gap") for
+    // ResultOracle's own internal re-check via classify().
+    //
+    // What replaces them is the stronger property: the classification that comes
+    // back reflects the MODEL's thresholds, so the policy is genuinely the value
+    // being applied rather than a stored field that nothing reads.
+    it("classification reflects the model's policy thresholds, not any caller-supplied value", async function () {
       const [signer] = await ethers.getSigners();
 
       const Marketplace = await ethers.getContractFactory("ModelMarketplace");
       const marketplace = await Marketplace.deploy();
-      const modelId = await marketplace.createModelShell.staticCall(
-        false, 2n, 2n, 2n, "ipfs://threshold-guard",
-        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
-      );
-      await marketplace.createModelShell(
-        false, 2n, 2n, 2n, "ipfs://threshold-guard",
-        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
-      );
+      const shell = [
+        false, 2n, 2n, 2n, "ipfs://policy-thresholds",
+        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n,
+      ] as const;
+      const modelId = await marketplace.createModelShell.staticCall(...shell);
+      await marketplace.createModelShell(...shell);
       await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
+
+      // SNPs [1, 2] against weights [1, 2] give a raw score of 1*1 + 2*2 = 5.
+      // Noise is uniform on [0, 128), so the noisy score lies in [5, 133).
+      // A policy of low=200, high=400 puts every possible outcome below low => Low(0).
+      const Oracle = await ethers.getContractFactory("ResultOracle");
+      const oracle = await Oracle.deploy(128n);
+      await marketplace.setReleasePolicy(
+        modelId, await oracle.getAddress(), 200n, 400n, true
+      );
       await marketplace.finalizeModel(modelId);
 
       const Registry = await ethers.getContractFactory("GenomicRegistry");
       const registry = await Registry.deploy();
-      const sampleId = await registry.registerSample.staticCall("ipfs://threshold-sample");
-      await registry.registerSample("ipfs://threshold-sample");
+      const sampleId = await registry.registerSample.staticCall("ipfs://policy-sample");
+      await registry.registerSample("ipfs://policy-sample");
 
       const Engine = await ethers.getContractFactory("PRSComputeEngine");
       const engine = await Engine.deploy(
         await marketplace.getAddress(), await registry.getAddress()
       );
       const engineAddr = await engine.getAddress();
-
-      const Oracle = await ethers.getContractFactory("ResultOracle");
-      const oracle = await Oracle.deploy(128n);
 
       const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
       await engine.createPRSJob(modelId, sampleId);
@@ -629,53 +646,13 @@ describe("Registry / Marketplace / Oracle — fhEVM mock (Hardhat)", function ()
       await engine.finalizeSnpUpload(jobId);
       await engine.computeChunk(jobId);
 
-      // lowThreshold > highThreshold — should revert deep inside oracle._classifyScore
-      await expect(
-        engine.finalizeAndClassify(jobId, await oracle.getAddress(), 500n, 100n)
-      ).to.be.revertedWith("lowThreshold must be less than highThreshold");
-    });
-
-    it("classifyPreauthorized threshold guard fires when thresholds are equal", async function () {
-      // Equal thresholds (low == high) are also invalid; verify they are caught.
-      const [signer] = await ethers.getSigners();
-
-      const Marketplace = await ethers.getContractFactory("ModelMarketplace");
-      const marketplace = await Marketplace.deploy();
-      const modelId = await marketplace.createModelShell.staticCall(
-        false, 2n, 2n, 2n, "ipfs://equal-thresholds",
-        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
+      const tx = await engine.finalizeAndClassify(jobId);
+      const receipt = await tx.wait();
+      const classifyEvent = receipt!.logs.find(
+        (log: any) => oracle.interface.parseLog(log)?.name === "ResultClassified"
       );
-      await marketplace.createModelShell(
-        false, 2n, 2n, 2n, "ipfs://equal-thresholds",
-        ethers.ZeroHash, ethers.ZeroHash, 0n, 0n
-      );
-      await marketplace.appendPublicModelChunk(modelId, [1n, 2n]);
-      await marketplace.finalizeModel(modelId);
-
-      const Registry = await ethers.getContractFactory("GenomicRegistry");
-      const registry = await Registry.deploy();
-      const sampleId = await registry.registerSample.staticCall("ipfs://equal-sample");
-      await registry.registerSample("ipfs://equal-sample");
-
-      const Engine = await ethers.getContractFactory("PRSComputeEngine");
-      const engine = await Engine.deploy(
-        await marketplace.getAddress(), await registry.getAddress()
-      );
-      const engineAddr = await engine.getAddress();
-
-      const Oracle = await ethers.getContractFactory("ResultOracle");
-      const oracle = await Oracle.deploy(128n);
-
-      const jobId = await engine.createPRSJob.staticCall(modelId, sampleId);
-      await engine.createPRSJob(modelId, sampleId);
-      const enc = await encryptUint64Array(engineAddr, signer.address, [1n, 2n]);
-      await engine.appendSnpChunk(jobId, enc.handles, enc.inputProof);
-      await engine.finalizeSnpUpload(jobId);
-      await engine.computeChunk(jobId);
-
-      await expect(
-        engine.finalizeAndClassify(jobId, await oracle.getAddress(), 200n, 200n)
-      ).to.be.revertedWith("lowThreshold must be less than highThreshold");
+      const categoryHandle = oracle.interface.parseLog(classifyEvent as any)!.args.category;
+      expect(await debugDecryptUint8(categoryHandle)).to.equal(0n); // Low
     });
   });
 });

@@ -1,16 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+// =============================================================================
+//  ATTACK BASELINE — NOT PART OF THE DEPLOYED SYSTEM. DO NOT DEPLOY.
+//
+//  Frozen copy of ModelMarketplace as of commit 2d6f21d, the snapshot submitted for review.
+//  It exists for exactly one purpose: RTR action R1.4-E1 requires comparing the
+//  hardened release policy against "the old caller-selected threshold design", and
+//  R1.4-C1's completion criterion forbids retaining a threshold-taking entry point
+//  in the live contracts. Per CD-005 the baseline arm therefore deploys the genuine
+//  submitted design rather than an approximation of it.
+//
+//  ONLY these changes were made to the frozen source, and a test asserts it:
+//    - contract renamed ModelMarketplace -> BaselineModelMarketplace (artifact name collision)
+//    - import paths adjusted for the subdirectory
+//    - type references to renamed contracts updated
+//    - this header added
+//  No statement inside any function body was altered. In particular
+//  finalizeAndClassify still accepts lowThreshold and highThreshold from the
+//  requester, which is the vulnerability being measured.
+//
+//  scripts/deploy.ts must never reference this contract; test/attack_baseline_
+//  isolation_test.ts enforces that.
+// =============================================================================
+
 import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
-/// @dev Minimal view of ResultOracle used to validate a release policy's threshold gap
-///      at configuration time rather than at query time.
-interface INoiseBoundedOracle {
-    function noiseUpperBound() external view returns (uint64);
-}
-
-/// @title ModelMarketplace - Chunked GWAS model publication for public and private weights.
+/// @title BaselineModelMarketplace - Chunked GWAS model publication for public and private weights.
 ///
 /// Chunk sizes are decoupled:
 ///   uploadChunkSize  — maximum weights per appendPublicModelChunk / appendEncryptedModelChunk call.
@@ -18,13 +35,11 @@ interface INoiseBoundedOracle {
 ///                      by the fhEVM 2048-bit input-proof budget (max 32 euint64s per call).
 ///   computeChunkSize — weights per getPublicWeightChunk / getEncryptedWeightChunk call, which maps
 ///                      1:1 to the PRSComputeEngine computeChunk HCU budget.
-///                      Mock ceiling: 21 (measured, identical for public and private
-///                      models — see CD-021). Shipped default is 20, one slot of
-///                      headroom. Sepolia ceiling: TBD (run `npm run probe:hcu`).
+///                      Mock ceiling: 20. Sepolia ceiling: TBD (run `npm run probe:hcu`).
 ///
 /// Weights are stored flat (one contiguous array per model) and sliced by computeChunkSize on read.
 /// This lets model publishers use large upload batches while compute remains within HCU limits.
-contract ModelMarketplace is ZamaEthereumConfig {
+contract BaselineModelMarketplace is ZamaEthereumConfig {
     struct ModelHeader {
         address owner;
         bool isPrivate;
@@ -54,26 +69,14 @@ contract ModelMarketplace is ZamaEthereumConfig {
     }
     mapping(uint256 => RateLimitConfig) private rateLimitConfigs;
 
-    // --- Release policy (model-defined output policy) ---
-    //
-    // The release policy fixes WHERE output goes (the oracle) and WHAT resolution it
-    // has (the classification thresholds).  Both are chosen by the model owner before
-    // the model is finalized and are immutable afterwards.  Requesters cannot supply
-    // or influence either value.
-    //
-    // Rationale: when a requester could choose lowThreshold/highThreshold per call,
-    // repeated queries with shifted thresholds performed a binary search on the
-    // encrypted score, which recovers far more information per query than a fixed
-    // ternary classification and largely defeats the randomized release.  Fixing the
-    // thresholds before any query is possible removes that adaptive channel.
-    struct ReleasePolicy {
-        address oracle; // approved oracle contract; address(0) when unconfigured
-        uint64 lowThreshold; // scores below this (after noise) map to Low
-        uint64 highThreshold; // scores at or above this (after noise) map to High
-        bool oracleRequired; // when true, only the oracle path may release output
-        bool configured; // true once setReleasePolicy has been accepted
-    }
-    mapping(uint256 => ReleasePolicy) private releasePolicies;
+    // --- Oracle-required mode (noisy-release hardening) ---
+    mapping(uint256 => bool) private oracleRequired;
+
+    // --- Approved oracles (oracle-required enforcement) ---
+    // When oracleRequired[modelId] is true, finalizeAndClassify() enforces that
+    // the caller-supplied oracle address matches this value — preventing bypass
+    // of the noise layer via a custom no-op oracle contract.
+    mapping(uint256 => address) private approvedOracles;
 
     event ModelShellCreated(
         uint256 indexed modelId,
@@ -104,13 +107,8 @@ contract ModelMarketplace is ZamaEthereumConfig {
         uint256 maxJobsPerWindow,
         uint256 windowBlocks
     );
-    event ReleasePolicySet(
-        uint256 indexed modelId,
-        address indexed oracle,
-        uint64 lowThreshold,
-        uint64 highThreshold,
-        bool oracleRequired
-    );
+    event OracleRequirementSet(uint256 indexed modelId, bool required);
+    event ApprovedOracleSet(uint256 indexed modelId, address oracle);
 
     function createModelShell(
         bool isPrivate,
@@ -468,116 +466,40 @@ contract ModelMarketplace is ZamaEthereumConfig {
         return (cfg.maxJobsPerWindow, cfg.windowBlocks);
     }
 
-    // --- Release policy ---
+    // --- Oracle-required mode ---
 
-    /// @notice Fix this model's output release policy: the oracle that performs
-    ///         classification, the two classification thresholds, and whether the
-    ///         oracle path is the only permitted release path.
-    ///
-    /// @dev    Callable only by the model owner and only while the model is a draft.
-    ///         `_requireOwnedDraftModel` reverts once `finalizeModel` has run, which is
-    ///         what makes the policy immutable: a model that can serve jobs can no
-    ///         longer have its thresholds or oracle changed.  There is deliberately no
-    ///         update or clear function.
-    ///
-    ///         Requesters never supply these values.  `PRSComputeEngine.finalizeAndClassify`
-    ///         loads them from here, so classification resolution is fixed before any
-    ///         query is possible and is identical for every requester of the model.
-    ///
-    ///         The threshold gap is validated against the oracle's own noiseUpperBound at
-    ///         configuration time.  ResultOracle re-checks the same condition when it
-    ///         classifies, but catching it here means a model cannot be published with a
-    ///         policy that would revert on first use.
-    ///
-    /// @param modelId          Draft model to configure.
-    /// @param oracle           Oracle contract; must expose noiseUpperBound().
-    /// @param lowThreshold     Scores below this (after noise) map to Low.
-    /// @param highThreshold    Scores at or above this (after noise) map to High.
-    /// @param requireOracle    When true, finalize() / finalizeTo() / readPartial()
-    ///                         revert for this model, forcing every release through the
-    ///                         oracle's randomized-release layer.
-    function setReleasePolicy(
-        uint256 modelId,
-        address oracle,
-        uint64 lowThreshold,
-        uint64 highThreshold,
-        bool requireOracle
-    ) external {
-        // Reverts unless caller is the owner and the model is still a draft.
-        _requireOwnedDraftModel(modelId);
-        require(oracle != address(0), "Invalid oracle");
-        require(
-            lowThreshold < highThreshold,
-            "lowThreshold must be less than highThreshold"
-        );
-
-        uint64 bound = INoiseBoundedOracle(oracle).noiseUpperBound();
-        require(
-            highThreshold - lowThreshold >= bound,
-            "Threshold gap must be >= noise bound"
-        );
-
-        releasePolicies[modelId] = ReleasePolicy({
-            oracle: oracle,
-            lowThreshold: lowThreshold,
-            highThreshold: highThreshold,
-            oracleRequired: requireOracle,
-            configured: true
-        });
-
-        emit ReleasePolicySet(
-            modelId,
-            oracle,
-            lowThreshold,
-            highThreshold,
-            requireOracle
-        );
-    }
-
-    /// @notice Read this model's immutable release policy.
-    ///
-    /// @dev    `PRSComputeEngine.finalizeAndClassify` calls this instead of accepting
-    ///         thresholds from the requester.  `configured` is false for models whose
-    ///         owner never set a policy; those models have no protected classification
-    ///         path at all.
-    function getReleasePolicy(
-        uint256 modelId
-    )
-        external
-        view
-        returns (
-            address oracle,
-            uint64 lowThreshold,
-            uint64 highThreshold,
-            bool oracleRequired,
-            bool configured
-        )
-    {
+    /// @notice When enabled, finalize() / finalizeTo() / readPartial() revert
+    ///         for this model — forcing all output through the oracle's noise
+    ///         layer via finalizeAndClassify().
+    function setOracleRequired(uint256 modelId, bool required) external {
         require(modelId < modelHeaders.length, "Invalid model");
-        ReleasePolicy storage policy = releasePolicies[modelId];
-        return (
-            policy.oracle,
-            policy.lowThreshold,
-            policy.highThreshold,
-            policy.oracleRequired,
-            policy.configured
-        );
+        require(modelHeaders[modelId].owner == msg.sender, "Not owner");
+        oracleRequired[modelId] = required;
+        emit OracleRequirementSet(modelId, required);
     }
 
-    /// @notice True when this model permits release only through the oracle path.
     function isOracleRequired(uint256 modelId) external view returns (bool) {
         require(modelId < modelHeaders.length, "Invalid model");
-        return releasePolicies[modelId].oracleRequired;
+        return oracleRequired[modelId];
     }
 
-    /// @notice The oracle fixed by this model's release policy, or address(0) if none.
-    ///
-    /// @dev    Read-only view over the release policy.  Retained because the oracle
-    ///         address is the part of the policy most often inspected on its own.
-    ///         There is no corresponding setter — see setReleasePolicy.
+    // --- Approved oracle registry ---
+
+    /// @notice Register a trusted oracle for this model.  When oracle-required mode
+    ///         is enabled, PRSComputeEngine.finalizeAndClassify() enforces that the
+    ///         oracle argument matches this address — preventing callers from routing
+    ///         output through a no-op oracle that skips noise.
+    ///         Set to address(0) to clear the approved oracle.
+    function setApprovedOracle(uint256 modelId, address oracle) external {
+        require(modelId < modelHeaders.length, "Invalid model");
+        require(modelHeaders[modelId].owner == msg.sender, "Not owner");
+        approvedOracles[modelId] = oracle;
+        emit ApprovedOracleSet(modelId, oracle);
+    }
+
     function getApprovedOracle(uint256 modelId) external view returns (address) {
         require(modelId < modelHeaders.length, "Invalid model");
-        return releasePolicies[modelId].oracle;
+        return approvedOracles[modelId];
     }
 
     function modelCount() external view returns (uint256) {

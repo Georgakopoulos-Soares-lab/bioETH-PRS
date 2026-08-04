@@ -6,8 +6,18 @@ import {
 } from "../scripts/quantization_advisor";
 import { validateQuantizationManifest } from "../scripts/quantization_advisor";
 import { HEPRS_FIXTURE_SIZES, loadHeprsFixture } from "./utils/heprs";
+import { roundHalfAwayFromZero } from "../scripts/utils/exact";
 
 describe("Quantization advisor", function () {
+  it("rounds positive and negative half ties away from zero", function () {
+    expect(roundHalfAwayFromZero(0.5)).to.equal(1);
+    expect(roundHalfAwayFromZero(1.5)).to.equal(2);
+    expect(roundHalfAwayFromZero(2.5)).to.equal(3);
+    expect(roundHalfAwayFromZero(-0.5)).to.equal(-1);
+    expect(roundHalfAwayFromZero(-1.5)).to.equal(-2);
+    expect(roundHalfAwayFromZero(-2.5)).to.equal(-3);
+  });
+
   for (const fixtureSize of HEPRS_FIXTURE_SIZES) {
     it(`produces ranked recommendations for the HEPRS ${fixtureSize}-SNP fixture`, function () {
       const { betas, genotypes } = loadHeprsFixture(fixtureSize);

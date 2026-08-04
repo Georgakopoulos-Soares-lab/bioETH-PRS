@@ -1,12 +1,35 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+// =============================================================================
+//  ATTACK BASELINE — NOT PART OF THE DEPLOYED SYSTEM. DO NOT DEPLOY.
+//
+//  Frozen copy of PRSComputeEngine as of commit 2d6f21d, the snapshot submitted for review.
+//  It exists for exactly one purpose: RTR action R1.4-E1 requires comparing the
+//  hardened release policy against "the old caller-selected threshold design", and
+//  R1.4-C1's completion criterion forbids retaining a threshold-taking entry point
+//  in the live contracts. Per CD-005 the baseline arm therefore deploys the genuine
+//  submitted design rather than an approximation of it.
+//
+//  ONLY these changes were made to the frozen source, and a test asserts it:
+//    - contract renamed PRSComputeEngine -> BaselinePRSComputeEngine (artifact name collision)
+//    - import paths adjusted for the subdirectory
+//    - type references to renamed contracts updated
+//    - this header added
+//  No statement inside any function body was altered. In particular
+//  finalizeAndClassify still accepts lowThreshold and highThreshold from the
+//  requester, which is the vulnerability being measured.
+//
+//  scripts/deploy.ts must never reference this contract; test/attack_baseline_
+//  isolation_test.ts enforces that.
+// =============================================================================
+
 import {FHE, euint8, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
-import "./ModelMarketplace.sol";
-import "./GenomicRegistry.sol";
+import "./BaselineModelMarketplace.sol";
+import "../GenomicRegistry.sol";
 
-interface IResultOracle {
+interface IBaselineResultOracle {
     function classifyPreauthorized(
         externalEuint64 encryptedScoreHandle,
         uint64 lowThreshold,
@@ -14,21 +37,19 @@ interface IResultOracle {
     ) external returns (euint8);
 }
 
-/// @title PRSComputeEngine - Chunked PRS dot-product against chunk-published models.
+/// @title BaselinePRSComputeEngine - Chunked PRS dot-product against chunk-published models.
 ///
 /// SNP upload and compute chunk sizes are independent:
 ///   uploadChunkSize  — inherited from the model; governs how many encrypted SNPs are
 ///                      accepted per appendSnpChunk call (≤ 32 for fhEVM input-proof budget).
 ///   computeChunkSize — inherited from the model; governs how many SNP×weight pairs are
 ///                      processed per computeChunk call (HCU-constrained).
-///                      Mock ceiling: 21 (measured, identical for public and private
-///                      models — see CD-021). Shipped default is 20, one slot of
-///                      headroom. Sepolia ceiling: TBD (run `npm run probe:hcu`).
+///                      Mock ceiling: 20. Sepolia ceiling: TBD (run `npm run probe:hcu`).
 ///
 /// SNPs are stored flat (one contiguous array per job) and sliced by computeChunkSize during compute.
 /// v1 enforces ACL and chunk geometry on-chain, but SNP provenance and hardcall-range
 /// assumptions remain off-chain responsibilities of the caller and manifest workflow.
-contract PRSComputeEngine is ZamaEthereumConfig {
+contract BaselinePRSComputeEngine is ZamaEthereumConfig {
     struct Job {
         uint256 modelId;
         uint256 sampleId;
@@ -51,7 +72,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         bool cancelled; // true after cancelJob — blocks all further operations
     }
 
-    ModelMarketplace public marketplace;
+    BaselineModelMarketplace public marketplace;
     GenomicRegistry public registry;
     Job[] private jobs;
     // Flat per-job SNP storage — indexed by absolute SNP position.
@@ -101,7 +122,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     event JobCancelled(uint256 indexed jobId, address indexed requester);
 
     constructor(address marketplaceAddress, address registryAddress) {
-        marketplace = ModelMarketplace(marketplaceAddress);
+        marketplace = BaselineModelMarketplace(marketplaceAddress);
         registry = GenomicRegistry(registryAddress);
     }
 
@@ -293,8 +314,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
     ///
     ///         Chunk size is governed by computeChunkSize (HCU budget) rather than
     ///         uploadChunkSize.  The fhEVM input-proof budget is 32 euint64s per tx;
-    ///         this is satisfied so long as computeChunkSize <= 32 (measured mock HCU
-    ///         ceiling: 21, for both public and private models).
+    ///         this is satisfied so long as computeChunkSize <= 32 (mock ceiling: 20).
     ///
     ///         This path is mutually exclusive with the classic appendSnpChunk path.
     ///         Call createPRSJob first, then call this function ceil(N/computeChunkSize)
@@ -431,38 +451,31 @@ contract PRSComputeEngine is ZamaEthereumConfig {
         return encodedScore;
     }
 
-    /// @notice Computes the final encoded score and routes it into the model's oracle
-    ///         under the model's own release policy.
+    /// @notice Computes the final encoded score and immediately routes it into an oracle.
     ///
-    /// @dev    The requester supplies only the job id.  The oracle address and both
-    ///         classification thresholds are loaded from the model's release policy,
-    ///         which its owner fixed before the model was finalized and cannot change
-    ///         afterwards.  This is the only protected classification entry point, and
-    ///         it accepts no requester-chosen release parameters of any kind.
-    ///
-    ///         Why: when the requester could pass lowThreshold/highThreshold per call,
-    ///         repeated queries with shifted thresholds performed a binary search on the
-    ///         encrypted score.  That adaptive channel leaked far more per query than a
-    ///         fixed ternary classification and largely defeated the randomized release.
-    ///         Reading the thresholds from immutable model state removes it: every
-    ///         requester of a model receives the same classification resolution, fixed
-    ///         before any query was possible.
-    ///
-    ///         The engine remains the handle owner during the same transaction, so
-    ///         ResultOracle.classifyPreauthorized(...) imports the score without a new
-    ///         input proof.
-    function finalizeAndClassify(uint256 jobId) external returns (euint8) {
+    /// @dev    This additive path preserves the existing finalize() flow while giving
+    ///         requesters an oracle-only alternative that avoids client-side
+    ///         decrypt / re-encrypt.  The engine remains the handle owner during the
+    ///         same transaction, so ResultOracle.classifyPreauthorized(...) can import
+    ///         the score without a new input proof.
+    function finalizeAndClassify(
+        uint256 jobId,
+        address oracle,
+        uint64 lowThreshold,
+        uint64 highThreshold
+    ) external returns (euint8) {
+        require(oracle != address(0), "Invalid oracle");
         Job storage job = _requireOwnedCompleteJob(jobId);
         require(!job.finalized, "Job already finalized");
 
-        (
-            address oracle,
-            uint64 lowThreshold,
-            uint64 highThreshold,
-            ,
-            bool configured
-        ) = marketplace.getReleasePolicy(job.modelId);
-        require(configured, "Model has no release policy");
+        // When oracle-required mode is active, the oracle must match the address
+        // approved by the model owner — otherwise callers could pass a no-op oracle
+        // contract that skips noise, defeating the oracle-required protection.
+        if (marketplace.isOracleRequired(job.modelId)) {
+            address approved = marketplace.getApprovedOracle(job.modelId);
+            require(approved != address(0), "No approved oracle set for model");
+            require(oracle == approved, "Oracle not approved for model");
+        }
 
         euint64 encodedScore = _encodeFinalScore(job);
 
@@ -473,7 +486,7 @@ contract PRSComputeEngine is ZamaEthereumConfig {
 
         emit JobFinalizedFor(jobId, msg.sender, oracle, encodedScore);
         return
-            IResultOracle(oracle).classifyPreauthorized(
+            IBaselineResultOracle(oracle).classifyPreauthorized(
                 externalEuint64.wrap(euint64.unwrap(encodedScore)),
                 lowThreshold,
                 highThreshold

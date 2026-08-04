@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { roundHalfAwayFromZero } from "../../scripts/utils/exact";
 
 const HEPRS_FIXTURE_DIR = path.resolve(__dirname, "..", "fixtures", "heprs");
 export const HEPRS_FIXTURE_SIZES = [100, 500, 1000, 5000] as const;
@@ -78,7 +79,7 @@ export function quantizeSignedWeightsToUint64(
   weights: number[],
   scale = 1_000_000
 ) {
-  const scaled = weights.map((weight) => Math.round(weight * scale));
+  const scaled = weights.map((weight) => roundHalfAwayFromZero(weight * scale));
   const minWeight = Math.min(...scaled);
   const weightZeroPoint = minWeight < 0 ? BigInt(-minWeight) : 0n;
 

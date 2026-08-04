@@ -45,6 +45,21 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# === Paper and LaTeX build artifacts ===
+*.aux
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.nav
+*.snm
+*.synctex
+*.synctex.gz
+*.toc
+*.xdv
+tmp/
+
 # === Docker (local fhEVM node) ===
 docker-compose.override.yml
 

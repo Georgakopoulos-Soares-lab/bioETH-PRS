@@ -1,0 +1,109 @@
+{
+  "name": "mixed_signed_weights",
+  "description": "Mixed signs. Individual 0 is verbatim the manuscript's worked example from the Quantisation Scheme; individual 2 produces a negative PRS, which must still encode to a non-negative integer. Allele pairs are deliberately non-palindromic: an A/T or C/G pair cannot have its strand resolved from allele labels alone and is rejected by design (covered in selftest case 5).",
+  "scale": 100,
+  "weights": [
+    "-0.30",
+    "0.10",
+    "0.25"
+  ],
+  "variants": [
+    {
+      "id": "rsM1",
+      "ref": "G",
+      "alt": "A",
+      "effect_allele": "A",
+      "other_allele": "G"
+    },
+    {
+      "id": "rsM2",
+      "ref": "C",
+      "alt": "T",
+      "effect_allele": "T",
+      "other_allele": "C"
+    },
+    {
+      "id": "rsM3",
+      "ref": "G",
+      "alt": "T",
+      "effect_allele": "T",
+      "other_allele": "G"
+    }
+  ],
+  "genotypes": [
+    [
+      0,
+      2,
+      1
+    ],
+    [
+      2,
+      0,
+      0
+    ],
+    [
+      2,
+      0,
+      1
+    ]
+  ],
+  "hand_checked": {
+    "q": [
+      -30,
+      10,
+      25
+    ],
+    "z_w": 30,
+    "u": [
+      0,
+      40,
+      55
+    ],
+    "z_s": 60,
+    "individual_0": {
+      "prs": "0.45",
+      "encodedScore": 105,
+      "note": "manuscript worked example: partialSum 135, G 3, e 105"
+    },
+    "individual_1": {
+      "prs": "-0.60",
+      "encodedScore": 0,
+      "note": "2*(-0.30) = -0.60; e = (0 + 60) - 30*2 = 0"
+    },
+    "individual_2": {
+      "prs": "-0.35",
+      "encodedScore": 25,
+      "note": "2*(-0.30) + 1*0.25 = -0.35; e = (55 + 60) - 30*3 = 25"
+    }
+  },
+  "manifest": {
+    "manifest_version": 1,
+    "genome_build": "GRCh37",
+    "scale": 100,
+    "missing_policy": "reject",
+    "note": "known-answer case: mixed_signed_weights",
+    "variants": [
+      {
+        "id": "rsM1",
+        "ref": "G",
+        "alt": "A",
+        "effect_allele": "A",
+        "other_allele": "G"
+      },
+      {
+        "id": "rsM2",
+        "ref": "C",
+        "alt": "T",
+        "effect_allele": "T",
+        "other_allele": "C"
+      },
+      {
+        "id": "rsM3",
+        "ref": "G",
+        "alt": "T",
+        "effect_allele": "T",
+        "other_allele": "G"
+      }
+    ]
+  }
+}

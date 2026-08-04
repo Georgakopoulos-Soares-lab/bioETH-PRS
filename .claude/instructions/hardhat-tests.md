@@ -57,11 +57,11 @@ const address = await instance.getAddress();
 
 1. Deploy GenomicRegistry, ModelMarketplace, PRSComputeEngine (with marketplace address), ResultOracle
 2. Register sample in registry, grant access
-3. Publish model: `createModelShell` → `appendPublicModelChunk` × N → `finalizeModel`
+3. Publish model: `createModelShell` → `appendPublicModelChunk` × N → `setReleasePolicy` → `finalizeModel`. The policy must be set **before** `finalizeModel`, and the oracle must therefore be deployed first.
 4. Create job: `createPRSJob(modelId, sampleId)`
 5. Encrypt SNP values with `encryptUint64Array`, call `appendSnpChunk` × N, then `finalizeSnpUpload`
 6. Relay compute: `computeChunk` × N (permissionless; anyone can call)
-7. Finalize: `finalizeAndClassify(jobId, oracle, low, high)`
+7. Finalize: `finalizeAndClassify(jobId)` — oracle and thresholds come from the model policy
 8. Assert results with `debugDecryptUint64` (mock) or `decryptUint64` (Sepolia)
 
 ## Typical Integration Test Flow (Streaming Path)
@@ -69,19 +69,24 @@ const address = await instance.getAddress();
 Steps 1-4 same as classic. Then:
 
 1. Encrypt SNP chunk and call `appendAndComputeChunk` × N (each call is both upload + compute)
-2. Finalize: `finalizeAndClassify(jobId, oracle, low, high)`
+2. Finalize: `finalizeAndClassify(jobId)`
 
 No `finalizeSnpUpload` or separate `computeChunk` calls needed.
 
 ## Noise Bias in Oracle Tests
 
-ResultOracle adds `[0, noiseUpperBound)` uniform noise. Call `oracle.expectedNoiseBias()` to get `noiseUpperBound/2` and add it to thresholds. Thresholds must satisfy the minimum gap: `highThreshold - lowThreshold >= noiseUpperBound`.
+ResultOracle adds `[0, noiseUpperBound)` uniform noise. Call `oracle.expectedNoiseBias()` to get `noiseUpperBound/2` and add it to thresholds. Thresholds must satisfy the minimum gap: `highThreshold - lowThreshold >= noiseUpperBound`, which `setReleasePolicy` now enforces at configuration time.
+
+Thresholds are chosen once, in the policy, while the model is still a draft:
 
 ```typescript
 const bias = await oracle.expectedNoiseBias();
 const low = intendedLow + bias;
 const high = low + BigInt(noiseUpperBound); // minimum gap = noiseUpperBound
-await engine.finalizeAndClassify(jobId, oracle.target, low, high);
+await marketplace.setReleasePolicy(modelId, oracle.target, low, high, true);
+await marketplace.finalizeModel(modelId);
+// ... run the job ...
+await engine.finalizeAndClassify(jobId);
 ```
 
 ## Rate Limiting in Tests
@@ -98,10 +103,20 @@ await network.provider.send("hardhat_mine", ["0x3E8"]); // 1000 blocks in hex
 
 ## Oracle-Required Mode in Tests
 
-When testing `oracleRequired` models, `finalize()` and `finalizeTo()` will revert. Use `finalizeAndClassify()` instead:
+When testing `oracleRequired` models, `finalize()` and `finalizeTo()` will revert. Use `finalizeAndClassify(jobId)` instead.
+
+The release policy carries the oracle, both thresholds, and the `oracleRequired` flag, and is settable **only while the model is a draft**. Deploy the oracle and set the policy *before* `finalizeModel`, or the policy is unreachable:
 
 ```typescript
-await marketplace.setOracleRequired(modelId, true);
+const oracle = await (await ethers.getContractFactory("ResultOracle")).deploy(128n);
+// ... createModelShell + appendPublicModelChunk ...
+await marketplace.setReleasePolicy(
+  modelId, await oracle.getAddress(), lowThreshold, highThreshold, /* requireOracle */ true
+);
+await marketplace.finalizeModel(modelId);   // policy is immutable from here
+
 // finalize(jobId) → reverts with "Model requires oracle finalization"
-// finalizeAndClassify(jobId, oracle, low, high) → works
+// finalizeAndClassify(jobId) → works; thresholds come from the policy
 ```
+
+`finalizeAndClassify` takes only a job id. A test that passes thresholds to it is testing an interface that no longer exists. A model with no policy reverts with "Model has no release policy".
