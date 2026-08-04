@@ -17,7 +17,8 @@ reviewer materials, paper-specific scripts, and rendered deliverables are kept h
 
 ## Rebuild
 
-From the repository root:
+See [REBUILD.md](REBUILD.md) for the full sequence, prerequisites, and the open figure decision.
+Short version, from the repository root:
 
 ```bash
 python3 RTR_and_paper/scripts/build_rtr_response.py
