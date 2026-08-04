@@ -79,3 +79,7 @@ deployments/*.json
 *.tgz
 .eslintcache
 .cache/
+
+# Python bytecode
+__pycache__/
+*.pyc

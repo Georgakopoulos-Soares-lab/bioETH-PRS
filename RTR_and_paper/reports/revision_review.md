@@ -4,7 +4,33 @@ Review of `origin/rtr-revision`, `RTR_and_paper/`: pre-revision `original_arxiv_
 post-review `final_arxiv_upload/`, cross-checked against `manuscript/source/`, the reviewer
 document, the generated response, `evidence/phase5-8`, and the contracts on the same branch.
 
-No files were modified. Everything below is a finding or a recommendation.
+## 0. Status
+
+The wording findings have been applied to `manuscript/source/bioeth_prs.tex`;
+`final_arxiv_upload/bioeth_prs.tex` was regenerated with `scripts/build_final_arxiv_upload.py`
+so the two stay in sync. Nothing numerical changed.
+
+| Finding | Status |
+|---|---|
+| 3.4 revision-history captions | fixed — builder now emits content captions; the gas caption states that the plot predates Table 7 |
+| 3.7 broken indicator glyph | fixed — `\mathbf{1}` |
+| 3.8 uncited Table 6 | fixed; `tab:quantization` and `fig:scoring_workflow` were also uncited and are now cited |
+| 3.9 chunk size stated three ways | fixed — §5.1 and §9.1 name 21 (HCU limit), 20 (gas curve), 10 (Sepolia) |
+| 3.10 latency vs Table 3 | fixed — the series is labelled Streaming, the 147 ms figure labelled Classic |
+| 3.12 response describes a different manuscript | fixed in `scripts/build_rtr_response.py`; the response DOCX/PDF must be regenerated |
+| 5.1 hedge repeated 7× | reduced to 5, each in a separately readable unit, no two identical |
+| 5.2 disclaimer density | 8 formulaic trailing disclaimers removed or merged; the ones attached to numbers kept |
+| 5.3 "calculation" ×113 | now 17 (genuine uses) vs 113 "computation/compute" |
+| 5.4 de-jargoning | restored: threat model, overflow safety, ACL, input-proof verification, encrypted multiply/accumulate, handle and ACL storage writes, job states |
+| 5.5 missing mechanism | §5.2 now gives the two 25,000-gas storage writes; §2.4 and §9.1 give the 21-pass/22-fail HCU bound. Algorithms 1–2 and Invariants 1–5 still not restored |
+| 5.6 headings, units, misplaced paragraph | fixed — sentence-case headings, no duplicate heading, seconds in prose, workflow figure moved to System design, `\itbfseries` corrected |
+| 3.1–3.3, 3.5, 3.6 (figure interiors) | **open** — pixel edits, deferred |
+| 3.11, 3.13 | **open** — packaging decisions |
+| 5.6 squeezed landscape figures | **open** — `figure*` promotion changes pagination |
+
+Both PDFs in `final_arxiv_upload/` are now older than the sources and must be recompiled.
+
+Everything below is the original review, unchanged.
 
 ## 1. Method
 
@@ -13,7 +39,7 @@ No files were modified. Everything below is a finding or a recommendation.
 | Text delta | `diff -u original_arxiv_upload/bioeth_prs.tex final_arxiv_upload/bioeth_prs.tex` (1,890 lines) |
 | Package delta | `diff` final vs `manuscript/source/bioeth_prs.tex`; read `scripts/build_final_arxiv_upload.py` |
 | Reviewer coverage | reviewer DOCX (8 + 7 comments) mapped to manuscript sections and to the response DOCX |
-| Numbers | every figure/table/inline number recomputed and traced to `evidence/phase5-8/*.md|json` |
+| Numbers | every figure/table/inline number recomputed and traced to the `evidence/phase5-8` summaries |
 | Contract claims | `contracts/{ResultOracle,ModelMarketplace,PRSComputeEngine}.sol` on the branch |
 | Build integrity | cite keys vs `.bib` vs `.bbl`, `\label`/`\ref` closure, figure SHA-256, rendered PDF pages |
 | Voice | phrase-frequency and disclaimer-density comparison against the pre-revision text |

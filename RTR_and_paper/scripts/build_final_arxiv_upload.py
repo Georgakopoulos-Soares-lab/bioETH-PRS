@@ -190,10 +190,13 @@ def final_tex() -> str:
         1,
     )
 
-    workflow_block = r"""\begin{figure}[t]
+    workflow_block = r"""Figure~\ref{fig:scoring_workflow} summarizes the order of these steps for one scored
+individual.
+
+\begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth,keepaspectratio]{figures/fig_scoring_workflow.pdf}
-\caption{Six steps in the PRS calculation. Public identifiers and allele labels support
+\caption{Six steps in the PRS computation. Public identifiers and allele labels support
 local QC and effect-allele orientation before dosage values and, for private weights,
 weight magnitudes are encrypted. The contracts record who receives the result,
 but they do not prove that the encrypted values came from the registered sample.}
@@ -203,7 +206,7 @@ but they do not prove that the encrypted values came from the registered sample.
     workflow_text = r"""At the system level, the data preparer first checks variant identifiers, genome build,
 dosage validity, missing values, and effect-allele orientation. Only then are dosage values
 and, for private models, weight magnitudes encrypted. The requester selects an authorized
-sample and model, submits the encrypted groups for calculation, and receives either the
+sample and model, submits the encrypted groups for computation, and receives either the
 model-configured raw score or randomized category. The contracts record permissions and the
 result recipient, but they do not establish that the encrypted values came from the stated
 biological sample.
@@ -234,18 +237,19 @@ biological sample.
     old_quantization_caption = r"""\caption{Three-step conversion of signed weights to nonnegative integers.
   Half-away-from-zero rounding and $z_w=\max(0,-\min_i q_i)$ are shown explicitly.
   The worked example is converted back to the original additive PRS.}"""
-    new_quantization_caption = r"""\caption{Original three-stage overview of the fixed-point conversion. The worked
-  example is converted back to the additive PRS. Equations~\ref{eq:wshift}--\ref{eq:encode}
-  give the exact half-away-from-zero rule, unsigned clamp, and intermediate-value order used
-  in the implementation.}"""
+    new_quantization_caption = r"""\caption{Three-stage overview of the fixed-point conversion, ending with the worked
+  example converted back to the additive PRS. Equations~\ref{eq:wshift}--\ref{eq:encode}
+  are the implementation definition and give the half-away-from-zero rule, the unsigned
+  clamp $z_w=\max(0,-\min_i q_i)$, and the intermediate-value order.}"""
     text = text.replace(old_quantization_caption, new_quantization_caption, 1)
 
     old_gas_caption = r"""\caption{Gas used versus variant count for both calculation methods in the local
   simulation. The Streaming method used 35.4--37.2\% less gas because it did not
   store each encrypted SNP handle permanently.}"""
-    new_gas_caption = r"""\caption{Original gas-scaling visualization for the two local calculation methods.
-  The graphic retains the original plotted values; Table~\ref{tab:gas} reports the final
-  post-review measurements and is the numerical source for the revised comparison.}"""
+    new_gas_caption = r"""\caption{Gas used versus variant count for the two local computation methods.
+  The plotted values come from an earlier run of the same measurement and differ from
+  Table~\ref{tab:gas} in the third significant figure; Table~\ref{tab:gas} reports the
+  totals used throughout the text.}"""
     text = text.replace(old_gas_caption, new_gas_caption, 1)
     return text
 

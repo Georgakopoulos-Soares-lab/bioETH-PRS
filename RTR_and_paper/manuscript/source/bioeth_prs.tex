@@ -28,7 +28,7 @@
 
 \titleformat{\section}{\normalfont\large\bfseries\scshape}{\thesection}{1em}{}
 \titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
-\titleformat{\subsubsection}{\normalfont\normalsize\itbfseries}{\thesubsubsection}{1em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries\itshape}{\thesubsubsection}{1em}{}
 
 \setlist[itemize]{leftmargin=*, topsep=2pt, itemsep=1pt}
 \setlist[enumerate]{leftmargin=*, topsep=2pt, itemsep=1pt}
@@ -65,7 +65,7 @@
   \textbf{Kimon Antonios Provatas$^{1,+,*}$, Christos Galanopoulos$^{1,+}$, Ilias Georgakopoulos-Soares$^{1,*}$}\\[2pt]
   \normalsize $^{1}$Division of Pharmacology and Toxicology, College of Pharmacy, The University of Texas at Austin, Dell Pediatric Research Institute, Austin, TX, USA\\[2pt]
   \small $^{+}$Co-first authors \quad $^{*}$Corresponding authors: \texttt{kap4722@my.utexas.edu}; \texttt{ilias@austin.utexas.edu}\\[2pt]
-  \small\textit{Blockchain $\cdot$ Genomic Privacy $\cdot$ FHE $\cdot$ Smart Contracts $\cdot$ Risk Categories}
+  \small\textit{Blockchain $\cdot$ Genomic Privacy $\cdot$ FHE $\cdot$ Smart Contracts $\cdot$ Randomized Output Release}
   \end{minipage}
 }
 \date{}
@@ -81,12 +81,12 @@
   \centering
   \includegraphics[width=\textwidth,keepaspectratio]{figures/graphical_abstract.pdf}
   \captionof{figure}{\textbf{Graphical Abstract.} bioETH-PRS uses smart contracts to coordinate
-  an encrypted PRS calculation instead of relying on a designated evaluator. The system
-  still depends on the blockchain and on fhEVM services that perform encrypted
-  calculations and apply the configured release permissions. Raw scores are authorized
-  only for the requester, whereas randomized categories are publicly decryptable. We report a public-weight 100-SNP calculation
-  on Sepolia, exact agreement for 200 calculations in a local simulation, and
-  35.4--37.2\% lower gas for the Streaming method in the local simulation.}
+  an encrypted PRS computation instead of relying on a designated evaluator. The contracts,
+  the blockchain, and the fhEVM computation and decryption services all remain dependencies.
+  Raw scores are authorized only for the requester, whereas randomized categories are
+  publicly decryptable. We report a public-weight 100-SNP computation on Sepolia, exact
+  agreement for 200 local computations, and 35.4--37.2\% lower gas for the Streaming method
+  in the local simulation.}
   \label{fig:graphical_abstract}
 \end{center}
 
@@ -94,21 +94,21 @@
 \begin{abstract}
 \noindent
 Polygenic risk scores (PRSs) aggregate genetic effect estimates to predict disease
-susceptibility.  Calculating a PRS with a conventional external service can require
-sharing raw genotype data.  HEPRS, the homomorphic-encryption system used for comparison
-in this study, requires a designated evaluator.  We present \textbf{bioETH-PRS}, which uses publicly auditable
-smart contracts to coordinate the calculation on a blockchain that supports Fully
+susceptibility.  Computing a PRS through a conventional external service can require
+sharing raw genotype data, and prior homomorphic-encryption approaches, including HEPRS,
+rely on a designated evaluator.  We present \textbf{bioETH-PRS}, which uses publicly auditable
+smart contracts to coordinate the computation on a blockchain that supports Fully
 Homomorphic Encryption (fhEVM).  This reduces reliance on a single evaluator, but the
 system still depends on the smart contracts, blockchain, and fhEVM computation and
 decryption services.
 Before encryption, the preprocessing workflow checks the input for valid genotype values
 and aligns it to the model's effect allele.  bioETH-PRS converts signed weights to nonnegative integers
 without overflow.  The model provider can require a randomized risk category instead
-of the raw score.  One public-weight 100-SNP calculation completed on
-Sepolia in 25 transactions and used 20.710271 million gas.  It took 269,320 ms from
-submission to result and 8,081 ms to decrypt; the encoded score of 758,685 matched an
-independent calculation exactly.  One private-weight 100-SNP calculation was evaluated
-only in a local simulation.  Across 200 local public-weight calculations with
+of the raw score.  One public-weight 100-SNP computation completed on
+Sepolia in 25 transactions and used 20.71 million gas.  It took 269.3 s from
+submission to result and 8.1 s to decrypt; the encoded score of 758,685 matched an
+independent calculation exactly.  One private-weight 100-SNP computation was evaluated
+only in a local simulation.  Across 200 local public-weight computations with
 100--5,000 variants, every decoded
 score matched the independent calculation because the study weights were represented
 without rounding.  The Streaming method processes each group without permanently storing
@@ -121,11 +121,11 @@ up to 5,000 variants; we did not evaluate genome-wide or clinical use.
 \twocolumn[{
 \section*{Key Points}
 \begin{itemize}
-  \item Smart contracts reduce reliance on a single designated evaluator, but
-        the system still depends on the blockchain and fhEVM services.
-  \item A public-weight 100-SNP calculation completed on Sepolia.  In the local simulation,
-        we evaluated public-weight calculations with 100--5,000 variants and one
-        private-weight 100-SNP calculation.
+  \item Publicly auditable smart contracts remove the designated evaluator, although the
+        contracts, blockchain, and fhEVM services remain dependencies.
+  \item A public-weight 100-SNP computation completed on Sepolia.  In the local simulation,
+        we evaluated public-weight computations with 100--5,000 variants and one
+        private-weight 100-SNP computation.
   \item All 200 locally decoded public-weight scores matched Equation~\ref{eq:prs} exactly because
         the study weights were represented without rounding.
   \item The Streaming method used 35.4--37.2\% less gas than the Classic method (stored inputs) in the
@@ -149,7 +149,7 @@ the dosage-weighted effects of genetic variants:
 where $g_i \in \{0,1,2\}$ is the dosage of the model-specified effect allele for variant
 $i$ and $\beta_i$ is the corresponding GWAS effect weight.  Published polygenic scores in the PGS Catalog range
 from small panels to genome-wide scores with large variant sets \citep{lambert2019polygenic}.
-Using a conventional external service to calculate a PRS can require sending genotype
+Using a conventional external service to compute a PRS can require sending genotype
 data outside the hospital, which raises privacy concerns because genomic sequences can
 be identifying \citep{gymrek2013,erlich2014}.
 
@@ -160,7 +160,7 @@ The workflow handles two kinds of sensitive information: (1)
 More generally, model interfaces and outputs can leak sensitive information through
 model-inversion attacks \citep{fredrikson2015modelinversion}.
 In a conventional plaintext service, the evaluator must decrypt both genotypes and
-weights before the calculation can proceed.
+weights before the computation can proceed.
 
 \textbf{Why FHE is useful.}
 Fully Homomorphic Encryption (FHE) permits arbitrary arithmetic on encrypted data
@@ -176,27 +176,27 @@ mechanism to prevent score accumulation or model probing.
 
 \textbf{Our contribution.}
 We propose \textbf{bioETH-PRS}, in which publicly auditable smart contracts coordinate
-the encrypted calculation and control how results are released.  A designated
+the encrypted computation and control how results are released.  A designated
 evaluator is no longer required.  However, the system still relies
 on the contracts, blockchain consensus, and the fhEVM computation and decryption
 services (Figure~\ref{fig:graphical_abstract}).  The blockchain records the contract
 steps, but it does not by itself prove that the encrypted arithmetic was correct.
 
 \smallskip\noindent\textbf{Distinctions from HEPRS.}
-Although both systems calculate the same encrypted PRS, they use different methods.
+Although both systems compute the same encrypted PRS, they use different methods.
 First, bioETH-PRS converts signed decimal weights to unsigned integers for TFHE/fhEVM;
 HEPRS uses CKKS approximate decimal arithmetic.  Second, four public contracts manage
-who may use a sample, model publication, calculation, and result release.  Third, the
-Classic method (stored inputs) keeps the encrypted SNPs for later calculation, whereas the Streaming
+who may use a sample, model publication, computation, and result release.  Third, the
+Classic method (stored inputs) keeps the encrypted SNPs for later computation, whereas the Streaming
 method processes each group immediately.  Fourth, a model can require a randomized
 risk category and limit repeated queries instead of releasing the raw score.
 
 \smallskip\noindent Our main contributions are:
 \begin{itemize}
   \item Four smart contracts that separately manage who may use a sample, model
-        publication, encrypted calculation, and result release.
+        publication, encrypted computation, and result release.
   \item A three-step conversion that represents signed decimal weights as nonnegative
-        integers, checks that the calculation stays within the allowed integer range,
+        integers, checks that the computation stays within the allowed integer range,
         and selects a suitable scale before the model is published.
   \item The Classic method (stored inputs) and Streaming method for processing the encrypted inputs;
         the Streaming method used about 37\% less gas in the local simulation.
@@ -205,8 +205,8 @@ risk category and limit repeated queries instead of releasing the raw score.
   \item Query limits and thresholds fixed by the model provider, evaluated with queries
         chosen after earlier results or in advance, several wallets and samples, and
         correlated SNP patterns.
-  \item A public-weight 100-SNP calculation on Sepolia, public-weight calculations with 100--5,000
-        variants in the local simulation, and one local private-weight 100-SNP calculation.
+  \item A public-weight 100-SNP computation on Sepolia, public-weight computations with 100--5,000
+        variants in the local simulation, and one local private-weight 100-SNP computation.
 \end{itemize}
 
 The intended use is research with additive PRS models containing up to 5,000 variants.  We did not
@@ -216,7 +216,7 @@ evaluate genome-wide or clinical use, production cost, or private weights on Sep
 \section{Background}
 \label{sec:background}
 
-\subsection{Polygenic Risk Scores}
+\subsection{Polygenic risk scores}
 
 A PRS is the weighted inner product of a patient's effect-allele dosage vector
 $\mathbf{g} \in \{0,1,2\}^N$ and a GWAS effect weight vector $\boldsymbol{\beta}
@@ -228,8 +228,7 @@ milliseconds on plaintext data; FHE approaches trade runtime for privacy.
 PRS models span a wide range in SNP inclusion depending on construction methodology.
 Sparse models may include hundreds to a few thousand variants, while genome-wide
 approaches incorporate tens of thousands to millions.  We evaluated bioETH-PRS with
-models containing up to 5,000 variants.  These results do not establish genome-wide or
-clinical use.
+models containing up to 5,000 variants.
 
 \subsection{Genotype preprocessing, QC, and model alignment}
 \label{sec:preprocessing}
@@ -268,15 +267,15 @@ treated as already aligned.  Their leading constant column has weight 0 and dosa
 so an $N$-variant data set contains $N+1$ encoded positions.  Examples with variant
 metadata covered the build, order, missingness, and strand rules.
 
-\subsection{Fully Homomorphic Encryption}
+\subsection{Fully homomorphic encryption}
 
 FHE schemes differ in the arithmetic they support and their performance.  Two are
 directly relevant to this work.
 
 \textbf{CKKS} \citep{cheon2017ckks} supports approximate arithmetic over real-valued data, is
-naturally suited to decimal calculations, and underpins HEPRS.  Its available
-calculation depth depends on the selected parameters and whether bootstrapping is used,
-and approximation error accumulates during calculation.  The Lattigo library
+naturally suited to decimal arithmetic, and underpins HEPRS.  Its available
+multiplicative depth depends on the selected parameters and whether bootstrapping is
+used, and approximation error accumulates during evaluation.  The Lattigo library
 \citep{lattigo} implements CKKS in Go with the parameter sets used
 by HEPRS.  CKKS is computationally expensive: evaluating a 110,000-SNP PRS on a
 single CPU node requires approximately 4.9~s per individual and up to 130~GB of RAM
@@ -292,7 +291,7 @@ The security of TFHE is based on LWE/GLWE-family assumptions
 are generally studied as candidates for security against quantum attacks, but the
 present study does not evaluate long-term cryptographic parameter selection.
 
-\subsection{Programmable Blockchain and fhEVM}
+\subsection{Programmable blockchain and fhEVM}
 
 The Fully Homomorphic Ethereum Virtual Machine (fhEVM) extends the Ethereum
 execution environment with TFHE precompile operations \citep{zamafhevm}.  Every
@@ -303,14 +302,14 @@ handles and trigger FHE operations through coprocessor calls.
 An on-chain contract records the release permission for each result.  If the fhEVM services
 work as specified, only the requester can decrypt a raw score authorized by the contract,
 whereas a randomized category is publicly decryptable.  The blockchain records these decisions and calls, but it does not
-independently verify the encrypted calculation or prevent a failure of the fhEVM
-calculation and decryption services.
+independently verify the encrypted computation or prevent a failure of the fhEVM
+computation and decryption services.
 
 A per-transaction Homomorphic Computation Unit (HCU) budget limits FHE operations.
-In the local simulation, the largest successful calculation chunk contained 21 SNPs
-for both model types (Section~\ref{sec:evaluation}); the Sepolia limit remains
-unmeasured and is not inferred from that result.  The HCU constraint necessitates
-chunked computation strategies for large input vectors.
+In the local simulation, the largest compute chunk that fit the budget contained 21 SNPs
+for both model types, and 22 SNPs exceeded it (Section~\ref{sec:evaluation}); the Sepolia
+limit was not measured.  The HCU constraint necessitates chunked computation strategies
+for large input vectors.
 
 %% ============================================================
 \section{System design}
@@ -323,22 +322,22 @@ bioETH-PRS uses four smart contracts to move from sample registration to a risk 
 \texttt{ModelMarketplace} stores the GWAS model and its result settings,
 \texttt{PRSComputeEngine} calculates the encrypted score, and \texttt{ResultOracle}
 can release a randomized risk category.  Each contract therefore has one primary role:
-registration, model publication, score calculation, or category release.
+registration, model publication, score computation, or category release.
 
 \begin{figure}[!htbp]
   \centering
   \includegraphics[width=\columnwidth,keepaspectratio]{figures/fig_architecture.pdf}
   \caption{System architecture. Four contracts record who may use a sample, store the model
-  and its result settings, calculate the encrypted score, and return either the score or a
+  and its result settings, compute the encrypted score, and return either the score or a
   randomized risk category. Public weights and model details are visible by design;
-  genotype dosages and private weights remain encrypted during the calculation.
+  genotype dosages and private weights remain encrypted during the computation.
   Raw scores are authorized only for the requester; randomized categories are publicly decryptable.}
   \label{fig:arch}
 \end{figure}
 
 \textbf{Sample registry.}
 The registry stores references (IPFS or Arweave URIs) to encrypted genotype data held
-off chain.  A requester registers a sample and chooses who may use it in a calculation.
+off chain.  A requester registers a sample and chooses who may use it in a computation.
 The registry keeps this record but performs no encrypted arithmetic.
 
 \textbf{Model contract.}
@@ -347,18 +346,18 @@ integers; private weights are encrypted.  Public weights are encrypted before
 multiplication in the present implementation.  The model record also stores the scale
 factor, weight shift, score shift, and a cryptographic fingerprint of the input-preparation
 record.  Weights, quantization parameters, and the release policy cannot be changed after
-model finalization, but the owner can update or disable the query-rate limits.  Public-weight calculations with
-100--5,000 variants and one private-weight 100-SNP calculation were evaluated locally.
-Only the public-weight 100-SNP calculation was performed on Sepolia.
+model finalization, but the owner can update or disable the query-rate limits.  Public-weight computations with
+100--5,000 variants and one private-weight 100-SNP computation were evaluated locally.
+Only the public-weight 100-SNP computation was performed on Sepolia.
 
-\textbf{Calculation contract.}
-The calculation contract receives the encrypted SNPs in groups, calculates the weighted
+\textbf{Compute contract.}
+The compute contract receives the encrypted SNPs in groups, computes the weighted
 sum, corrects the integer shifts described in Section~\ref{sec:quantization}, and
 finalizes either one raw score or one randomized category.  A raw score is authorized only
 for the requester.  A legacy \texttt{readPartial} function can separately authorize the
 requester to inspect the intermediate accumulator when the model does not require the
 oracle; oracle-required models block this path.  We did not use \texttt{readPartial} in the
-reported evaluation.  Section~\ref{sec:execution} describes the two calculation methods.
+reported evaluation.  Section~\ref{sec:execution} describes the two computation methods.
 
 \textbf{Result contract.}
 The result contract adds a random value to the encrypted score before assigning Low,
@@ -369,15 +368,27 @@ independently verified by blockchain consensus.
 The model provider can require this category result instead of allowing the requester to
 decrypt the raw score.
 
+Figure~\ref{fig:scoring_workflow} summarizes the order of these steps for one scored
+individual.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth,keepaspectratio]{figures/fig_scoring_workflow.pdf}
+\caption{Six steps in the PRS computation. Public identifiers and allele labels support
+local QC and effect-allele orientation before dosage values and, for private weights,
+weight magnitudes are encrypted. The contracts record who receives the result,
+but they do not prove that the encrypted values came from the registered sample.}
+\label{fig:scoring_workflow}
+\end{figure}
+
 \subsection{Comparison with HEPRS}
 
 Table~\ref{tab:comparison} compares bioETH-PRS and HEPRS
 \citep{knight2026heprs} by how they handle encrypted data, model size, runtime, memory,
 deployment needs, and the result returned.  Both compute Equation~\ref{eq:prs}.  HEPRS reports encrypted CKKS
 results for a much larger model with a designated evaluator.  bioETH-PRS reports a
-smaller calculation coordinated by public smart contracts.  These contracts reduce
-reliance on one evaluator, but the system still depends on the blockchain and fhEVM
-services.
+smaller computation coordinated by public smart contracts.  Table~\ref{tab:comparison}
+lists what each system still depends on.
 
 \begin{table*}[t]
 \centering
@@ -392,7 +403,7 @@ simulation, or not measured.}
 \textbf{Dimension} & \textbf{HEPRS} \citep{knight2026heprs} & \textbf{bioETH-PRS} \\
 \midrule
 How encrypted data are handled & encrypted client--modeler--evaluator system & encrypted inputs; contracts determine who receives the result \\
-Designated evaluator & yes; evaluator executes CKKS & no designated evaluator; contracts coordinate the calculation \\
+Designated evaluator & yes; evaluator executes CKKS & no designated evaluator; contracts coordinate the computation \\
 Remaining dependencies & three-party non-collusion and HE software/hardware & contracts, blockchain, fhEVM computation, and decryption services \\
 Arithmetic scheme & CKKS approximate signed-real arithmetic & TFHE unsigned integers after fixed-point encoding \\
 Encrypted variants evaluated & 110,000 in the published study & public: 100 on Sepolia and 100--5,000 locally; private: 100 locally \\
@@ -481,7 +492,7 @@ value $(\mathrm{partialSum} + z_s)$ is always non-negative.
 \mathrm{PRS} = \frac{e - z_s}{s}.
 \end{equation}
 
-\subsection{Worked Example}
+\subsection{Worked example}
 
 Consider three genetic variants with scale $s=100$.  Their weights and effect-allele
 dosages are
@@ -503,24 +514,14 @@ The plaintext target is
   \item Decode: PRS $= (105 - 60) / 100 = 0.45$.
 \end{enumerate}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth,keepaspectratio]{figures/fig_scoring_workflow.pdf}
-\caption{Six steps in the PRS calculation. Public identifiers and allele labels support
-local QC and effect-allele orientation before dosage values and, for private weights,
-weight magnitudes are encrypted. The contracts record who receives the result,
-but they do not prove that the encrypted values came from the registered sample.}
-\label{fig:scoring_workflow}
-\end{figure}
-
-\subsection{Checking the integer range}
+\subsection{Overflow safety}
 \label{sec:overflow}
 
 \begin{proposition}
 Let $N$ be an arbitrary SNP count, let $s$ be the fixed-point scale factor, and
 let $M$ satisfy $|q_i| \leq sM$ for every quantized weight $q_i$.  Then a
 sufficient worst-case condition for unsigned 64-bit safety of the full encoding
-calculation is
+is
 \[
 4 s M N \leq 2^{64} - 1.
 \]
@@ -583,9 +584,9 @@ intermediate and final values is
 \[
 4 s M N \leq 2^{64}-1.
 \]
-This condition was satisfied by every model evaluated in this study.  It is an
-arithmetic safety check, not evidence that the system can process models larger than
-the evaluated maximum of 5,000 variants.
+Every model evaluated in this study satisfied this condition.  The bound constrains the
+arithmetic rather than the model size the deployed system can process; 5,000 variants was
+the largest model evaluated.
 \end{proof}}
 
 \subsection{Selecting the scale factor}
@@ -606,8 +607,8 @@ individuals in the study data set.  It compares three ranges:
   \item \textbf{Low scale} ($s = 10^2$): MAE of 0.012--0.150 PRS units across
         the four fixture sizes.
   \item \textbf{Selected scale} ($s \approx 10^6$): zero error on these six-decimal-place
-        data sets.  A candidate recommendation for similarly represented models, not a
-        universal production default.
+        data sets.  It is a candidate for models represented at similar precision
+        rather than a universal default.
   \item \textbf{Higher evaluated scale} ($s = 10^7$): no improvement over the selected scale
         on the study data; the limiting factor is source data precision.
 \end{itemize}
@@ -618,7 +619,7 @@ contract operation count; the number of transactions needed to submit the SNPs r
 main scaling constraint.
 
 %% ============================================================
-\section{Calculation methods}
+\section{Computation methods}
 \label{sec:execution}
 
 bioETH-PRS provides two methods that differ in whether encrypted SNPs are stored between
@@ -627,19 +628,21 @@ transactions (Figure~\ref{fig:protocol}).  Both methods produce the same score.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth,keepaspectratio]{figures/fig_protocol.pdf}
-  \caption{Calculation method comparison. The Classic method (stored inputs) uploads and stores SNPs before the
-  score is calculated, so different parties can perform these steps. The Streaming
-  method combines upload and calculation for one requester. Across the 100--5,000
+  \caption{Computation method comparison. The Classic method (stored inputs) uploads and stores SNPs before the
+  score is computed, so different parties can perform these steps. The Streaming
+  method combines upload and computation for one requester. Across the 100--5,000
   variants evaluated in the local simulation, streaming used 35.4--37.2\% less gas.}
   \label{fig:protocol}
 \end{figure}
 
 \subsection{Classic method (stored inputs)}
 
-The requester uploads encrypted SNPs in groups of at most 32.  After upload, the score
-is calculated in groups of 20 SNPs, just below the largest successful local group of
-21.  The encrypted SNP references remain stored between transactions.  This allows a
-different account, such as a relayer, to continue the calculation.  Under the encryption
+The requester uploads encrypted SNPs in groups of at most 32.  Uploaded SNPs are then
+processed in compute groups bounded by the HCU budget, which admitted 21 SNPs locally:
+the gas measurements in Section~\ref{sec:evaluation} used groups of 20, and the Sepolia
+run and its local counterpart used groups of 10.  The encrypted SNP references remain
+stored between transactions.  This allows a different account, such as a relayer, to
+continue the computation.  Under the encryption
 assumptions the relayer cannot read the SNP values, but it can delay requests.  Its
 transactions also reveal timing and addresses that are already visible on the
 blockchain.  It therefore remains a dependency for availability and privacy.
@@ -651,20 +654,21 @@ transaction.  The values are multiplied by the model weights, added to the runni
 and then discarded rather than stored for later transactions.
 
 \textbf{Gas savings.}
-The Classic method permanently stores an encrypted SNP reference and a record stating
-who may use it.  The Streaming method avoids both records, which explains the observed
-35.4--37.2\% reduction in local gas.  The remaining gas in this implementation comes
-mainly from preparing each encrypted input and multiplying and adding encrypted values.
+The Classic method writes two persistent storage entries for every SNP: the ciphertext
+handle and its access-control-list (ACL) record, each about 25,000 gas.  The Streaming
+method writes neither, which accounts for the observed 35.4--37.2\% reduction in local
+gas.  The remaining cost is dominated by input-proof verification and the encrypted
+multiply and accumulate for each SNP.
 
 \textbf{Trade-off.}
-The Classic method allows upload and calculation to be performed by different parties.
+The Classic method allows upload and computation to be performed by different parties.
 The Streaming method requires one requester to submit and process the inputs.
 
 %% ============================================================
 \section{Security assumptions and limits}
 \label{sec:security}
 
-\subsection{Attacker considered}
+\subsection{Threat model}
 
 We assume an attacker can read public blockchain data, submit transactions, and make
 repeated classification requests with chosen encrypted inputs
@@ -677,7 +681,7 @@ receive results.
   \centering
   \includegraphics[width=\columnwidth,keepaspectratio]{figures/fig_security.pdf}
   \caption{Security assumptions and remaining limits. The contracts control who may
-  request a calculation, how the result is released, and how often a sample may be
+  request a computation, how the result is released, and how often a sample may be
   queried. They do not prove that the encrypted SNPs came from the registered sample,
   that the model is clinically valid, or that repeated queries reveal no information
   about private weights.}
@@ -686,9 +690,9 @@ receive results.
 
 \subsection{Source of the encrypted SNPs}
 
-The registry checks whether a person may request a calculation, but it cannot check
+The registry checks whether a person may request a computation, but it cannot check
 whether the encrypted SNP values came from the registered biological sample.  The
-contracts calculate a result from the values they receive, including values chosen by a
+contracts compute a result from the values they receive, including values chosen by a
 requester.  Restricting an attack to correlated SNP patterns is therefore an analysis
 choice, not a restriction enforced by the system.
 
@@ -710,7 +714,7 @@ sample or model record depend. A mark shows what could be affected if that part 
 \midrule
 Genotype provider/preprocessor &  & X &  & X & prepares the claimed sample and applies build, order, QC, and orientation rules \\
 Model provider &  & X &  & X & publishes the intended weights, metadata, thresholds, and scientifically valid model \\
-Smart contracts & X & X & X & X & apply the stated calculation and the rules about who may use data or receive results \\
+Smart contracts & X & X & X & X & apply the stated computation and the rules about who may use data or receive results \\
 Blockchain consensus &  & X & X & X & orders and finalizes the publicly auditable contract record \\
 fhEVM coprocessor & X & X & X &  & performs TFHE operations correctly without exposing plaintext \\
 Relayer & X &  & X &  & carries requests without revealing a released result to someone else \\
@@ -726,8 +730,9 @@ rules to protect the results:
 \begin{itemize}
   \item Contracts store opaque references to encrypted values, not plaintext SNPs.
         The requester creates the encrypted inputs, and the fhEVM services process them.
-  \item Each encrypted output records who may decrypt it, and the contract gives this
-        record only after the required calculation steps.
+  \item Each encrypted output carries an access-control-list (ACL) record naming who
+        may decrypt it, and the contract writes that record only after the required
+        computation steps.
   \item The encoded PRS $e$ (Eq.~\ref{eq:encode}) is never publicly decryptable.
   \item A model may require the randomized Low, Medium, or High category instead of
         releasing the raw score to the requester.
@@ -735,8 +740,7 @@ rules to protect the results:
         the oracle, the legacy \texttt{readPartial} function can separately expose an
         intermediate accumulator to the requester; this path was not used in the evaluation.
 \end{itemize}
-These rules do not establish where the submitted SNPs came from, whether the model is
-clinically valid, or whether the external fhEVM services behave correctly.
+They do not establish where the submitted SNPs came from.
 
 \subsection{Randomized risk category}
 
@@ -757,8 +761,8 @@ comparison threshold.
 All comparisons against classification thresholds operate on the randomized encrypted
 score using encrypted boolean operations, avoiding any branching on hidden values:
 \begin{align}
-\hat{L} &= \mathbb{1}[e_{\mathrm{randomized}} < \tau_L], \notag\\
-\hat{H} &= \mathbb{1}[e_{\mathrm{randomized}} \geq \tau_H], \notag\\
+\hat{L} &= \mathbf{1}[e_{\mathrm{randomized}} < \tau_L], \notag\\
+\hat{H} &= \mathbf{1}[e_{\mathrm{randomized}} \geq \tau_H], \notag\\
 \mathrm{cat} &= \mathrm{select}\bigl(\hat{L},\;L,\;\mathrm{select}(\neg\hat{L}\wedge\neg\hat{H},\;M,\;H)\bigr).
 \label{eq:classify}
 \end{align}
@@ -787,21 +791,22 @@ We examined whether a requester allowed to use a model with 20 private weights c
 infer the weights by submitting chosen encrypted SNP values and observing the released
 results.  The analysis included thresholds chosen by the requester, with each query
 chosen after seeing earlier results or all queries chosen in advance; thresholds fixed
-by the model provider; several wallets and samples; and correlated SNP patterns.  These
-calculations were performed in the local simulation.  To make the analysis repeatable,
+by the model provider; several wallets and samples; and correlated SNP patterns.  All
+runs were performed in the local simulation.  To make the analysis repeatable,
 we used a fixed sequence of random integers from 0 through 127. A different
 random sequence may give different exact recovery counts. The contract also limits the
 number of requests for each model, requester, and sample over a set number of blocks.
 ``Within $B$'' means that an estimated integer weight differs from the true integer weight
 by less than 128 units; it does not mean exact recovery.  Pearson $r$ measures whether the
 estimated weights preserve the true relative pattern, and sign accuracy is the fraction
-whose positive or negative direction is correct.  The 320-query rows use a common comparison
-budget rather than a protocol security threshold.
+whose positive or negative direction is correct.  Table~\ref{tab:probing} reports the
+results.
 
 \begin{table*}[t]
 \centering
 \caption{Results of the repeated-query analysis in the local simulation. ``Within
-$B$'' is the number of weights estimated to within the randomization range.}
+$B$'' is the number of weights estimated to within the randomization range. The
+320-query rows share one comparison budget rather than a protocol threshold.}
 \label{tab:probing}
 \small
 \begin{tabularx}{\textwidth}{@{}Xrrrr@{}}
@@ -832,7 +837,7 @@ sample, although different registered samples had separate limits.  For private
 weights, the model provider decides who may use them.  When inputs were restricted to
 correlated SNP blocks, the correlation between estimated and true weights fell to
 $0.0223$.  This is not a reliable safeguard because requesters can still submit other
-encrypted SNP values. Applying the studied limit of three calculations per 1,000 blocks
+encrypted SNP values. Applying the studied limit of three computations per 1,000 blocks
 to 260 total queries gives calculated times of 288.9 hours with 12-second blocks or
 48.1 hours with 2-second blocks for one registered sample. These are calculated examples,
 not measured network times. The chosen $B=128$ was 1.34\% of the largest integer weight;
@@ -843,7 +848,7 @@ rate limits after publication, so their protection depends on the maintained con
 \section{Evaluation}
 \label{sec:evaluation}
 
-\subsection{Where calculations were evaluated}
+\subsection{Where the computations were evaluated}
 
 We report results from Sepolia and from a local contract simulation.  Sepolia provides
 observed fhEVM transaction results.  The local simulation evaluates contract behavior,
@@ -856,24 +861,26 @@ Solidity 0.8.24, Hardhat 2.22.2, \texttt{@fhevm/hardhat-plugin} 0.4.2, and
 \texttt{package-lock.json}.  The Solidity optimizer used 200 runs with \texttt{viaIR}
 enabled and the Cancun EVM target, as recorded in \texttt{hardhat.config.ts}.
 
-We evaluated public-weight local calculations with 100, 500, 1,000, and 5,000 SNPs
-\citep{knight2026heprs}, and one private-weight local calculation with 100 SNPs.  Each
-public data set also includes one leading constant position.  The largest successful calculation
-chunk in the local simulation contained 21 SNPs for both public and private weights, and
-we used a chunk size of 20.  The corresponding Sepolia limit was not measured.
+We evaluated public-weight local computations with 100, 500, 1,000, and 5,000 SNPs
+\citep{knight2026heprs}, and one private-weight local computation with 100 SNPs.  Each
+public data set also includes one leading constant position.  In the local simulation a
+compute chunk of 21 SNPs succeeded for both public and private weights and 22 failed.
+The runs reported below used chunks of 20, except the Sepolia comparison in
+Table~\ref{tab:live_validation}, which used 10.  The corresponding Sepolia HCU limit was
+not measured.
 
-On Sepolia (chain ID 11155111), a public-weight 100-SNP calculation completed in 25
+On Sepolia (chain ID 11155111), a public-weight 100-SNP computation completed in 25
 transactions after four contract deployments.  It used 20.710271 million gas, took
 269,320 ms from submission to result and 8,081 ms to decrypt, and returned an encoded
 score of 758,685.  This score exactly matched the independent calculation.  The
-private-weight 100-SNP calculation was evaluated locally but was not run on Sepolia.
+private-weight 100-SNP computation was evaluated locally but was not run on Sepolia.
 
 \begin{table*}[t]
 \centering
-\caption{Sepolia and local results for the same public-weight 100-SNP calculation using the
-Classic method (stored inputs), upload groups of 32, calculation groups of 10, and 25 transactions.
-Sepolia used 10.42\% more gas than this one local simulation; this percentage is not a
-general conversion between local and network results.}
+\caption{Sepolia and local results for the same public-weight 100-SNP computation using
+the Classic method (stored inputs), upload groups of 32, compute groups of 10, and 25
+transactions. Sepolia used 10.42\% more gas in this single comparison, which does not give
+a general local-to-network conversion. Both times measure the Classic path.}
 \label{tab:live_validation}
 \small
 \begin{tabular}{lrrrrr}
@@ -889,10 +896,10 @@ Local simulation & 25 & 18.755864 M & 147 ms & 125 ms & 758,685 \\
 \subsection{Agreement with an independent calculation}
 
 We compared all 200 public-weight results with an independent calculation of
-Equation~\ref{eq:prs}: 50 individuals at each of the
-four model sizes.  The mean,
+Equation~\ref{eq:prs}: 50 individuals at each of the four model sizes
+(Table~\ref{tab:quantization}).  The mean,
 root-mean-square, and maximum absolute errors were all zero; all 200 scores matched
-exactly; and Pearson $r=1$.  This supports the calculation for the studied inputs.
+exactly; and Pearson $r=1$.  This supports the arithmetic for the studied inputs.
 
 The exact agreement is not a general precision result.  The four data sets contain
 6,600 variant weights plus four leading constant weights.  All 6,604 values have at
@@ -928,7 +935,7 @@ bioETH-PRS in the local simulation. The study weights were represented without r
 
 For the randomized risk category at 100 SNPs, all 48 individuals outside the
 threshold uncertainty range kept the same category.  Two individuals were inside the
-range and are reported separately; one changed category in this calculation.
+range and are reported separately; one changed category in this run.
 
 \subsection{Variant scale}
 
@@ -939,7 +946,7 @@ largest bioETH-PRS model evaluated.
 
 \begin{table}[ht]
 \centering
-\caption{Transactions for the public-weight calculation on Sepolia and in the local
+\caption{Transactions for the public-weight computation on Sepolia and in the local
 simulation.}
 \label{tab:scale_evidence}
 \small
@@ -956,10 +963,10 @@ Local simulation & 5,000 & Streaming & 413 \\
 \end{tabular}
 \end{table}
 
-\subsection{Gas use as variant count increases}
+\subsection{Gas use versus variant count}
 
-Figure~\ref{fig:gas} and Table~\ref{tab:gas} report gas used by the two calculation
-methods for four public-weight calculations in the local simulation.  Gas grows approximately
+Figure~\ref{fig:gas} and Table~\ref{tab:gas} report gas used by the two computation
+methods for four public-weight computations in the local simulation.  Gas grows approximately
 linearly over the measured 100--5,000-variant range; this is not a claim about scaling
 on Sepolia.  Across this range, the Streaming method used 35.4--37.2\% less gas because
 it did not store each encrypted SNP reference permanently.
@@ -967,7 +974,7 @@ it did not store each encrypted SNP reference permanently.
 \begin{figure}[!htbp]
   \centering
   \includegraphics[width=\columnwidth, keepaspectratio]{figures/fig_gas_scaling.pdf}
-  \caption{Gas used versus variant count for both calculation methods in the local
+  \caption{Gas used versus variant count for both computation methods in the local
   simulation. The Streaming method used 35.4--37.2\% less gas because it did not
   store each encrypted SNP handle permanently.}
   \label{fig:gas}
@@ -975,9 +982,9 @@ it did not store each encrypted SNP reference permanently.
 
 \begin{table}[!htbp]
 \centering
-\caption{Gas used in one local calculation, rounded to 0.001 million. The
+\caption{Gas used in one local computation, rounded to 0.001 million. The
 classic and streaming totals include model publication and result release but exclude
-sample registration. Both methods used calculation chunks of 20 SNPs.}
+sample registration. Both methods used compute chunks of 20 SNPs.}
 \label{tab:gas}
 \small
 \begin{tabular}{rrrr}
@@ -992,12 +999,12 @@ sample registration. Both methods used calculation chunks of 20 SNPs.}
 \end{tabular}
 \end{table}
 
-\subsection{Gas used for each SNP}
+\subsection{Per-SNP gas}
 
 Table~\ref{tab:persnp} breaks down the approximate gas used for each SNP in the local
-simulation.  In the present implementation, preparing the encrypted input and
-multiplying and adding encrypted values account for approximately 95,000--104,000 gas
-per SNP before permanent storage is considered.  Changes to the fhEVM services or input
+simulation.  In the present implementation, input-proof verification and the encrypted
+multiply and accumulate account for approximately 95,000--104,000 gas per SNP before
+persistent storage is considered.  Changes to the fhEVM services or input
 preparation could change these values.  These component values are engineering estimates
 derived from the operation pattern and total-gas differences; they were not measured as
 independent transaction components.
@@ -1012,12 +1019,12 @@ independent transaction components.
 \toprule
 \textbf{Operation} & \textbf{Classic} & \textbf{Streaming} \\
 \midrule
-Prepare encrypted input          & $\sim$50,000 & $\sim$50,000 \\
-Multiply encrypted values        & $\sim$27,000 & $\sim$27,000 \\
-Add encrypted values             & $\sim$27,000 & $\sim$27,000 \\
-Store encrypted SNP (classic only) & $\sim$25,000 & --- \\
-Store who may use it (classic only) & $\sim$25,000 & --- \\
-Read stored data and other overhead & $\sim$12,000 & --- \\
+Input-proof verification         & $\sim$50,000 & $\sim$50,000 \\
+Encrypted multiply               & $\sim$27,000 & $\sim$27,000 \\
+Encrypted accumulate             & $\sim$27,000 & $\sim$27,000 \\
+Handle storage write (classic only) & $\sim$25,000 & --- \\
+ACL storage write (classic only) & $\sim$25,000 & --- \\
+Storage reads and other overhead & $\sim$12,000 & --- \\
 \midrule
 \textbf{Total/SNP}               & $\approx$\textbf{166,000} & $\approx$\textbf{104,000} \\
 \bottomrule
@@ -1026,33 +1033,33 @@ Read stored data and other overhead & $\sim$12,000 & --- \\
 
 \subsection{Latency}
 
-Local-simulation times for each public-weight calculation were 157, 780, 1,672, and
-8,819 ms for 100, 500, 1,000, and 5,000 variants, respectively.  Each data set also
-includes one leading constant position.  The measured range was 1.554--1.763 ms per
-position.  The time per position increased by about 13\% between the smallest and
-largest local calculations.  These times combine the local arithmetic and
-transaction overhead; they measure neither real TFHE evaluation nor network latency.
-The separate Sepolia 100-SNP times appear in Table~\ref{tab:live_validation}
-and are not compared as a speed ratio.
+Local-simulation times per individual for the Streaming path were 157, 780, 1,672, and
+8,819 ms at 100, 500, 1,000, and 5,000 variants, respectively.  Each data set also
+includes one leading constant position, giving 1.554--1.763 ms per position; the time per
+position increased by about 13\% between the smallest and largest runs.  These times
+combine local arithmetic and transaction overhead; they measure neither real TFHE
+evaluation nor network latency.  The Classic 100-SNP run used for the Sepolia comparison
+took 147 ms locally (Table~\ref{tab:live_validation}); local and Sepolia times are not
+compared as a speed ratio.
 
 \subsection{Transactions, gas, and fee examples}
 
 Table~\ref{tab:cost} reports the observed transaction use.  The Sepolia deployment used
 four transactions and 5.892559 million gas, costing 0.0062781714 Sepolia test ETH; the
-public-weight calculation used 25 transactions and 20.710271
+public-weight computation used 25 transactions and 20.710271
 million gas, costing 0.0252747648 test ETH.  These are test-network expenditures, not
-production prices.  In the local simulation, a public-weight calculation with 100 SNPs
+production prices.  In the local simulation, a public-weight computation with 100 SNPs
 using the Streaming method used 15 transactions and 11.690 million gas, whereas the
-private-weight calculation with 100 SNPs used 17 transactions and 23.508 million gas
-(2.01$\times$).  The private-weight calculation is the one relevant to attempts to
+private-weight computation with 100 SNPs used 17 transactions and 23.508 million gas
+(2.01$\times$).  The private-weight computation is the one relevant to attempts to
 recover the weights.  Decryption happens outside Ethereum and requires no additional
 Ethereum transaction.
 
 \begin{table}[ht]
 \centering
 \caption{Measured transaction use. The local streaming totals include sample
-registration and come from a separate calculation from Table~\ref{tab:gas}; encrypted
-inputs also cause small gas variation between otherwise identical calculations.}
+registration and come from a separate run from Table~\ref{tab:gas}; encrypted inputs also
+cause small gas variation between otherwise identical runs.}
 \label{tab:cost}
 \footnotesize
 \setlength{\tabcolsep}{2pt}
@@ -1071,25 +1078,25 @@ Local simulation & one-time category settings & 1 & 0.077 M \\
 
 Recording a digital fingerprint for the model file and another for its preparation information
 added 40,568 local gas per model. This added no encrypted arithmetic and did not change the
-largest successful local calculation group.  The
+largest successful local compute group.  The
 randomized category settings require one additional model transaction (77,314 local gas).
 Releasing a raw score used 169,898 local gas, whereas releasing a randomized category
 used 432,230 local gas. These
 are alternative ways to release one finalized result and are not added together.
 
 For illustration only, we multiplied three local gas measurements by hypothetical gas
-prices: deployment (5,892,613 gas), the public streaming calculation (11,690,021 gas),
-and the private streaming calculation (23,507,880 gas).  These are calculated estimates,
+prices: deployment (5,892,613 gas in the local run, measured separately from the Sepolia
+deployment above), the public streaming computation (11,690,021 gas), and the private
+streaming computation (23,507,880 gas).  These are calculated estimates,
 not observed costs.  At 1 gwei, the respective values are 0.005892613, 0.011690021,
 and 0.02350788 ETH; at 30 gwei, they are 0.17677839, 0.35070063, and 0.7052364 ETH.
 We make no USD conversion or conclusion about affordability or clinical or commercial use.
 
-\subsection{Calculation checks and responsibilities}
+\subsection{Correctness checks and responsibilities}
 
 The independent comparison in Figure~\ref{fig:individual_agreement} shows agreement
-with Equation~\ref{eq:prs} for the studied inputs; it is not a guarantee for every
-model or deployment.  Table~\ref{tab:correctness_boundary} explains who is responsible
-for each part of the result.
+with Equation~\ref{eq:prs} for the studied inputs.  Table~\ref{tab:correctness_boundary}
+lists who is responsible for each part of the result and what remains unverified.
 
 \begin{table*}[t]
 \centering
@@ -1102,7 +1109,7 @@ for each part of the result.
 \midrule
 Data preparer & check genome build, variant order, dosage validity, missing values, and effect-allele alignment & the contracts do not prove that the encrypted SNPs came from the stated biological sample \\
 Model provider & supply the weights, model details, thresholds, and scientific justification & calibration or performance in populations that were not studied \\
-Smart contracts & apply the stated integer calculation and rules about who may use data or receive results & the contracts cannot verify input claims or external services \\
+Smart contracts & apply the stated integer computation and rules about who may use data or receive results & the contracts cannot verify input claims or external services \\
 fhEVM services & perform the encrypted arithmetic and apply the configured release permissions & blockchain consensus does not independently verify the encrypted arithmetic \\
 Independent calculation & compare Equation~\ref{eq:prs} with 200 studied inputs & agreement is not a proof for other models, inputs, or deployments \\
 Requester & inspect the published model details and blockchain transactions & clinical interpretation beyond the published model \\
@@ -1112,14 +1119,12 @@ Requester & inspect the published model details and blockchain transactions & cl
 
 The contracts check who may receive a finalized result, allow only one finalization per job,
 keep the thresholds fixed by the model provider, require the minimum threshold gap,
-apply query limits, and stop a private-weight calculation when the model provider no
+apply query limits, and stop a private-weight computation when the model provider no
 longer allows it.  The legacy \texttt{readPartial} path described above is separate from
-finalization and is blocked only when oracle release is required.  The contracts do not establish the
-source of the biological sample, clinical validity, calibration, or performance in
-other populations.
+finalization and is blocked only when oracle release is required.
 
 %% ============================================================
-\section{Who may use the data and calculation order}
+\section{Data access and computation order}
 \label{sec:data_use}
 
 \subsection{Encrypted values and released results}
@@ -1133,55 +1138,53 @@ requester.  If the model requires a risk category, the randomized Low, Medium, o
 result is made publicly decryptable.  For raw-score models, \texttt{readPartial} can also
 authorize the requester to inspect an intermediate accumulator before finalization.
 
-\subsection{Order of the calculation}
+\subsection{Computation order}
 
-The contracts require the final calculation operations to occur in order: create a job,
-provide the encrypted SNPs, calculate the weighted sum, and finalize one result.  The Classic and
-Streaming methods cannot be mixed within the same calculation.
+The contracts enforce the order create a job, provide the encrypted SNPs, compute the
+weighted sum, and finalize one result, tracked as the job states PENDING, UPLOADING,
+READY, COMPUTING, and DONE.  The Classic and Streaming methods cannot be mixed within one
+job.
 
 \subsection{Who may use encrypted weights}
 
 For private weights, the model provider chooses which requesters may use the model.  The
-contract checks this choice whenever a calculation group is processed.  If the provider
+contract checks this choice whenever a compute group is processed.  If the provider
 no longer allows a requester to use the model, the next group is rejected.  The contract
-also checks who may use the registered sample when the calculation is created.
+also checks who may use the registered sample when the job is created.
 
 %% ============================================================
 \section{Discussion}
 \label{sec:discussion}
 
 We evaluated bioETH-PRS with additive PRS models containing up to 5,000 variants.  Publicly
-auditable smart contracts reduce reliance on a single designated evaluator, but
-the system still depends on the blockchain and on fhEVM services that perform encrypted
-calculations, submit transactions, and apply the configured release permissions.  A public-weight 100-SNP
-calculation completed on Sepolia.  Public-weight calculations with 100--5,000 variants
-and one private-weight 100-SNP calculation were evaluated in the local simulation.
-These results do not establish genome-wide or clinical use.
+auditable smart contracts remove the designated evaluator; Section~\ref{sec:security} and
+Table~\ref{tab:trust_boundary} state the dependencies that remain.
+A public-weight 100-SNP computation completed on Sepolia.  Public-weight computations with
+100--5,000 variants and one private-weight 100-SNP computation were evaluated in the local
+simulation.
 
-\subsection{Comparison with HEPRS}
+\subsection{HEPRS and bioETH-PRS as complementary systems}
 
-bioETH-PRS and HEPRS \citep{knight2026heprs} address different questions and are best
-understood as complementary systems.
+bioETH-PRS and HEPRS \citep{knight2026heprs} address different questions.
 
-HEPRS reports an encrypted PRS calculation for a substantially larger model and measures
+HEPRS reports an encrypted PRS computation for a substantially larger model and measures
 CKKS performance under a three-party non-collusion assumption.  CKKS represents
 approximate signed decimal values without the integer conversion used here.  HEPRS
 therefore provides the relevant results for large variant counts and measured FHE
 performance.
 
-bioETH-PRS instead studies whether public smart contracts can coordinate the calculation
-and control result release without a designated evaluator.  Its model
-settings and transaction history are public, while the system still relies on the fhEVM
-services.  It also requires many blockchain transactions.  The two systems answer
-different questions, and these results do not show that either is broadly superior.
+bioETH-PRS instead studies whether public smart contracts can coordinate the computation
+and control result release without a designated evaluator.  Its model settings and
+transaction history are public, and it requires many blockchain transactions.  Neither
+set of results makes one system broadly superior to the other.
 
 \subsection{Limitations}
 
 \textbf{Variant scale.}
 The largest successful calculation chunk in the local simulation contained 21 SNPs for
 both public and private weights; the Sepolia limit remains unknown.  A public-weight
-5,000-variant calculation required 413 local transactions.  We did not evaluate larger
-bioETH-PRS models or production feasibility.
+5,000-variant computation required 413 local transactions.  We did not evaluate larger
+bioETH-PRS models, genome-wide or clinical use, or production feasibility.
 
 \textbf{Source of the SNP data.}
 As specified in Section~\ref{sec:security}, being allowed to request a calculation does
@@ -1214,7 +1217,7 @@ or practical for clinical or commercial use remains unknown.
 \subsection{Future work}
 
 Future work should reduce the number of blockchain transactions and evaluate the
-private-weight 100-SNP calculation on Sepolia.  Establishing the source of encrypted
+private-weight 100-SNP computation on Sepolia.  Establishing the source of encrypted
 SNPs will require a signed laboratory record or a privacy-preserving proof that links
 the encrypted values to the registered sample.  A formal privacy guarantee will require
 a precise definition of which data sets are compared, how much one input can change the
@@ -1223,7 +1226,7 @@ evaluate LD-aware scores \citep{prive2020ldpred2}, decryption shared among sever
 and reuse of encrypted SNP values across models.
 
 %% ============================================================
-\section{Related Work}
+\section{Related work}
 \label{sec:related}
 
 Privacy-preserving genomic computation has been pursued through multiple
@@ -1233,16 +1236,16 @@ extend to PRS computation.  \citet{blatt2020} built a homomorphic-encryption sys
 large-scale GWAS and reported PRS values derived from the encrypted association tests.
 \citet{mclaren2016} demonstrated privacy-preserving genomic testing in an HIV
 clinical-care model using homomorphic encryption, but did not address the full PRS
-calculation.  \citet{raisaro2019} introduced MedCo for secure,
+computation.  \citet{raisaro2019} introduced MedCo for secure,
 privacy-preserving exploration of distributed clinical and genomic data.
 
 \citet{knight2026heprs} present HEPRS, the closest prior work and a complete FHE
-calculation of PRS with real clinical data.  HEPRS achieves
+computation of PRS with real clinical data.  HEPRS achieves
 $r > 0.999$ correlation with plaintext scores on a 110,000-SNP schizophrenia
 model and demonstrates practical feasibility on commodity hardware.  bioETH-PRS
 uses the HEPRS study fixtures and the same additive PRS definition, studying a
-different trade-off in which public contracts coordinate the
-calculation while infrastructure trust remains.
+different trade-off in which public contracts coordinate the computation while
+infrastructure trust remains.
 
 On the blockchain side, prior work on privacy-preserving smart contracts has
 focused on anonymous payments and related protocol work
@@ -1252,7 +1255,7 @@ can verify a calculation while keeping designated witness data private, whereas 
 allows calculations directly on encrypted data.  FHE on the blockchain, typified by the fhEVM
 framework \citep{zamafhevm}, combines confidential operations with public smart-contract
 records while depending on external encrypted-computation services.  bioETH-PRS applies
-this framework to polygenic risk score calculation.
+this framework to polygenic risk score computation.
 
 %% ============================================================
 \section{Conclusion}
@@ -1260,16 +1263,16 @@ this framework to polygenic risk score calculation.
 
 We presented bioETH-PRS, a protocol for confidential polygenic risk
 scoring using TFHE-based fully homomorphic encryption on a programmable blockchain.
-Publicly auditable smart contracts coordinate the calculation without a designated
+Publicly auditable smart contracts coordinate the computation without a designated
 evaluator.  This reduces reliance on one evaluator but does not
 remove trust: the result still depends on genotype preparation, model validity, the
-contracts, blockchain, and fhEVM services that perform encrypted calculations and
+contracts, blockchain, and fhEVM services that perform the encrypted arithmetic and
 apply the configured release permissions.  Raw scores are authorized only for the
 requester, whereas randomized categories are publicly decryptable.
 
-One public-weight 100-SNP calculation completed on Sepolia and matched the independent
-calculation exactly.  Public-weight calculations with 100--5,000 variants and one
-private-weight 100-SNP calculation were evaluated only in the local simulation.  All
+One public-weight 100-SNP computation completed on Sepolia and matched the independent
+calculation exactly.  Public-weight computations with 100--5,000 variants and one
+private-weight 100-SNP computation were evaluated only in the local simulation.  All
 200 public-weight local scores matched
 Equation~\ref{eq:prs} exactly because the study weights were represented without
 rounding.  The Streaming method used 35.4--37.2\% less local gas.  In the repeated-query
@@ -1280,9 +1283,9 @@ does not provide differential privacy.
 
 The results apply to additive PRS models containing up to 5,000 variants.  This study
 does not establish genome-wide or clinical use, production affordability,
-private-weight calculation on Sepolia, or the largest calculation step that Sepolia can
-support.  HEPRS demonstrates encrypted calculation at a larger scale; bioETH-PRS studies
-how smart contracts can coordinate a smaller calculation and control result release.
+private-weight computation on Sepolia, or the largest compute step that Sepolia can
+support.  HEPRS demonstrates encrypted computation at a larger scale; bioETH-PRS studies
+how smart contracts can coordinate a smaller computation and control result release.
 
 %% ============================================================
 \section*{Biographical Note}
