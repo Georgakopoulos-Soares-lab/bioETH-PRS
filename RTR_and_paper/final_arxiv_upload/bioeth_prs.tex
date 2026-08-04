@@ -1,5 +1,6 @@
 %% bioETH-PRS: Confidential Polygenic Risk Scoring with Smart Contracts
 %% Academic paper — privacy, genomics, blockchain
+%% Version 2: with AI-generated figures and graphical abstract
 
 \documentclass[10pt]{article}
 
@@ -21,6 +22,9 @@
 \usepackage{caption}
 \usepackage{enumitem}
 \usepackage{natbib}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{multirow}
 \usepackage{fancyhdr}
 
 \hypersetup{colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black}
@@ -44,6 +48,7 @@
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 
+\newtheorem{invariant}{Invariant}
 \newtheorem{proposition}{Proposition}
 
 %% Footer setup
@@ -153,7 +158,7 @@ Using a conventional external service to calculate a PRS can require sending gen
 data outside the hospital, which raises privacy concerns because genomic sequences can
 be identifying \citep{gymrek2013,erlich2014}.
 
-\textbf{Protecting genotypes and model weights.}
+\textbf{The double-privacy problem.}
 The workflow handles two kinds of sensitive information: (1)
 \emph{patient genotypes} ($g_i$), identifying, heritable, and permanent; and
 (2) \emph{GWAS model weights} ($\beta_i$), derived from restricted research cohorts.
@@ -162,9 +167,9 @@ model-inversion attacks \citep{fredrikson2015modelinversion}.
 In a conventional plaintext service, the evaluator must decrypt both genotypes and
 weights before the calculation can proceed.
 
-\textbf{Why FHE is useful.}
+\textbf{The FHE opportunity.}
 Fully Homomorphic Encryption (FHE) permits arbitrary arithmetic on encrypted data
-without decryption.  \citet{knight2026heprs} demonstrate this with
+without decryption.  Knight et al.\ \citep{knight2026heprs} demonstrate this with
 HEPRS, an open-source system that computes a 110,000-SNP schizophrenia PRS under
 the CKKS scheme \citep{cheon2017ckks} with near-zero accuracy loss ($r > 0.999$,
 MSE~$< 2.3 \times 10^{-6}$).  HEPRS, however, still uses a central evaluator:
@@ -183,18 +188,21 @@ services (Figure~\ref{fig:graphical_abstract}).  The blockchain records the cont
 steps, but it does not by itself prove that the encrypted arithmetic was correct.
 
 \smallskip\noindent\textbf{Distinctions from HEPRS.}
-Although both systems calculate the same encrypted PRS, they use different methods.
-First, bioETH-PRS converts signed decimal weights to unsigned integers for TFHE/fhEVM;
-HEPRS uses CKKS approximate decimal arithmetic.  Second, four public contracts manage
-who may use a sample, model publication, calculation, and result release.  Third, the
-Classic method (stored inputs) keeps the encrypted SNPs for later calculation, whereas the Streaming
-method processes each group immediately.  Fourth, a model can require a randomized
-risk category and limit repeated queries instead of releasing the raw score.
+Although both systems compute the same encrypted PRS inner product, bioETH-PRS adds
+four design elements that are absent from HEPRS.  First, TFHE/fhEVM exposes only
+unsigned integer arithmetic, requiring a dedicated fixed-point encoding and recovery
+scheme for signed GWAS weights; HEPRS instead uses CKKS with native approximate
+floating-point support.  Second, bioETH-PRS separates data custody, model publication,
+computation, and output release into four independently auditable contracts.  Third, it
+introduces two fhEVM-specific execution strategies, classic and streaming, that trade
+relay flexibility against gas and storage overhead under the handle/SSTORE model.
+Fourth, a model can require a randomized risk category and limit repeated queries
+instead of releasing the raw score.
 
 \smallskip\noindent Our main contributions are:
 \begin{itemize}
-  \item Four smart contracts that separately manage who may use a sample, model
-        publication, encrypted calculation, and result release.
+  \item Four independently auditable smart contracts that separately manage who may use
+        a sample, model publication, encrypted calculation, and result release.
   \item A three-step conversion that represents signed decimal weights as nonnegative
         integers, checks that the calculation stays within the allowed integer range,
         and selects a suitable scale before the model is published.
@@ -220,18 +228,24 @@ evaluate genome-wide or clinical use, production cost, or private weights on Sep
 
 A PRS is the weighted inner product of a patient's effect-allele dosage vector
 $\mathbf{g} \in \{0,1,2\}^N$ and a GWAS effect weight vector $\boldsymbol{\beta}
-\in \mathbb{R}^N$ (Eq.~\ref{eq:prs}).  Effect weights are estimated from GWAS and are
-signed floating-point values whose range depends on the model.  Standard tools such as PLINK~2
+\in \mathbb{R}^N$ (Eq.~\ref{eq:prs}).  Effect weights are typically estimated by
+large-scale GWAS over tens of thousands of individuals and are signed floating-point
+values whose range depends on the model.  Standard pipelines such as PLINK~2
 \citep{chang2015plink} and LDpred2 \citep{prive2020ldpred2} compute PRSs in
 milliseconds on plaintext data; FHE approaches trade runtime for privacy.
 
 PRS models span a wide range in SNP inclusion depending on construction methodology.
-Sparse models may include hundreds to a few thousand variants, while genome-wide
-approaches incorporate tens of thousands to millions.  We evaluated bioETH-PRS with
-models containing up to 5,000 variants.  These results do not establish genome-wide or
-clinical use.
+Sparse or clinically oriented models may include hundreds to a few thousand variants,
+while genome-wide approaches incorporate tens of thousands to millions of SNPs.  We
+evaluated bioETH-PRS with models containing up to 5,000 variants.  These results do not
+establish genome-wide or clinical use.
 
-\subsection{Genotype preprocessing, QC, and model alignment}
+The computation in Eq.~\ref{eq:prs} is an inner product between two vectors of
+moderate length.  This is exactly the primitive that FHE systems are designed to
+support efficiently, making PRS computation a natural target for FHE-based privacy
+enhancement.
+
+\subsection{Genotype Preprocessing, QC, and Model Alignment}
 \label{sec:preprocessing}
 
 The pre-encryption workflow scores one individual against an already developed model.  Minor-allele
@@ -274,7 +288,7 @@ FHE schemes differ in the arithmetic they support and their performance.  Two ar
 directly relevant to this work.
 
 \textbf{CKKS} \citep{cheon2017ckks} supports approximate arithmetic over real-valued data, is
-naturally suited to decimal calculations, and underpins HEPRS.  Its available
+naturally suited to floating-point computations, and underpins HEPRS.  Its available
 calculation depth depends on the selected parameters and whether bootstrapping is used,
 and approximation error accumulates during calculation.  The Lattigo library
 \citep{lattigo} implements CKKS in Go with the parameter sets used
@@ -283,9 +297,12 @@ single CPU node requires approximately 4.9~s per individual and up to 130~GB of 
 for a cohort of 1,000 \citep{knight2026heprs}.
 
 \textbf{TFHE} \citep{chillotti2020tfhe} supports bootstrapped operations on encrypted
-values.  The fhEVM interface used here exposes exact unsigned-integer operations to
-smart contracts.  Signed decimal weights must therefore be converted to unsigned
-integers, motivating Section~\ref{sec:quantization}.
+values to arbitrary computation depth.  Zama's fhEVM implements TFHE as EVM precompile
+operations exposed to smart contracts, and the interface used here exposes exact
+unsigned-integer arithmetic.  Exact integer arithmetic is a better fit for smart
+contracts, where bit-exact reproducibility is required for consensus.  The cost is that
+signed floating-point weights must be converted to unsigned integer encodings,
+motivating our quantization design (Section~\ref{sec:quantization}).
 
 The security of TFHE is based on LWE/GLWE-family assumptions
 \citep{chillotti2020tfhe}; CKKS uses related lattice assumptions.  These assumptions
@@ -313,17 +330,19 @@ unmeasured and is not inferred from that result.  The HCU constraint necessitate
 chunked computation strategies for large input vectors.
 
 %% ============================================================
-\section{System design}
+\section{System Design}
 \label{sec:design}
 
-\subsection{System overview}
+\subsection{Architecture Overview}
 
-bioETH-PRS uses four smart contracts to move from sample registration to a risk result
-(Figure~\ref{fig:arch}).  \texttt{GenomicRegistry} records who may use a sample,
-\texttt{ModelMarketplace} stores the GWAS model and its result settings,
-\texttt{PRSComputeEngine} calculates the encrypted score, and \texttt{ResultOracle}
-can release a randomized risk category.  Each contract therefore has one primary role:
-registration, model publication, score calculation, or category release.
+bioETH-PRS is structured as four independently deployable smart contracts forming
+a linear pipeline from sample data custody to risk output (Figure~\ref{fig:arch}).
+The four-layer separation reflects distinct roles and upgrade lifecycles:
+\texttt{GenomicRegistry} records who may use a sample, \texttt{ModelMarketplace} stores
+the GWAS model and its result settings, \texttt{PRSComputeEngine} calculates the
+encrypted score, and \texttt{ResultOracle} can release a randomized risk category.
+Each contract is independently auditable and can be replaced without affecting the
+others.
 
 \begin{figure}[!htbp]
   \centering
@@ -336,31 +355,36 @@ registration, model publication, score calculation, or category release.
   \label{fig:arch}
 \end{figure}
 
-\textbf{Sample registry.}
-The registry stores references (IPFS or Arweave URIs) to encrypted genotype data held
-off chain.  A requester registers a sample and chooses who may use it in a calculation.
-The registry keeps this record but performs no encrypted arithmetic.
+\textbf{Genomic Registry.}
+URI-based registry of sample datasets with per-address access control lists (ACLs).
+It stores references (IPFS or Arweave URIs) to off-chain encrypted genotype data.  A
+patient registers samples and explicitly grants compute access to specific callers.
+This contract performs no FHE operations; it is a lightweight permission layer.
 
-\textbf{Model contract.}
-The model contract stores GWAS weights in groups.  Public weights are visible
-integers; private weights are encrypted.  Public weights are encrypted before
-multiplication in the present implementation.  The model record also stores the scale
-factor, weight shift, score shift, and a cryptographic fingerprint of the input-preparation
-record.  Weights, quantization parameters, and the release policy cannot be changed after
+\textbf{Model Marketplace.}
+The model contract stores GWAS weights in chunks.  Public weights are visible
+integers; private weights are encrypted handles.  Public weights are encrypted before
+multiplication in the present implementation.  A manifest URI records the quantization
+metadata on-chain: scale factor, weight zero-point, score offset, and a cryptographic
+fingerprint of the input-preparation record.  Weights, quantization parameters, and the release policy cannot be changed after
 model finalization, but the owner can update or disable the query-rate limits.  Public-weight calculations with
 100--5,000 variants and one private-weight 100-SNP calculation were evaluated locally.
 Only the public-weight 100-SNP calculation was performed on Sepolia.
 
-\textbf{Calculation contract.}
-The calculation contract receives the encrypted SNPs in groups, calculates the weighted
-sum, corrects the integer shifts described in Section~\ref{sec:quantization}, and
-finalizes either one raw score or one randomized category.  A raw score is authorized only
+\textbf{PRS Compute Engine.}
+The core computation contract.  It implements a finite state machine
+($\texttt{PENDING}\!\to\!\texttt{UPLOADING}\!\to\!\texttt{READY}\!\to\!\texttt{COMPUTING}\!\to\!\texttt{DONE}$)
+that orchestrates chunked dot-product accumulation of patient SNPs against model
+weights.  The engine tracks two encrypted running accumulators: the weighted partial
+sum and the genotype sum required for the correction described in
+Section~\ref{sec:quantization}.  It finalizes either one raw score or one randomized
+category.  A raw score is authorized only
 for the requester.  A legacy \texttt{readPartial} function can separately authorize the
 requester to inspect the intermediate accumulator when the model does not require the
 oracle; oracle-required models block this path.  We did not use \texttt{readPartial} in the
 reported evaluation.  Section~\ref{sec:execution} describes the two calculation methods.
 
-\textbf{Result contract.}
+\textbf{Result Oracle.}
 The result contract adds a random value to the encrypted score before assigning Low,
 Medium, or High risk.
 The contract obtains the bounded encrypted random value from \texttt{FHE.randEuint64}.
@@ -406,12 +430,12 @@ Public information & model information managed off chain & model identifiers, al
 \end{table*}
 
 %% ============================================================
-\section{Representing decimal weights as integers}
+\section{Representing Decimal Weights as Integers}
 \label{sec:quantization}
 
-\subsection{Why conversion is needed}
+\subsection{The Representation Problem}
 
-This implementation represents weights and scores as unsigned 64-bit integers.
+TFHE arithmetic on the fhEVM operates on unsigned 64-bit integers.
 GWAS weights $\beta_i$ are signed floating-point values;
 a naive fixed-point encoding that multiplies by a scale factor $s$ and rounds
 produces quantized weights $q_i = \mathrm{round}(s \cdot \beta_i) \in \mathbb{Z}$,
@@ -421,7 +445,7 @@ observable error.  A correct encoding must guarantee that all intermediate encry
 values remain in the non-negative range $[0, 2^{64} - 1]$ for any genomically valid
 input $g_i \in \{0, 1, 2\}$.
 
-\subsection{Three-step conversion}
+\subsection{Three-Step Unsigned Encoding}
 
 We convert the signed decimal weights to nonnegative integers in three steps
 (Figure~\ref{fig:quantization}).  The integer shifts are reversible.  Conversion of the
@@ -512,7 +536,7 @@ model-configured raw score or randomized category. The contracts record permissi
 result recipient, but they do not establish that the encrypted values came from the stated
 biological sample.
 
-\subsection{Checking the integer range}
+\subsection{Overflow Safety}
 \label{sec:overflow}
 
 \begin{proposition}
@@ -587,10 +611,11 @@ arithmetic safety check, not evidence that the system can process models larger 
 the evaluated maximum of 5,000 variants.
 \end{proof}}
 
-\subsection{Selecting the scale factor}
+\subsection{Quantization Advisor}
 \label{sec:advisor}
 
-Before publishing a model, the quantization procedure evaluates the candidate scales
+Before publishing any model, an automated quantization advisor evaluates the candidate
+scales
 \[
 \begin{aligned}
 s \in \{&10^2,3{\times}10^2,10^3,3{\times}10^3,10^4,3{\times}10^4,\\
@@ -599,7 +624,7 @@ s \in \{&10^2,3{\times}10^2,10^3,3{\times}10^3,10^4,3{\times}10^4,\\
 \]
 against the actual GWAS weight distribution.  For each $s$, it computes the mean absolute error
 (MAE) between the quantized dot product and the floating-point PRS for all
-individuals in the study data set.  It compares three ranges:
+individuals in the study data set.  It compares three tiers:
 
 \begin{itemize}
   \item \textbf{Low scale} ($s = 10^2$): MAE of 0.012--0.150 PRS units across
@@ -617,11 +642,13 @@ contract operation count; the number of transactions needed to submit the SNPs r
 main scaling constraint.
 
 %% ============================================================
-\section{Calculation methods}
+\section{Execution Protocols}
 \label{sec:execution}
 
-bioETH-PRS provides two methods that differ in whether encrypted SNPs are stored between
-transactions (Figure~\ref{fig:protocol}).  Both methods produce the same score.
+bioETH-PRS provides two computation strategies that differ in their gas cost, storage
+semantics, and support for multi-party participation, and in particular in whether
+encrypted SNPs are stored between transactions (Figure~\ref{fig:protocol}).  Both
+strategies produce bit-identical results.
 
 \begin{figure}[t]
   \centering
@@ -633,44 +660,106 @@ transactions (Figure~\ref{fig:protocol}).  Both methods produce the same score.
   \label{fig:protocol}
 \end{figure}
 
-\subsection{Classic method (stored inputs)}
+\subsection{Classic Method (Stored Inputs)}
 
-The requester uploads encrypted SNPs in groups of at most 32.  After upload, the score
-is calculated in groups of 20 SNPs, just below the largest successful local group of
-21.  The encrypted SNP references remain stored between transactions.  This allows a
-different account, such as a relayer, to continue the calculation.  Under the encryption
-assumptions the relayer cannot read the SNP values, but it can delay requests.  Its
-transactions also reveal timing and addresses that are already visible on the
-blockchain.  It therefore remains a dependency for availability and privacy.
+The classic protocol separates SNP ingestion from computation, enabling different
+parties to execute different phases at different times (Algorithm~\ref{alg:classic}).
 
-\subsection{Streaming method}
+\begin{algorithm}[t]
+\caption{Classic chunked PRS computation (patient and relayer)}
+\label{alg:classic}
+\small
+\begin{algorithmic}[1]
+\State \textbf{Patient:} \Call{createPRSJob}{modelId, sampleId}
+\Comment{ACL checked; model geometry loaded}
+\For{$k \gets 0$ to $\lceil N / r_u \rceil - 1$}
+  \State \textbf{Patient:} \Call{appendSnpChunk}{jobId, $\mathrm{encSNPs}_{k}$, proof}
+  \Comment{$\leq r_u = 32$ SNPs; handles persisted}
+\EndFor
+\State \textbf{Patient:} \Call{finalizeSnpUpload}{jobId}
+\Comment{Job transitions to READY}
+\For{$k \gets 0$ to $\lceil N / r_c \rceil - 1$}
+  \State \textbf{Anyone:} \Call{computeChunk}{jobId}
+  \Comment{Permissionless; reads persisted SNP handles}
+  \State \quad $\mathrm{partialSum} \mathrel{+}= \sum_{i \in \mathrm{chunk}} g_i \cdot u_i$
+  \State \quad $G \mathrel{+}= \sum_{i \in \mathrm{chunk}} g_i$
+\EndFor
+\State \textbf{Patient:} \Call{finalizeAndClassify}{jobId}
+\Comment{Oracle and thresholds read from the model policy}
+\end{algorithmic}
+\end{algorithm}
 
-The requester provides and processes each group of up to 20 encrypted SNPs in the same
-transaction.  The values are multiplied by the model weights, added to the running sum,
-and then discarded rather than stored for later transactions.
+The upload chunk size $r_u \leq 32$ is constrained by the fhEVM input-proof budget
+(2048 bits / 64 bits per encrypted integer).  The compute chunk size $r_c$ is
+constrained by the HCU budget: each compute chunk of $r_c$ SNPs executes
+$3r_c + 2$ FHE operations (multiply, accumulate partial sum, accumulate genotype sum
+per SNP, plus two coprocessor calls for accumulator handles).  The largest successful
+chunk in the local simulation contained 21 SNPs, and we used $r_c = 20$; the
+corresponding Sepolia limit was not measured.
+
+SNP ciphertext handles are persisted in a flat per-job mapping across transactions,
+enabling upload and compute to be executed by different parties or at different
+times.  The \textbf{compute phase is permissionless}: any third party, such as a
+relayer, may advance computation by calling the compute function.  Under the encryption
+assumptions the relayer cannot read the SNP values, but it can delay requests, and its
+transactions reveal timing and addresses that are already visible on the blockchain.  It
+therefore remains a dependency for availability and privacy.
+
+\subsection{Streaming Method}
+
+The streaming protocol fuses upload and computation into a single call per chunk
+(Algorithm~\ref{alg:streaming}).  Each call immediately multiplies the incoming SNP
+handles against the model weights, accumulates the results, and discards the handles
+rather than storing them for later transactions.  No per-SNP persistent storage writes
+are performed.
+
+\begin{algorithm}[t]
+\caption{Streaming PRS computation (patient, single-signer flow)}
+\label{alg:streaming}
+\small
+\begin{algorithmic}[1]
+\State \textbf{Patient:} \Call{createPRSJob}{modelId, sampleId}
+\For{$k \gets 0$ to $\lceil N / r_c \rceil - 1$}
+  \State \textbf{Patient:} append chunk $\mathrm{encSNPs}_{k}$ with proof
+  \Comment{$r_c$ SNPs; handles not persisted}
+  \State \quad $\mathrm{partialSum} \mathrel{+}= \sum_{i \in \mathrm{chunk}} g_i \cdot u_i$
+  \State \quad $G \mathrel{+}= \sum_{i \in \mathrm{chunk}} g_i$
+  \Comment{SNP handles discarded after each call}
+\EndFor
+\State \textbf{Patient:} \Call{finalizeAndClassify}{jobId}
+\end{algorithmic}
+\end{algorithm}
 
 \textbf{Gas savings.}
-The Classic method permanently stores an encrypted SNP reference and a record stating
-who may use it.  The Streaming method avoids both records, which explains the observed
-35.4--37.2\% reduction in local gas.  The remaining gas in this implementation comes
-mainly from preparing each encrypted input and multiplying and adding encrypted values.
+The classic path requires two persistent storage writes per SNP: a handle record in
+contract storage and an entry recording who may use it---each an Ethereum SSTORE at
+approximately $25{,}000$ gas.  The streaming path avoids both, saving
+$\approx$50,000 gas per SNP, which explains the observed 35.4--37.2\% reduction in
+local gas.  The remaining $\approx$95,000--104,000 gas/SNP in this implementation comes
+from input-proof verification, the FHE multiply, and the FHE accumulate---costs set by
+the fhEVM services rather than by contract design.
 
 \textbf{Trade-off.}
-The Classic method allows upload and calculation to be performed by different parties.
-The Streaming method requires one requester to submit and process the inputs.
+The streaming path is incompatible with multi-party upload/compute separation:
+upload and compute are coupled within the same transaction, restricting execution
+to a single signer.  The classic path remains the appropriate choice for relay
+services and architectures where upload and compute are performed by different
+parties.
 
 %% ============================================================
-\section{Security assumptions and limits}
+\section{Security Assumptions and Limits}
 \label{sec:security}
 
-\subsection{Attacker considered}
+\subsection{Threat Model}
 
-We assume an attacker can read public blockchain data, submit transactions, and make
-repeated classification requests with chosen encrypted inputs
-(Figure~\ref{fig:security}).  A requester who is allowed to use private weights may
-submit values that do not come from the registered sample.  We assume that the attacker
-cannot break TFHE encryption or bypass the contract rules about who may use data and
-receive results.
+We consider a computationally bounded adversary with full network access to the
+blockchain and coprocessor (Figure~\ref{fig:security}).  The adversary may observe
+all on-chain transactions and storage slots; operate a validator node and read all
+encrypted handles; submit arbitrary transactions; and query classification outputs
+repeatedly with chosen SNP inputs.  A requester who is allowed to use private weights
+may submit values that do not come from the registered sample.  The adversary may not
+break the TFHE hardness assumption or bypass the contract rules about who may use data
+and receive results.
 
 \begin{figure}[t]
   \centering
@@ -683,7 +772,7 @@ receive results.
   \label{fig:security}
 \end{figure}
 
-\subsection{Source of the encrypted SNPs}
+\subsection{Source of the Encrypted SNPs}
 
 The registry checks whether a person may request a calculation, but it cannot check
 whether the encrypted SNP values came from the registered biological sample.  The
@@ -718,26 +807,53 @@ Decryption services & X & X & X &  & enforce raw-score decryption permissions an
 \end{tabularx}
 \end{table*}
 
-\subsection{Rules for protecting results}
+\subsection{Core Privacy Invariants}
 
-Under the assumptions in Table~\ref{tab:trust_boundary}, the contracts apply five
-rules to protect the results:
-\begin{itemize}
-  \item Contracts store opaque references to encrypted values, not plaintext SNPs.
-        The requester creates the encrypted inputs, and the fhEVM services process them.
-  \item Each encrypted output records who may decrypt it, and the contract gives this
-        record only after the required calculation steps.
-  \item The encoded PRS $e$ (Eq.~\ref{eq:encode}) is never publicly decryptable.
-  \item A model may require the randomized Low, Medium, or High category instead of
-        releasing the raw score to the requester.
-  \item The finalization path releases one final result.  For models that do not require
-        the oracle, the legacy \texttt{readPartial} function can separately expose an
-        intermediate accumulator to the requester; this path was not used in the evaluation.
-\end{itemize}
-These rules do not establish where the submitted SNPs came from, whether the model is
-clinically valid, or whether the external fhEVM services behave correctly.
+Under the assumptions in Table~\ref{tab:trust_boundary}, we formalise the protocol's
+privacy properties as five invariants:
 
-\subsection{Randomized risk category}
+\begin{invariant}[Ciphertext opacity]
+Encrypted handles are 32-byte opaque identifiers; raw ciphertexts reside
+exclusively at the off-chain coprocessor.  No on-chain party stores or observes
+plaintexts at any point during computation.
+\end{invariant}
+
+\begin{invariant}[ACL-gated decryption]
+Every encrypted output is associated with an ACL record.  Decryption requires an
+explicit ACL grant that can only be issued by the executing smart contract upon
+satisfying the protocol's state-machine preconditions.
+\end{invariant}
+
+\begin{invariant}[No raw score release]
+The final encoded PRS $e$ (Eq.~\ref{eq:encode}) is never made publicly
+decryptable.  When oracle-required mode is disabled, the requester may obtain
+ACL-gated decryption access to the raw score through \texttt{finalize()}.  When
+oracle-required mode is enabled, that requester path is disabled: the raw score
+handle is routed only to the approved oracle, which emits a publicly decryptable
+randomized category.
+\end{invariant}
+
+\begin{invariant}[Oracle-required mode]
+A model owner may set an oracle-required flag before finalization, causing the compute
+engine to revert on any attempt to release the raw score handle directly to the
+requester.  This prevents requesters from bypassing the randomization by decrypting raw
+scores.  When oracle-required mode is active, only the registered approved oracle
+address may receive the encrypted raw-score handle.
+\end{invariant}
+
+\begin{invariant}[Single-finalize guarantee]
+Each compute job carries a finalized flag.  Any finalization path sets this flag
+and reverts on subsequent calls, preventing a requester from obtaining multiple
+score handles for a single rate-limit slot.
+\end{invariant}
+
+For models that do not require the oracle, the legacy \texttt{readPartial} function can
+separately expose an intermediate accumulator to the requester; this path is outside the
+finalization invariants and was not used in the evaluation.  These invariants do not
+establish where the submitted SNPs came from, whether the model is clinically valid, or
+whether the external fhEVM services behave correctly.
+
+\subsection{Randomized Risk Category}
 
 Before assigning Low, Medium, or High risk, the Result contract adds a random
 nonnegative integer smaller than $B$ to the encoded score:
@@ -748,7 +864,8 @@ e_{\mathrm{randomized}} &= e + \nu,\\
 \end{aligned}
 \end{equation}
 The fhEVM supplies $\nu$; the requester does not choose it.  The oracle deployer fixes
-$B$ in the oracle constructor.  Before model finalization, the model provider selects an
+$B$, a power-of-two immutable constant, in the oracle constructor.  Before model
+finalization, the model provider selects an
 oracle and fixes the two category thresholds; requesters cannot change those values between
 queries.  This makes it harder to narrow down an encrypted score by repeatedly changing a
 comparison threshold.
@@ -761,8 +878,10 @@ score using encrypted boolean operations, avoiding any branching on hidden value
 \mathrm{cat} &= \mathrm{select}\bigl(\hat{L},\;L,\;\mathrm{select}(\neg\hat{L}\wedge\neg\hat{H},\;M,\;H)\bigr).
 \label{eq:classify}
 \end{align}
-The comparisons are carried out on encrypted values.  The two thresholds must be at
-least $B$ apart.
+The encrypted select primitive replaces conditional branching, preventing side-channel
+leakage of the comparison result.  The minimum threshold-gap requirement
+$\tau_H - \tau_L \geq B$ ensures that the randomized score cannot map deterministically
+to a single category regardless of $e$.
 
 \textbf{Interpretation and limits.}
 This method does not provide an $(\varepsilon,\delta)$-differential privacy guarantee.
@@ -780,7 +899,14 @@ The $B=128$ category-agreement and repeated-query results were obtained only in 
 simulation.  The deployment script uses $B=2^{20}$ for its general oracle deployment, and
 we did not evaluate a randomized category release on Sepolia.
 
-\subsection{Analysis of repeated queries}
+\subsection{Analysis of Repeated Queries}
+
+Without query limits, an adversary could attempt a model-extraction attack by
+submitting many classification queries with crafted SNP inputs and observing the
+resulting categories.  The compute engine therefore enforces per-model, per-wallet, and
+per-sample job quotas over a window of $W$ blocks, admitting at most $R$ queries per
+window.  Block-based windows, rather than timestamps, prevent miner manipulation of
+window boundaries.
 
 We examined whether a requester allowed to use a model with 20 private weights could
 infer the weights by submitting chosen encrypted SNP values and observing the released
@@ -789,8 +915,7 @@ chosen after seeing earlier results or all queries chosen in advance; thresholds
 by the model provider; several wallets and samples; and correlated SNP patterns.  These
 calculations were performed in the local simulation.  To make the analysis repeatable,
 we used a fixed sequence of random integers from 0 through 127. A different
-random sequence may give different exact recovery counts. The contract also limits the
-number of requests for each model, requester, and sample over a set number of blocks.
+random sequence may give different exact recovery counts.
 ``Within $B$'' means that an estimated integer weight differs from the true integer weight
 by less than 128 units; it does not mean exact recovery.  Pearson $r$ measures whether the
 estimated weights preserve the true relative pattern, and sign accuracy is the fraction
@@ -839,10 +964,10 @@ other models may require a different value.  The model owner can update or disab
 rate limits after publication, so their protection depends on the maintained configuration.
 
 %% ============================================================
-\section{Evaluation}
+\section{Empirical Evaluation}
 \label{sec:evaluation}
 
-\subsection{Where calculations were evaluated}
+\subsection{Where Calculations Were Evaluated}
 
 We report results from Sepolia and from a local contract simulation.  Sepolia provides
 observed fhEVM transaction results.  The local simulation evaluates contract behavior,
@@ -855,11 +980,14 @@ Solidity 0.8.24, Hardhat 2.22.2, \texttt{@fhevm/hardhat-plugin} 0.4.2, and
 \texttt{package-lock.json}.  The Solidity optimizer used 200 runs with \texttt{viaIR}
 enabled and the Cancun EVM target, as recorded in \texttt{hardhat.config.ts}.
 
-We evaluated public-weight local calculations with 100, 500, 1,000, and 5,000 SNPs
-\citep{knight2026heprs}, and one private-weight local calculation with 100 SNPs.  Each
+We evaluated public-weight local calculations against the four fixture sizes (100, 500,
+1,000, and 5,000 SNPs) from the HEPRS reference dataset \citep{knight2026heprs}, which
+contains real GWAS beta weights for a schizophrenia model at each size, and one
+private-weight local calculation with 100 SNPs.  Each
 public data set also includes one leading constant position.  The largest successful calculation
-chunk in the local simulation contained 21 SNPs for both public and private weights, and
-we used a chunk size of 20.  The corresponding Sepolia limit was not measured.
+chunk in the local simulation contained 21 SNPs for both public and private weights; all
+experiments use upload chunk size $r_u = 32$ and compute chunk size $r_c = 20$.  The
+corresponding Sepolia limit was not measured.
 
 On Sepolia (chain ID 11155111), a public-weight 100-SNP calculation completed in 25
 transactions after four contract deployments.  It used 20.710271 million gas, took
@@ -885,7 +1013,7 @@ Local simulation & 25 & 18.755864 M & 147 ms & 125 ms & 758,685 \\
 \end{tabular}
 \end{table*}
 
-\subsection{Agreement with an independent calculation}
+\subsection{Agreement with an Independent Calculation}
 
 We compared all 200 public-weight results with an independent calculation of
 Equation~\ref{eq:prs}: 50 individuals at each of the
@@ -920,7 +1048,7 @@ For the randomized risk category at 100 SNPs, all 48 individuals outside the
 threshold uncertainty range kept the same category.  Two individuals were inside the
 range and are reported separately; one changed category in this calculation.
 
-\subsection{Variant scale}
+\subsection{Variant Scale}
 
 Table~\ref{tab:scale_evidence} reports the number of transactions used for one public
 model and one sample.  The 100-SNP Sepolia result used the Classic method (stored inputs).  The local
@@ -946,7 +1074,7 @@ Local simulation & 5,000 & Streaming & 413 \\
 \end{tabular}
 \end{table}
 
-\subsection{Gas use as variant count increases}
+\subsection{Gas Consumption and Scaling}
 
 Figure~\ref{fig:gas} and Table~\ref{tab:gas} report gas used by the two calculation
 methods for four public-weight calculations in the local simulation.  Gas grows approximately
@@ -982,12 +1110,13 @@ sample registration. Both methods used calculation chunks of 20 SNPs.}
 \end{tabular}
 \end{table}
 
-\subsection{Gas used for each SNP}
+\subsection{Per-SNP Cost Decomposition}
 
-Table~\ref{tab:persnp} breaks down the approximate gas used for each SNP in the local
-simulation.  In the present implementation, preparing the encrypted input and
-multiplying and adding encrypted values account for approximately 95,000--104,000 gas
-per SNP before permanent storage is considered.  Changes to the fhEVM services or input
+Table~\ref{tab:persnp} decomposes per-SNP gas in the local simulation.  In the present
+implementation, input-proof verification, the FHE multiply, and the FHE accumulate
+account for approximately 95,000--104,000 gas per SNP before persistent storage is
+considered---operations set by the fhEVM protocol rather than by contract design
+choices.  Changes to the fhEVM services or input
 preparation could change these values.  These component values are engineering estimates
 derived from the operation pattern and total-gas differences; they were not measured as
 independent transaction components.
@@ -1002,12 +1131,12 @@ independent transaction components.
 \toprule
 \textbf{Operation} & \textbf{Classic} & \textbf{Streaming} \\
 \midrule
-Prepare encrypted input          & $\sim$50,000 & $\sim$50,000 \\
-Multiply encrypted values        & $\sim$27,000 & $\sim$27,000 \\
-Add encrypted values             & $\sim$27,000 & $\sim$27,000 \\
-Store encrypted SNP (classic only) & $\sim$25,000 & --- \\
-Store who may use it (classic only) & $\sim$25,000 & --- \\
-Read stored data and other overhead & $\sim$12,000 & --- \\
+Input proof verification         & $\sim$50,000 & $\sim$50,000 \\
+FHE multiply                     & $\sim$27,000 & $\sim$27,000 \\
+FHE accumulate (partial sum)     & $\sim$27,000 & $\sim$27,000 \\
+Handle SSTORE (classic only)     &  $\sim$25,000 & --- \\
+ACL SSTORE (classic only)        &  $\sim$25,000 & --- \\
+SLOAD, misc.\ overhead           &   $\sim$12,000 & --- \\
 \midrule
 \textbf{Total/SNP}               & $\approx$\textbf{166,000} & $\approx$\textbf{104,000} \\
 \bottomrule
@@ -1022,10 +1151,12 @@ includes one leading constant position.  The measured range was 1.554--1.763 ms 
 position.  The time per position increased by about 13\% between the smallest and
 largest local calculations.  These times combine the local arithmetic and
 transaction overhead; they measure neither real TFHE evaluation nor network latency.
-The separate Sepolia 100-SNP times appear in Table~\ref{tab:live_validation}
-and are not compared as a speed ratio.
+On a real network, latency is dominated by per-block confirmation time, as each chunk
+corresponds to one on-chain transaction; the transaction count scales as
+$\lceil N / r_c \rceil + 2$ for the streaming path.  The separate Sepolia 100-SNP times
+appear in Table~\ref{tab:live_validation} and are not compared as a speed ratio.
 
-\subsection{Transactions, gas, and fee examples}
+\subsection{Transactions, Gas, and Fee Examples}
 
 Table~\ref{tab:cost} reports the observed transaction use.  The Sepolia deployment used
 four transactions and 5.892559 million gas, costing 0.0062781714 Sepolia test ETH; the
@@ -1074,7 +1205,7 @@ not observed costs.  At 1 gwei, the respective values are 0.005892613, 0.0116900
 and 0.02350788 ETH; at 30 gwei, they are 0.17677839, 0.35070063, and 0.7052364 ETH.
 We make no USD conversion or conclusion about affordability or clinical or commercial use.
 
-\subsection{Calculation checks and responsibilities}
+\subsection{Calculation Checks and Responsibilities}
 
 The independent comparison summarized in Table~\ref{tab:quantization} shows agreement
 with Equation~\ref{eq:prs} for the studied inputs; it is not a guarantee for every
@@ -1104,37 +1235,72 @@ The contracts check who may receive a finalized result, allow only one finalizat
 keep the thresholds fixed by the model provider, require the minimum threshold gap,
 apply query limits, and stop a private-weight calculation when the model provider no
 longer allows it.  The legacy \texttt{readPartial} path described above is separate from
-finalization and is blocked only when oracle release is required.  The contracts do not establish the
+finalization and is blocked only when oracle release is required.  These protocol
+invariants---ACL enforcement, state-machine integrity, the single-finalize guarantee,
+the minimum threshold gap, oracle-required mode, approved-oracle enforcement,
+rate-limiting window behaviour, and ACL revocation handling---were validated across 188
+automated test cases.  The contracts do not establish the
 source of the biological sample, clinical validity, calibration, or performance in
 other populations.
 
 %% ============================================================
-\section{Who may use the data and calculation order}
-\label{sec:data_use}
+\section{Access Control and Compute Flows}
+\label{sec:acl}
 
-\subsection{Encrypted values and released results}
+\subsection{Encrypted Handle Lifecycle}
 
-Each encrypted value has a contract record stating who may use or decrypt it.  In the
-Classic method (stored inputs), the SNP handles and these records are stored for later
-transactions.  In the Streaming method, they are kept only for the current transaction
-and then discarded.  Avoiding these two permanent records for each SNP explains the
-lower gas use of the Streaming method.  A finalized raw score is authorized only for the
-requester.  If the model requires a risk category, the randomized Low, Medium, or High
-result is made publicly decryptable.  For raw-score models, \texttt{readPartial} can also
-authorize the requester to inspect an intermediate accumulator before finalization.
+Every encrypted value in the fhEVM has an associated ACL record maintained in a
+dedicated on-chain contract.  The ACL maps handles to authorised addresses and
+distinguishes four grant types with different persistence semantics:
 
-\subsection{Order of the calculation}
+\begin{itemize}
+  \item \textbf{Persistent contract grant}: Written to the ACL contract's persistent
+        storage via SSTORE.  Allows the owning contract to use the handle in future
+        transactions.  This is the primary source of gas cost in the classic upload
+        path ($\approx$25,000 gas per SNP handle).
+  \item \textbf{Persistent user grant}: Written to the ACL contract via SSTORE.
+        Allows an end-user to decrypt the handle via the decryption services.  Applied
+        at finalization to authorize the requester for their encoded score.
+  \item \textbf{Transient grant}: Valid only for the current transaction.  The streaming
+        path creates no persistent grant for an intermediate SNP handle, avoiding the
+        SSTORE cost entirely.
+  \item \textbf{Public grant}: Enables anyone to decrypt.  Applied only to the
+        randomized risk category; never applied to score values.
+\end{itemize}
 
-The contracts require the final calculation operations to occur in order: create a job,
-provide the encrypted SNPs, calculate the weighted sum, and finalize one result.  The Classic and
-Streaming methods cannot be mixed within the same calculation.
+The ACL design is the root of the gas differential between the classic and streaming
+paths.  In the classic path, each of the $N$ SNP handles requires a persistent contract
+grant (SSTORE in the ACL) and a handle write to contract storage (second SSTORE).  In
+the streaming path, neither persistent write is performed.  A finalized raw score is
+authorized only for the requester; if the model requires a risk category, the randomized
+Low, Medium, or High result is made publicly decryptable.  For raw-score models,
+\texttt{readPartial} can also authorize the requester to inspect an intermediate
+accumulator before finalization.
 
-\subsection{Who may use encrypted weights}
+\subsection{State Machine and Mutual Exclusion}
 
-For private weights, the model provider chooses which requesters may use the model.  The
-contract checks this choice whenever a calculation group is processed.  If the provider
-no longer allows a requester to use the model, the next group is rejected.  The contract
-also checks who may use the registered sample when the calculation is created.
+The PRS Compute Engine enforces a strict job state machine to prevent incorrect
+ordering of operations:
+\begin{equation*}
+\texttt{PENDING} \!\to\! \texttt{UPLOADING}
+\!\to\! \texttt{READY}
+\!\to\! \texttt{COMPUTING} \!\to\! \texttt{DONE}.
+\end{equation*}
+The classic and streaming paths are mutually exclusive per job.  The guard condition
+uses upload counts: if any SNP handles have been written to persistent storage, the
+classic path is in use and streaming calls are rejected; if computation has advanced
+without persistent uploads, the streaming path is in use.  This prevents hybrid
+calls that could compromise the handle-lifecycle invariants.
+
+\subsection{Private Model Access Control}
+
+When a GWAS model is published with private (encrypted) weights, access control is
+layered: the model owner must first authorise the compute engine as a reader; individual
+requesters must also be added to the private model reader list; and each compute chunk
+re-checks reader authorisation, so revocation of a requester mid-job causes the next
+compute chunk to fail, effectively terminating the job.  This is in contrast to the
+registry ACL, which is checked only at job creation.  The asymmetric behaviour between
+registry and model ACL is documented and empirically verified.
 
 %% ============================================================
 \section{Discussion}
@@ -1148,10 +1314,10 @@ calculation completed on Sepolia.  Public-weight calculations with 100--5,000 va
 and one private-weight 100-SNP calculation were evaluated in the local simulation.
 These results do not establish genome-wide or clinical use.
 
-\subsection{Comparison with HEPRS}
+\subsection{HEPRS and bioETH-PRS: Complementary Systems}
 
 bioETH-PRS and HEPRS \citep{knight2026heprs} address different questions and are best
-understood as complementary systems.
+understood as complementary rather than competing systems.
 
 HEPRS reports an encrypted PRS calculation for a substantially larger model and measures
 CKKS performance under a three-party non-collusion assumption.  CKKS represents
@@ -1165,15 +1331,15 @@ settings and transaction history are public, while the system still relies on th
 services.  It also requires many blockchain transactions.  The two systems answer
 different questions, and these results do not show that either is broadly superior.
 
-\subsection{Limitations}
+\subsection{Limitations and Open Problems}
 
-\textbf{Variant scale.}
+\textbf{SNP count ceiling.}
 The largest successful calculation chunk in the local simulation contained 21 SNPs for
 both public and private weights; the Sepolia limit remains unknown.  A public-weight
 5,000-variant calculation required 413 local transactions.  We did not evaluate larger
 bioETH-PRS models or production feasibility.
 
-\textbf{Source of the SNP data.}
+\textbf{SNP provenance.}
 As specified in Section~\ref{sec:security}, being allowed to request a calculation does
 not prove that the encrypted SNP values came from the registered sample.
 
@@ -1201,33 +1367,41 @@ examples using hypothetical gas prices.  Production fee schedules, USD cost, mem
 use, and operational throughput were not measured, so whether the system is affordable
 or practical for clinical or commercial use remains unknown.
 
-\subsection{Future work}
+\subsection{Future Directions}
 
 Future work should reduce the number of blockchain transactions and evaluate the
 private-weight 100-SNP calculation on Sepolia.  Establishing the source of encrypted
 SNPs will require a signed laboratory record or a privacy-preserving proof that links
 the encrypted values to the registered sample.  A formal privacy guarantee will require
 a precise definition of which data sets are compared, how much one input can change the
-score, how noise is chosen, and what repeated queries reveal.  Later studies could also
-evaluate LD-aware scores \citep{prive2020ldpred2}, decryption shared among several parties, model versioning,
-and reuse of encrypted SNP values across models.
+score, how noise is chosen, and what repeated queries reveal.
+
+Further planned extensions include: (1) LD-aware weighting in the encrypted domain,
+incorporating LDpred2-style shrinkage \citep{prive2020ldpred2}; (2) multi-party key
+generation enabling federated cohort analyses without a single decryption authority;
+(3) model versioning and deprecation mechanisms; (4) SNP handle re-use across
+multiple models from the same registered sample; and (5) token-based fee mechanisms
+to economically incentivise model quality.  The architecture's modularity---four
+independently deployable contracts---is designed to accommodate these extensions
+without disrupting existing deployments.
 
 %% ============================================================
 \section{Related Work}
 \label{sec:related}
 
 Privacy-preserving genomic computation has been pursued through multiple
-cryptographic paradigms.  \citet{kim2015} applied homomorphic
+cryptographic paradigms.  Kim and Lauter \citep{kim2015} applied homomorphic
 encryption schemes to compute GWAS statistics for up to 5,000 sequences, but did not
-extend to PRS computation.  \citet{blatt2020} built a homomorphic-encryption system for
-large-scale GWAS and reported PRS values derived from the encrypted association tests.
-\citet{mclaren2016} demonstrated privacy-preserving genomic testing in an HIV
+extend to PRS computation.  Blatt et al.\ \citep{blatt2020} built a
+homomorphic-encryption pipeline for large-scale GWAS and reported PRS values derived
+from the encrypted association tests.  McLaren et al.\
+\citep{mclaren2016} demonstrated privacy-preserving genomic testing in an HIV
 clinical-care model using homomorphic encryption, but did not address the full PRS
-calculation.  \citet{raisaro2019} introduced MedCo for secure,
+pipeline.  Raisaro et al.\ \citep{raisaro2019} introduced MedCo for secure,
 privacy-preserving exploration of distributed clinical and genomic data.
 
-\citet{knight2026heprs} present HEPRS, the closest prior work and a complete FHE
-calculation of PRS with real clinical data.  HEPRS achieves
+Knight et al.\ \citep{knight2026heprs} (HEPRS) is the closest prior work, providing a
+complete FHE pipeline for PRS with real clinical data.  HEPRS achieves
 $r > 0.999$ correlation with plaintext scores on a 110,000-SNP schizophrenia
 model and demonstrates practical feasibility on commodity hardware.  bioETH-PRS
 uses the HEPRS study fixtures and the same additive PRS definition, studying a

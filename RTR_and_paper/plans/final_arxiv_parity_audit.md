@@ -75,6 +75,44 @@ Two retained originals do not reproduce every post-RTR detail inside the artwork
 These exceptions are deliberate responses to the instruction to keep those two original files;
 they are not silent changes to the manuscript data or algorithm.
 
+## Parity-restoration pass
+
+A later line-by-line comparison against `original_arxiv_upload/bioeth_prs.tex` found revision
+churn that no reviewer comment required. The following original material was restored, without
+touching any RTR-driven claim, number, or terminology change:
+
+- Section and subsection headings reverted to the original titles and Title Case style
+  (`System Design`, `Architecture Overview`, `The Representation Problem`,
+  `Three-Step Unsigned Encoding`, `Overflow Safety`, `Quantization Advisor`,
+  `Execution Protocols`, `Threat Model`, `Core Privacy Invariants`, `Empirical Evaluation`,
+  `Gas Consumption and Scaling`, `Per-SNP Cost Decomposition`,
+  `Access Control and Compute Flows` and its three subsections,
+  `HEPRS and bioETH-PRS: Complementary Systems`, `Limitations and Open Problems`,
+  `Future Directions`). RTR-mandated new titles keep their wording and were Title-Cased for
+  consistency with the original style.
+- Algorithms 1 and 2 (classic and streaming pseudocode), with `finalizeAndClassify(jobId)`
+  corrected to the model-policy signature required by Reviewer 1, Comment 4.
+- The five privacy invariants, with randomized-category terminology in place of the noisy-oracle
+  wording.
+- Deleted technical content: the FHE-primitive paragraph in Background, the TFHE
+  consensus-reproducibility rationale, the chunk-size/HCU derivation, the SSTORE gas
+  derivation, the encrypted-select and threshold-gap explanation, the rate-limit window
+  mechanism and miner-manipulation note, the streaming transaction-count formula, the
+  ACL grant-type taxonomy, the job state machine, the mutual-exclusion guard, the layered
+  private-model access control, the per-SNP table's technical operation labels, the automated
+  test-suite validation statement (updated to 188 tests), and the five planned extensions in
+  future work.
+- Original paragraph leads and citation style (`The double-privacy problem.`,
+  `The FHE opportunity.`, the four contract names, `SNP count ceiling.`, `SNP provenance.`,
+  `Kim and Lauter \citep{...}` and the other author-name forms).
+
+Deliberately not restored, because restoring would reintroduce an error or contradict the RTR:
+the EIP-1153/TSTORE claim for streaming SNP storage (the same error corrected in the protocol
+figure), the `\approx`60\% cheaper ciphertext-times-plaintext multiply claim, the RLWE
+attribution for TFHE, the `4.61 \times 10^{12}` worst-case ceiling example, the `DP bias`
+paragraph label, and the L1/L2/app-chain USD cost projections. US `quantization` spelling is
+also kept throughout rather than reverting to the original's mixed British spelling.
+
 ## Reproducibility checks
 
 - `fig_quantization.png` and `fig_gas_scaling.png` have identical SHA-256 hashes to the files in
@@ -88,7 +126,7 @@ they are not silent changes to the manuscript data or algorithm.
   and the revised wording/section locations.
 - The rendered manuscript and RTR PDFs are stored with the verified source in
   `RTR_and_paper/final_arxiv_upload/`.
-- The final manuscript renders to 14 pages and the RTR to 12 pages. Every page was inspected after
+- The final manuscript renders to 16 pages and the RTR to 12 pages. Every page was inspected after
   rendering for clipping, broken tables, figure overflow, and awkward page breaks.
 - The complete Hardhat test suite passes (188 tests), including the reader-facing evidence,
   evidence-synthesis, release-policy, lifecycle, finalization, and Sepolia sweep checks.
